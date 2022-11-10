@@ -51,6 +51,9 @@ secondary = true
 plugins = "numpy.typing.mypy_plugin"
 exclude = ".venv"
 
+[tool.black]
+line-length = 88
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
