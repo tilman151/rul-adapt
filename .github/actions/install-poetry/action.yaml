@@ -4,6 +4,10 @@ inputs:
   poetry-version:
     description: "version of poetry to install"
     required: true
+  optional-groups:
+    description: "additional dependency groups to install using '--with'"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -13,5 +17,9 @@ runs:
       with:
         python-version-file: ".python-version"
         cache: "poetry"
-    - run: poetry install
+    - if: ${{ inputs.optional-groups == '' }}
+      run: poetry install
+      shell: "bash"
+    - if: ${{ inputs.optional-groups != '' }}
+      run: poetry install --with ${{ inputs.optional-groups }}
       shell: "bash"

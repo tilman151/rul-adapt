@@ -58,5 +58,5 @@ jobs:
       - uses: ./.github/actions/install-poetry
         with:
           poetry-version: "1.2.2"
-      - run: poetry install --with docs
+          optional-groups: "docs"
       - run: poetry run mkdocs gh-deploy --force
