@@ -36,6 +36,17 @@ mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.5.0"
 mkdocs-section-index = "^0.3.4"
 
+[tool.poetry.group.no-gpu]
+optional = true
+
+[tool.poetry.group.no-gpu.dependencies]
+torch = { version = "^1.9.1+cpu", source = "torch-cpu" }
+
+[[tool.poetry.source]]
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+secondary = true
+
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
 exclude = ".venv"
