@@ -1,0 +1,13 @@
+name: Master
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yaml
+
+  unit-test:
+    needs: [lint]
+    uses: ./.github/workflows/test.yaml

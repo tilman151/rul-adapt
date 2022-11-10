@@ -1,0 +1,17 @@
+name: Install Poetry
+description: "Installs the requested version of poetry."
+inputs:
+  poetry-version:
+    description: "version of poetry to install"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: pipx install poetry==${{ inputs.poetry-version }}
+      shell: "bash"
+    - uses: actions/setup-python@v4
+      with:
+        python-version-file: ".python-version"
+        cache: "poetry"
+    - run: poetry install
+      shell: "bash"

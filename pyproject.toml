@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "rul-adapt"
+version = "0.0.0"
+description = "A collection of unsupervised domain adaption approaches for RUL estimation."
+authors = ["Krokotsch, Tilman <tilman.krokotsch@tu-berlin.de>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://krokotsch.eu/rul-adapt"
+repository = "https://github.com/tilman151/rul-adapt"
+classifiers = [
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering "
+]
+packages = [{include = "rul_adapt"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pytorch-lightning = "^1.8.0.post1"
+rul-datasets = "^0.1.0"
+tqdm = "^4.62.2"
+
+[tool.poetry.group.dev.dependencies]
+black = {extras = ["d"], version = "^22.8.0"}
+flake8 = "^5.0.4"
+mypy = "^0.981"
+pytest = "^7.1.3"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.4.1"
+mkdocs-material = "^8.5.7"
+mkdocstrings = {extras = ["python"], version = "^0.19.0"}
+mkdocs-gen-files = "^0.4.0"
+mkdocs-literate-nav = "^0.5.0"
+mkdocs-section-index = "^0.3.4"
+
+[tool.mypy]
+plugins = "numpy.typing.mypy_plugin"
+exclude = ".venv"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry_bumpversion.file."rul_datasets/__init__.py"]
