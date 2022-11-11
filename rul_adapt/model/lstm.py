@@ -1,4 +1,4 @@
-from itertools import pairwise, chain
+from itertools import pairwise
 from typing import List, Optional, Union, Tuple
 
 import torch
@@ -25,7 +25,8 @@ class LstmExtractor(nn.Module):
         self._lstm_layers = self._get_lstm_layers()
         self._fc_layer = self._get_fc_layer()
 
-    def _get_lstm_layers(self) -> Union[nn.Module, List[nn.Module]]:
+    def _get_lstm_layers(self) -> nn.Module:
+        lstm_layers: nn.Module
         if all(self.lstm_units[0] == u for u in self.lstm_units):
             lstm_layers = nn.LSTM(
                 self.input_channels,
