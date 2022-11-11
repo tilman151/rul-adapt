@@ -1,8 +1,9 @@
-from itertools import pairwise
 from typing import List, Optional, Union, Type
 
 import torch
 from torch import nn
+
+from rul_adapt.utils import pairwise
 
 
 class CnnExtractor(nn.Module):

@@ -1,8 +1,9 @@
-from itertools import pairwise
 from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
+
+from rul_adapt.utils import pairwise
 
 
 class LstmExtractor(nn.Module):
