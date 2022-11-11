@@ -9,15 +9,35 @@ def lstm_extractor():
     return model.LstmExtractor(14, [16, 16], 8)
 
 
+def lstm_extractor_no_fc():
+    return model.LstmExtractor(14, [16])
+
+
 def lstm_extractor_differing_units():
     return model.LstmExtractor(14, [16, 8], 8)
+
+
+def cnn_extractor():
+    return model.CnnExtractor(14, [16, 8], 30, fc_units=4)
+
+
+def cnn_extractor_no_fc():
+    return model.CnnExtractor(14, [16, 8], 30)
+
+
+def cnn_extractor_bn():
+    return model.CnnExtractor(14, [16, 8], 30, batch_norm=True)
 
 
 pytestmark = pytest.mark.parametrize(
     ["net_func", "inputs"],
     [
         (lstm_extractor, torch.randn(8, 14, 30)),
+        (lstm_extractor_no_fc, torch.randn(8, 14, 30)),
         (lstm_extractor_differing_units, torch.randn(8, 14, 30)),
+        (cnn_extractor, torch.randn(8, 14, 30)),
+        (cnn_extractor_no_fc, torch.randn(8, 14, 30)),
+        (cnn_extractor_bn, torch.randn(8, 14, 30)),
     ],
 )
 

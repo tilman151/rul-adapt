@@ -1,5 +1,5 @@
 from itertools import pairwise
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
