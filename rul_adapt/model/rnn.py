@@ -203,6 +203,7 @@ def _get_rnn_layers(
     dropout: float,
     bidirectional: bool,
 ) -> nn.Module:
+    layers: nn.Module
     if all(num_units[0] == u for u in num_units):
         layers = rnn_func(
             input_channels,
