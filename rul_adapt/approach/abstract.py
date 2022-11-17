@@ -1,7 +1,6 @@
 """A module for the abstract base class of all approaches."""
 
 from abc import ABCMeta
-from typing import Callable, Optional
 
 import pytorch_lightning as pl
 from torch import nn
@@ -11,11 +10,9 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     """
     This abstract class is the base of all adaption approaches.
 
-    It defines that there needs to be a `feature_extractor`, a `regressor` and an
-    optional `manual_feature_extractor`. These members can be accessed via read-only
-    properties. The `feature_extractor` and `regressor` are trainable neural
-    networks. The `manual_feature_extractor` is a callable that extracts features
-    without needing to be trained.
+    It defines that there needs to be a `feature_extractor`, a `regressor`. These
+    members can be accessed via read-only properties. The `feature_extractor` and
+    `regressor` are trainable neural networks.
 
     All child classes are supposed to implement their own constructors. The
     `feature_extractor` and `regressor` should explicitly not be arguments of the
@@ -27,7 +24,6 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
 
     _feature_extractor: nn.Module
     _regressor: nn.Module
-    _manual_feature_extractor: Optional[Callable] = None
 
     def set_model(self, feature_extractor: nn.Module, regressor: nn.Module) -> None:
         """
@@ -55,12 +51,3 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             return self._regressor
         else:
             raise RuntimeError("Regressor used before 'set_model' was called.")
-
-    @property
-    def manual_feature_extractor(self) -> Optional[Callable]:
-        """The manual feature extractor."""
-        return self._manual_feature_extractor
-
-    @manual_feature_extractor.setter
-    def manual_feature_extractor(self, value: Callable) -> None:
-        self._manual_feature_extractor = value
