@@ -17,6 +17,10 @@ def lstm_extractor_differing_units():
     return model.LstmExtractor(14, [16, 8], 8)
 
 
+def lstm_extractor_bidirectional():
+    return model.LstmExtractor(14, [16, 16], 8, bidirectional=True)
+
+
 def cnn_extractor():
     return model.CnnExtractor(14, [16, 8], 30, fc_units=4)
 
@@ -35,6 +39,7 @@ pytestmark = pytest.mark.parametrize(
         (lstm_extractor, torch.randn(8, 14, 30)),
         (lstm_extractor_no_fc, torch.randn(8, 14, 30)),
         (lstm_extractor_differing_units, torch.randn(8, 14, 30)),
+        (lstm_extractor_bidirectional, torch.randn(8, 14, 30)),
         (cnn_extractor, torch.randn(8, 14, 30)),
         (cnn_extractor_no_fc, torch.randn(8, 14, 30)),
         (cnn_extractor_bn, torch.randn(8, 14, 30)),
@@ -93,6 +98,7 @@ def test_batch_independence(net_func, inputs):
 
 
 def test_all_parameters_updated(net_func, inputs):
+    # TODO: check gradients for reverse layer 1 hh of BiLstm
     net = net_func()
     optim = torch.optim.SGD(net.parameters(), lr=0.1)
 

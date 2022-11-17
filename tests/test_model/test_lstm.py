@@ -13,10 +13,13 @@ def inputs():
 @torch.no_grad()
 @pytest.mark.parametrize("lstm_units", [[16], [16, 16], [16, 8]])
 @pytest.mark.parametrize("fc_units", [4, None])
-def test_forward(inputs, lstm_units, fc_units):
+@pytest.mark.parametrize("bidirectional", [True, False])
+def test_forward(inputs, lstm_units, fc_units, bidirectional):
     input_channels = inputs.shape[1]
-    output_channels = fc_units or lstm_units[-1]
-    lstm = LstmExtractor(input_channels, lstm_units, fc_units)
+    output_channels = fc_units or (lstm_units[-1] * (2 if bidirectional else 1))
+    lstm = LstmExtractor(
+        input_channels, lstm_units, fc_units, bidirectional=bidirectional
+    )
 
     outputs = lstm(inputs)
 
@@ -37,3 +40,12 @@ def test_fc_dropout():
     dropout_layer = lstm._fc_layer[0]
     assert isinstance(dropout_layer, nn.Dropout)
     assert dropout_layer.p == 0.5
+
+
+@pytest.mark.parametrize("lstm_units", [[16, 16], [16, 8]])
+def test_bidirectional(lstm_units):
+    lstm = LstmExtractor(14, lstm_units, bidirectional=True)
+
+    assert lstm.bidirectional
+    lstm_layer = lstm._lstm_layers
+    assert lstm_layer.bidirectional
