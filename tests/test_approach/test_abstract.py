@@ -33,14 +33,3 @@ def test_regressor():
 
     with pytest.raises(RuntimeError):
         _ = approach.regressor
-
-
-def test_manual_feature_extractor():
-    mock_manual_feature_extractor = mock.MagicMock()
-    approach = DummyApproach()
-
-    assert approach.manual_feature_extractor is None
-
-    approach.manual_feature_extractor = mock_manual_feature_extractor
-
-    assert approach.manual_feature_extractor is mock_manual_feature_extractor
