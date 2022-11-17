@@ -1,3 +1,5 @@
+"""A module of feature extractors based on convolutional neural networks."""
+
 from typing import List, Optional, Union, Type
 
 import torch
@@ -7,6 +9,40 @@ from rul_adapt.utils import pairwise
 
 
 class CnnExtractor(nn.Module):
+    """A Convolutional Neural Network (CNN) based network that extracts a feature
+    vector from same-length time windows.
+
+    This feature extractor consists of multiple CNN layers and an optional fully
+    connected (FC) layer. Each CNN layer can be configured with a number of filters
+    and a kernel size. Additionally, batch normalization, same-padding and dropout
+    can be applied. The fully connected layer can have a separate dropout
+    probability.
+
+    Both CNN and FC layers use ReLU activation functions by default. Custom
+    activation functions can be set for each layer type.
+
+    The data flow is as follows: `Input --> CNN x n --> [FC] --> Output`
+
+    The expected input shape is `[batch_size, num_features, window_size]`. The output
+    of this network is always flattened to `[batch_size, num_extracted_features]`.
+
+    Examples:
+
+        Without FC
+        >>> import torch
+        >>> from rul_adapt.model import CnnExtractor
+        >>> cnn = CnnExtractor(14, conv_filters=[16, 1], seq_len=30)
+        >>> cnn(torch.randn(10, 14, 30)).shape
+        torch.Size([10, 26])
+
+        With FC
+        >>> import torch
+        >>> from rul_adapt.model import CnnExtractor
+        >>> cnn = CnnExtractor(14, conv_filters=[16, 1], seq_len=30, fc_units=16)
+        >>> cnn(torch.randn(10, 14, 30)).shape
+        torch.Size([10, 16])
+    """
+
     def __init__(
         self,
         input_channels: int,
@@ -21,6 +57,38 @@ class CnnExtractor(nn.Module):
         conv_act_func: Type[nn.Module] = nn.ReLU,
         fc_act_func: Type[nn.Module] = nn.ReLU,
     ):
+        """
+        Create a new CNN-based feature extractor.
+
+        The `conv_filters` are the number of output filters for each CNN layer. The
+        `seq_len` is needed to calculate the input units for the FC layer. The kernel
+        size of each CNN layer can be set by passing a list to `kernel_size`. If an
+        integer is passed, each layer has the same kernel size. If `padding` is true,
+        same-padding is applied before each CNN layer, which keeps the window_size
+        the same. If `batch_norm` is set, batch normalization is applied for each CNN
+        layer. If `fc_units` is set, a fully connected layer is appended.
+
+        Dropout can be applied to each CNN layer by setting `conv_dropout` to a
+        number greater than zero. The same is valid for the fully connected layer and
+        `fc_dropout`.
+
+        The whole network uses ReLU activation functions. This can be customized by
+        setting either `conv_act_func` or `fc_act_func`.
+
+        Args:
+            input_channels: The number of input channels.
+            conv_filters: The list of output filters for the CNN layers.
+            seq_len: The window_size of the input data.
+            kernel_size: The kernel size for the CNN layers. Passing an integer uses
+                         the same kernel size for each layer.
+            padding: Whether to apply same-padding before each CNN layer.
+            fc_units: Number of output units for the fully connected layer.
+            conv_dropout: The dropout probability for the CNN layers.
+            fc_dropout: The dropout probability for the fully connected layer.
+            batch_norm: Whether to use batch normalization on the CNN layers.
+            conv_act_func: The activation function for the CNN layers.
+            fc_act_func: The activation function for the fully connected layer.
+        """
         super().__init__()
 
         self.input_channels = input_channels

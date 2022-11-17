@@ -1,3 +1,5 @@
+"""A module of feature extractors based on recurrent neural networks."""
+
 from typing import List, Optional, Tuple, Type, Union
 
 import torch
@@ -7,6 +9,34 @@ from rul_adapt.utils import pairwise
 
 
 class LstmExtractor(nn.Module):
+    """A Long Short Term Memory (LSTM) based network that extracts a feature vector
+    from same-length time windows.
+
+    This feature extractor consists of a multi-layer LSTM and an optional fully
+    connected (FC) layer with a ReLU activation function. The LSTM layers can be
+    configured as bidirectional. Dropout can be applied separately to LSTM and FC
+    layers.
+
+    The data flow is as follows: `Input --> LSTM x n --> [FC] --> Output`
+
+    The expected input shape is `[batch_size, num_features, window_size]`.
+
+    Examples:
+
+        Without FC
+        >>> import torch
+        >>> from rul_adapt.model import LstmExtractor
+        >>> lstm = LstmExtractor(input_channels=14, lstm_units=[16, 16])
+        >>> lstm(torch.randn(10, 14, 30)).shape
+        torch.Size([10, 16])
+
+        With FC
+        >>> from rul_adapt.model import LstmExtractor
+        >>> lstm = LstmExtractor(input_channels=14, lstm_units=[16, 16], fc_units=8)
+        >>> lstm(torch.randn(10, 14, 30)).shape
+        torch.Size([10, 8])
+    """
+
     def __init__(
         self,
         input_channels: int,
@@ -16,6 +46,27 @@ class LstmExtractor(nn.Module):
         fc_dropout: float = 0.0,
         bidirectional: bool = False,
     ) -> None:
+        """
+        Create a new LSTM-based feature extractor.
+
+        The `lstm_units` are the output units for each LSTM layer. If `bidirectional`
+        is set to `True`, a BiLSTM is used and the output units are doubled. If
+        `fc_units` is set, a fully connected layer is appended. The number of output
+        features of this network is either `lstm_units[-1]` by default,
+        `2 * lstm_units[ -1]` if bidirectional is set, or `fc_units` if it is set.
+
+        Dropout can be applied to each LSTM layer by setting `lstm_dropout` to a
+        number greater than zero. The same is valid for the fully connected layer and
+        `fc_dropout`.
+
+        Args:
+            input_channels: The number of input channels.
+            lstm_units: The list of output units for the LSTM layers.
+            fc_units: The number of output units for the fully connected layer.
+            lstm_dropout: The dropout probability for the LSTM layers.
+            fc_dropout: The dropout probability for the fully connected layer.
+            bidirectional: Whether to use a BiLSTM.
+        """
         super().__init__()
 
         self.input_channels = input_channels
@@ -59,6 +110,26 @@ class LstmExtractor(nn.Module):
 
 
 class GruExtractor(nn.Module):
+    """A Gated Recurrent Unit (GRU) based network that extracts a feature vector
+    from same-length time windows.
+
+    This feature extractor consists of multiple fully connected (FC) layers with
+    a ReLU activation functions and a multi-layer GRU. The GRU layers can be
+    configured as bidirectional. Dropout can be applied separately to the GRU
+    layers.
+
+    The data flow is as follows: `Input --> FC x n --> GRU x m --> Output`
+
+    The expected input shape is `[batch_size, num_features, window_size]`.
+
+    Examples:
+        >>> import torch
+        >>> from rul_adapt.model import GruExtractor
+        >>> gru = GruExtractor(input_channels=14, fc_units=[16, 8], gru_units=[8])
+        >>> gru(torch.randn(10, 14, 30)).shape
+        torch.Size([10, 8])
+    """
+
     def __init__(
         self,
         input_channels: int,
@@ -67,6 +138,25 @@ class GruExtractor(nn.Module):
         gru_dropout: float = 0.0,
         bidirectional: bool = False,
     ) -> None:
+        """
+        Create a new GRU-based feature extractor.
+
+        The `fc_units` are the output units for each fully connected layer
+        and `gru_units` for each LSTM layer. If `bidirectional` is set to `True`,
+        a BiGRU is used and the output units are doubled. The number of output
+        features of this network is either `gru_units[-1]` by default, or `2 *
+        gru_units[ -1]` if bidirectional is set.
+
+        Dropout can be applied to each GRU layer by setting `lstm_dropout` to a
+        number greater than zero.
+
+        Args:
+            input_channels: The number of input channels.
+            fc_units: The list of output units for the fully connected layers.
+            gru_units: The list of output units for the GRU layers
+            gru_dropout: The dropout probability for the GRU layers.
+            bidirectional: Whether to use a BiGRU.
+        """
         super().__init__()
 
         self.input_channels = input_channels
