@@ -16,7 +16,7 @@ packages = [{include = "rul_adapt"}]
 [tool.poetry.dependencies]
 python = "^3.8"
 pytorch-lightning = "^1.8.0.post1"
-rul-datasets = "^0.1.0"
+rul-datasets = "^0.2.0"
 tqdm = "^4.62.2"
 
 [tool.poetry.group.dev.dependencies]
