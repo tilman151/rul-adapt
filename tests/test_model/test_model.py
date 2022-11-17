@@ -1,6 +1,6 @@
+import numpy.testing as npt
 import pytest
 import torch
-import numpy.testing as npt
 
 from rul_adapt import model
 
@@ -19,6 +19,18 @@ def lstm_extractor_differing_units():
 
 def lstm_extractor_bidirectional():
     return model.LstmExtractor(14, [16, 16], 8, bidirectional=True)
+
+
+def gru_extractor():
+    return model.GruExtractor(14, [8], [16, 16])
+
+
+def gru_extractor_differing_units():
+    return model.GruExtractor(14, [8, 4], [16, 8])
+
+
+def gru_extractor_bidirectional():
+    return model.GruExtractor(14, [8], [16, 16], bidirectional=True)
 
 
 def cnn_extractor():
@@ -40,6 +52,9 @@ pytestmark = pytest.mark.parametrize(
         (lstm_extractor_no_fc, torch.randn(8, 14, 30)),
         (lstm_extractor_differing_units, torch.randn(8, 14, 30)),
         (lstm_extractor_bidirectional, torch.randn(8, 14, 30)),
+        (gru_extractor, torch.randn(8, 14, 30)),
+        (gru_extractor_differing_units, torch.randn(8, 14, 30)),
+        (gru_extractor_bidirectional, torch.randn(8, 14, 30)),
         (cnn_extractor, torch.randn(8, 14, 30)),
         (cnn_extractor_no_fc, torch.randn(8, 14, 30)),
         (cnn_extractor_bn, torch.randn(8, 14, 30)),
