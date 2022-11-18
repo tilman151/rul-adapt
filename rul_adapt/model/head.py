@@ -83,7 +83,7 @@ class FullyConnectedHead(nn.Module):
 
     def _get_layers(self) -> nn.Module:
         units = [self.input_channels] + self.units
-        act_funcs = [self.act_func] * len(self.units)
+        act_funcs: List[Optional[Type[nn.Module]]] = [self.act_func] * len(self.units)
         act_funcs[-1] = self.act_func if self.act_func_on_last_layer else None
 
         layers = nn.Sequential()
@@ -95,6 +95,7 @@ class FullyConnectedHead(nn.Module):
     def _get_fc_layer(
         self, in_units: int, out_units: int, act_func: Optional[Type[nn.Module]]
     ) -> nn.Module:
+        layer: nn.Module
         if act_func is None:
             layer = nn.Linear(in_units, out_units)
         else:
