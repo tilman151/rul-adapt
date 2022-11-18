@@ -1,3 +1,5 @@
+"""A module for network working as a regression or classification head."""
+
 from typing import List, Type, Optional
 
 import torch
@@ -7,6 +9,46 @@ from rul_adapt.utils import pairwise
 
 
 class FullyConnectedHead(nn.Module):
+    """A fully connected (FC) network that can be used as a RUL regressor or a domain
+    discriminator.
+
+    This network is a stack of fully connected layers with ReLU activation functions
+    by default. The activation function can be customized through the `act_func`
+    parameter. If the last layer of the network should not have an activation
+    function, `act_func_on_last_layer` can be set to `False`.
+
+    The data flow is as follows: `Inputs --> FC x n --> Outputs`
+
+    The expected input shape is `[batch_size, num_features]`.
+
+    Examples:
+        Default
+        >>> import torch
+        >>> from rul_adapt.model import FullyConnectedHead
+        >>> regressor = FullyConnectedHead(32, [16, 1])
+        >>> outputs = regressor(torch.randn(10, 32))
+        >>> outputs.shape
+        torch.Size([10, 1])
+        >>> type(outputs.grad_fn)
+        <class 'ReluBackward0'>
+
+        Custom activation function
+        >>> import torch
+        >>> from rul_adapt.model import FullyConnectedHead
+        >>> regressor = FullyConnectedHead(32, [16, 1], act_func=torch.nn.Sigmoid)
+        >>> outputs = regressor(torch.randn(10, 32))
+        >>> type(outputs.grad_fn)
+        <class 'SigmoidBackward0'>
+
+        Without activation function on last layer
+        >>> import torch
+        >>> from rul_adapt.model import FullyConnectedHead
+        >>> regressor = FullyConnectedHead(32, [16, 1], act_func_on_last_layer=False)
+        >>> outputs = regressor(torch.randn(10, 32))
+        >>> type(outputs.grad_fn)
+        <class 'AddmmBackward0'>
+    """
+
     def __init__(
         self,
         input_channels: int,
@@ -14,6 +56,19 @@ class FullyConnectedHead(nn.Module):
         act_func: Type[nn.Module] = nn.ReLU,
         act_func_on_last_layer: bool = True,
     ) -> None:
+        """
+        Create a new fully connected head network.
+
+        The `units` are the number of output units for each FC layer. The number of
+        output features is `units[-1]`.
+
+        Args:
+            input_channels: The number of input channels.
+            units: The number of output units for the FC layers.
+            act_func: The activation function for each layer.
+            act_func_on_last_layer: Whether to add the activation function to the last
+                                    layer.
+        """
         super().__init__()
 
         self.input_channels = input_channels
