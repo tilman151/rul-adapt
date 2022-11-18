@@ -5,11 +5,6 @@ from torch import nn
 from rul_adapt.model.rnn import LstmExtractor, GruExtractor
 
 
-@pytest.fixture
-def inputs():
-    return torch.randn(8, 14, 30)
-
-
 @torch.no_grad()
 @pytest.mark.parametrize("lstm_units", [[16], [16, 16], [16, 8]])
 @pytest.mark.parametrize("fc_units", [4, None])

@@ -7,11 +7,6 @@ from torch import nn
 from rul_adapt.model import CnnExtractor
 
 
-@pytest.fixture
-def inputs():
-    return torch.randn(8, 14, 30)
-
-
 @torch.no_grad()
 @pytest.mark.parametrize("conv_filters", [[16, 16], [16, 8]])
 @pytest.mark.parametrize("kernel_size", [2, 3, 4, 5, [3, 1]])

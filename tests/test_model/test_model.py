@@ -1,6 +1,7 @@
 import numpy.testing as npt
 import pytest
 import torch
+from torch import nn
 
 from rul_adapt import model
 
@@ -45,19 +46,26 @@ def cnn_extractor_bn():
     return model.CnnExtractor(14, [16, 8], 30, batch_norm=True)
 
 
+def fc_head():
+    return nn.Sequential(
+        nn.Flatten(), model.FullyConnectedHead(14 * 30, [10, 1], nn.Sigmoid)
+    )
+
+
 pytestmark = pytest.mark.parametrize(
-    ["net_func", "inputs"],
+    "net_func",
     [
-        (lstm_extractor, torch.randn(8, 14, 30)),
-        (lstm_extractor_no_fc, torch.randn(8, 14, 30)),
-        (lstm_extractor_differing_units, torch.randn(8, 14, 30)),
-        (lstm_extractor_bidirectional, torch.randn(8, 14, 30)),
-        (gru_extractor, torch.randn(8, 14, 30)),
-        (gru_extractor_differing_units, torch.randn(8, 14, 30)),
-        (gru_extractor_bidirectional, torch.randn(8, 14, 30)),
-        (cnn_extractor, torch.randn(8, 14, 30)),
-        (cnn_extractor_no_fc, torch.randn(8, 14, 30)),
-        (cnn_extractor_bn, torch.randn(8, 14, 30)),
+        lstm_extractor,
+        lstm_extractor_no_fc,
+        lstm_extractor_differing_units,
+        lstm_extractor_bidirectional,
+        gru_extractor,
+        gru_extractor_differing_units,
+        gru_extractor_bidirectional,
+        cnn_extractor,
+        cnn_extractor_no_fc,
+        cnn_extractor_bn,
+        fc_head,
     ],
 )
 
@@ -107,13 +115,12 @@ def test_batch_independence(net_func, inputs):
     # Check if gradient exists and is zero for masked samples
     for i, grad in enumerate(inputs.grad):
         if i == mask_idx:
-            assert torch.all(grad == 0).item()
+            assert torch.square(grad).sum() == 0
         else:
-            assert not torch.all(grad == 0)
+            assert not torch.square(grad).sum() == 0
 
 
 def test_all_parameters_updated(net_func, inputs):
-    # TODO: check gradients for reverse layer 1 hh of BiLstm
     net = net_func()
     optim = torch.optim.SGD(net.parameters(), lr=0.1)
 
