@@ -121,8 +121,8 @@ class JointMaximumMeanDiscrepancyLoss(nn.Module):
             distances.append(_calc_gaussian_kernel(dist, gamma))
 
         batch_size = source_features[0].shape[0]
-        distances = torch.stack(distances, dim=0).prod(dim=0)
-        disc = _calc_discrepancy(distances, batch_size)
+        merged_distances = torch.stack(distances, dim=0).prod(dim=0)
+        disc = _calc_discrepancy(merged_distances, batch_size)
 
         return disc
 
@@ -192,12 +192,12 @@ class _GradientReverse(torch.autograd.Function):
     """Gradient reversal forward and backward definitions."""
 
     @staticmethod
-    def forward(ctx: Any, inputs: torch.Tensor, **kwargs: Any) -> torch.Tensor:
+    def forward(ctx: Any, inputs: torch.Tensor) -> torch.Tensor:  # type: ignore
         """Forward pass as identity mapping."""
         return inputs
 
     @staticmethod
-    def backward(ctx: Any, grad: torch.Tensor) -> torch.Tensor:
+    def backward(ctx: Any, grad: torch.Tensor) -> torch.Tensor:  # type: ignore
         """Backward pass as negative of gradient."""
         return -grad
 
@@ -218,8 +218,9 @@ def _calc_discrepancy(distances: torch.Tensor, batch_size: int) -> torch.Tensor:
 def _calc_multi_kernel(distances: torch.Tensor, gammas: List[float]) -> torch.Tensor:
     """Compute linear combination of Gaussian kernels."""
     kernels = [_calc_gaussian_kernel(distances, gamma) for gamma in gammas]
+    combined: torch.Tensor = sum(kernels) / len(gammas)  # type: ignore
 
-    return sum(kernels) / len(gammas)
+    return combined
 
 
 def _calc_gaussian_kernel(distances: torch.Tensor, gamma: float) -> torch.Tensor:

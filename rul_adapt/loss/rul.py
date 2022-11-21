@@ -9,6 +9,9 @@ class RULScore(torchmetrics.Metric):
     higher_is_better = False
     full_state_update = False
 
+    loss: torch.Tensor
+    total: torch.Tensor
+
     def __init__(self, pos_factor=10.0, neg_factor=-13.0, mean: bool = False):
         super().__init__()
         self.pos_factor = pos_factor
