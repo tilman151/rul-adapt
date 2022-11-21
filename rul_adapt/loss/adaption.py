@@ -5,6 +5,8 @@ from typing import List, Any
 import torch
 from torch import nn
 
+from rul_adapt.loss.utils import calc_pairwise_euclidean
+
 
 class MaximumMeanDiscrepancyLoss(nn.Module):
     """The Maximum Mean Discrepancy Loss (MMD) is a distance measure between two
@@ -62,7 +64,7 @@ class MaximumMeanDiscrepancyLoss(nn.Module):
             scalar MMD loss
         """
         feats = torch.cat([source_features, target_features], dim=0)
-        distances = _calc_pairwise_distances(feats, feats)
+        distances = calc_pairwise_euclidean(feats, feats)
 
         gammas = _get_gammas(distances, self.num_kernels)
         distances = _calc_multi_kernel(distances, gammas)
@@ -116,7 +118,7 @@ class JointMaximumMeanDiscrepancyLoss(nn.Module):
         distances = []
         for source, target in zip(source_features, target_features):
             feats = torch.cat([source, target], dim=0)
-            dist = _calc_pairwise_distances(feats, feats)
+            dist = calc_pairwise_euclidean(feats, feats)
             (gamma,) = _get_gammas(dist, 1)
             distances.append(_calc_gaussian_kernel(dist, gamma))
 
@@ -236,13 +238,3 @@ def _get_gammas(distances: torch.Tensor, num_kernels: int) -> List[float]:
     gammas = [bandwidth * (2**i) for i in range(num_kernels)]
 
     return gammas
-
-
-def _calc_pairwise_distances(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-    """Compute pairwise linear distances between features."""
-    num_elems = x.shape[0]
-    x = x.view(num_elems, 1, -1)
-    y = y.view(1, num_elems, -1)
-    distances = (x - y) ** 2
-
-    return distances.sum(-1)
