@@ -4,4 +4,9 @@ from .adaption import (
     DomainAdversarialLoss,
     ConsistencyLoss,
 )
+from .alignment import (
+    HealthyStateAlignmentLoss,
+    DegradationDirectionAlignmentLoss,
+    DegradationLevelRegularizationLoss,
+)
 from .rul import rul_score, RULScore
