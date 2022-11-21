@@ -8,7 +8,7 @@ def calc_pairwise_euclidean(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
 
 def calc_pairwise_dot(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-    return _calc_pairwise_distances(x, y, torch.dot)
+    return _calc_pairwise_distances(x, y, _dot)
 
 
 def _calc_pairwise_distances(
@@ -25,3 +25,7 @@ def _calc_pairwise_distances(
 
 def _euclidean(x, y):
     return torch.sqrt((x - y) ** 2).sum(-1)
+
+
+def _dot(x, y):
+    return torch.mul(x, y).sum(-1)
