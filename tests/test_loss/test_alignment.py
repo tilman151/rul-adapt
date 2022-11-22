@@ -67,3 +67,39 @@ def test_degradation_regularization(source_labels, target_degradation_steps, exp
     )
 
     npt.assert_almost_equal(reg_loss, expected)
+
+
+@pytest.mark.parametrize(
+    ["metric", "inputs"],
+    [
+        (loss.HealthyStateAlignmentLoss(), (torch.randn(10, 5),)),
+        (
+            loss.DegradationDirectionAlignmentLoss(),
+            (torch.randn(10, 5), torch.randn(10, 5)),
+        ),
+        (
+            loss.DegradationLevelRegularizationLoss(10),
+            (
+                torch.randn(10, 5),
+                torch.randn(10, 5),
+                torch.arange(10, dtype=torch.float),
+                torch.randn(10, 5),
+                torch.arange(10, dtype=torch.float),
+            ),
+        ),
+    ],
+)
+def test_aggregated_metrics_same_magnitude(metric, inputs):
+    """Check if batched aggregates have at least approximately the same magnitude as
+    directly computed values."""
+    batched_inputs = (torch.split(i, 6) for i in inputs)  # batches of 6 and 5 samples
+    batched_inputs = zip(*batched_inputs)
+
+    outputs = metric(*inputs)
+    metric.reset()
+
+    for i in batched_inputs:
+        metric(*i)
+    batched_outputs = metric.compute()
+
+    npt.assert_almost_equal(outputs, batched_outputs, decimal=0)
