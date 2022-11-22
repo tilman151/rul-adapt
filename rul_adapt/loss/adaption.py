@@ -38,6 +38,10 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     ```
     """
 
+    is_differentiable = True
+    higher_is_better = False
+    full_state_update = False
+
     loss: List[torch.Tensor]
     total: List[int]
 
@@ -102,6 +106,10 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     [MaximumMeanDiscrepancyLoss] [rul_adapt.loss.adaption.MaximumMeanDiscrepancyLoss].
     """
 
+    is_differentiable = True
+    higher_is_better = False
+    full_state_update = False
+
     loss: List[torch.Tensor]
     total: List[int]
 
@@ -162,6 +170,10 @@ class DomainAdversarialLoss(torchmetrics.Metric):
     [rul_adapt.loss.adaption.GradientReversalLayer]. This way, the discriminator is
     trained to separate the domains while the network generating the inputs is
     trained to marginalize the domain difference."""
+
+    is_differentiable = True
+    higher_is_better = False
+    full_state_update = False
 
     loss: List[torch.Tensor]
     total: List[int]
