@@ -1,6 +1,16 @@
-from typing import Callable
+from typing import Callable, List
 
 import torch
+
+
+def weighted_mean(
+    inputs: List[torch.Tensor], weights: List[int], device: torch.device
+) -> torch.Tensor:
+    torch_weights = torch.tensor(weights, device=device, dtype=torch.float)
+    torch_weights /= torch.sum(torch_weights)
+    mean = torch.sum(torch.stack(inputs) * torch_weights)
+
+    return mean
 
 
 def calc_pairwise_euclidean(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:

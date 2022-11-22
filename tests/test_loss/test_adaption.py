@@ -75,8 +75,8 @@ def test_dann_grl(mock_grl):
 
     dann(inputs, targets)
 
-    mock_grl.assert_called_once_with(inputs)  # GRL received inputs
-    mock_disc.assert_called_once_with(mock_grl())  # disc received GRL outputs
+    mock_grl.assert_called_with(inputs)  # GRL received inputs
+    mock_disc.assert_called_with(mock_grl())  # disc received GRL outputs
 
 
 def test_gradient_reversal_layer():
