@@ -3,12 +3,13 @@
 from typing import List, Any
 
 import torch
+import torchmetrics
 from torch import nn
 
-from rul_adapt.loss.utils import calc_pairwise_euclidean
+from rul_adapt.loss.utils import calc_pairwise_euclidean, weighted_mean
 
 
-class MaximumMeanDiscrepancyLoss(nn.Module):
+class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     """The Maximum Mean Discrepancy Loss (MMD) is a distance measure between two
     arbitrary distributions.
 
@@ -37,6 +38,9 @@ class MaximumMeanDiscrepancyLoss(nn.Module):
     ```
     """
 
+    loss: List[torch.Tensor]
+    total: List[int]
+
     def __init__(self, num_kernels: int) -> None:
         """
         Create a new MMD loss module with `n` kernels.
@@ -46,13 +50,16 @@ class MaximumMeanDiscrepancyLoss(nn.Module):
         Args:
             num_kernels: Number of Gaussian kernels to use.
         """
-        super(MaximumMeanDiscrepancyLoss, self).__init__()
+        super().__init__()
 
         self.num_kernels = num_kernels
 
-    def forward(
+        self.add_state("loss", [], dist_reduce_fx="cat")
+        self.add_state("total", [], dist_reduce_fx="cat")
+
+    def update(
         self, source_features: torch.Tensor, target_features: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> None:
         """
         Compute the MMD loss between source and target feature distributions.
 
@@ -72,10 +79,14 @@ class MaximumMeanDiscrepancyLoss(nn.Module):
         batch_size = source_features.shape[0]
         disc = _calc_discrepancy(distances, batch_size)
 
-        return disc
+        self.loss.append(disc)
+        self.total.append(batch_size)
+
+    def compute(self) -> torch.Tensor:
+        return weighted_mean(self.loss, self.total, self.device)
 
 
-class JointMaximumMeanDiscrepancyLoss(nn.Module):
+class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     """The Joint Maximum Mean Discrepancy Loss (JMMD) is a distance measure between
     multiple pairs of arbitrary distributions.
 
@@ -91,6 +102,9 @@ class JointMaximumMeanDiscrepancyLoss(nn.Module):
     [MaximumMeanDiscrepancyLoss] [rul_adapt.loss.adaption.MaximumMeanDiscrepancyLoss].
     """
 
+    loss: List[torch.Tensor]
+    total: List[int]
+
     def __init__(self) -> None:
         """
         Create a new JMMD loss module.
@@ -100,9 +114,12 @@ class JointMaximumMeanDiscrepancyLoss(nn.Module):
         """
         super().__init__()
 
-    def forward(
+        self.add_state("loss", [], dist_reduce_fx="cat")
+        self.add_state("total", [], dist_reduce_fx="cat")
+
+    def update(
         self, source_features: List[torch.Tensor], target_features: List[torch.Tensor]
-    ) -> torch.Tensor:
+    ) -> None:
         """
         Compute the JMMD loss between multiple feature distributions.
 
@@ -126,10 +143,14 @@ class JointMaximumMeanDiscrepancyLoss(nn.Module):
         merged_distances = torch.stack(distances, dim=0).prod(dim=0)
         disc = _calc_discrepancy(merged_distances, batch_size)
 
-        return disc
+        self.loss.append(disc)
+        self.total.append(batch_size)
+
+    def compute(self) -> torch.Tensor:
+        return weighted_mean(self.loss, self.total, self.device)
 
 
-class DomainAdversarialLoss(nn.Module):
+class DomainAdversarialLoss(torchmetrics.Metric):
     """The Domain Adversarial Neural Network Loss (DANN) uses a domain discriminator
     to measure the distance between two feature distributions.
 
@@ -141,6 +162,9 @@ class DomainAdversarialLoss(nn.Module):
     [rul_adapt.loss.adaption.GradientReversalLayer]. This way, the discriminator is
     trained to separate the domains while the network generating the inputs is
     trained to marginalize the domain difference."""
+
+    loss: List[torch.Tensor]
+    total: List[int]
 
     def __init__(self, domain_disc: nn.Module) -> None:
         """
@@ -154,7 +178,10 @@ class DomainAdversarialLoss(nn.Module):
         self.domain_disc = domain_disc
         self.grl = GradientReversalLayer()
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        self.add_state("loss", [], dist_reduce_fx="cat")
+        self.add_state("total", [], dist_reduce_fx="cat")
+
+    def update(self, inputs: torch.Tensor, targets: torch.Tensor) -> None:
         """
         Calculate the DANN loss as the binary cross entropy of the discriminators
         prediction and the targets.
@@ -168,7 +195,11 @@ class DomainAdversarialLoss(nn.Module):
         predictions = self.domain_disc(self.grl(inputs))
         loss = nn.functional.binary_cross_entropy_with_logits(predictions, targets)
 
-        return loss
+        self.loss.append(loss)
+        self.total.append(inputs.shape[0])
+
+    def compute(self) -> torch.Tensor:
+        return weighted_mean(self.loss, self.total, self.device)
 
 
 class GradientReversalLayer(nn.Module):
