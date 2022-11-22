@@ -1,8 +1,9 @@
+import numpy.testing as npt
 import pytest
 import torch
 from torch import nn
 
-from rul_adapt.model.rnn import LstmExtractor, GruExtractor
+from rul_adapt.model.rnn import LstmExtractor, GruExtractor, _Rnn
 
 
 @torch.no_grad()
@@ -27,6 +28,25 @@ def test_lstm_dropout(lstm_units):
 
     assert lstm.lstm_dropout == 0.5
     assert lstm._lstm_layers.dropout == 0.5
+
+
+@torch.no_grad()
+@pytest.mark.parametrize("rnn_func", [nn.LSTM, nn.GRU])
+def test_rnn_dropout_equivalent(rnn_func):
+    inputs = torch.randn(30, 10, 14)
+    with torch.random.fork_rng():
+        default_lstm = rnn_func(14, 16, 3, dropout=0.5)
+        outputs_default, states_default = default_lstm(inputs)
+    with torch.random.fork_rng():
+        custom_lstm = _Rnn(rnn_func, 14, [16, 16, 16], dropout=0.5, bidirectional=False)
+        outputs_custom, states_custom = custom_lstm(inputs)
+
+    npt.assert_almost_equal(outputs_custom.numpy(), outputs_default.numpy())
+    if isinstance(states_custom, tuple):
+        for custom, default in zip(states_custom, states_default):
+            npt.assert_almost_equal(custom.numpy(), default[2:].numpy())
+    else:
+        npt.assert_almost_equal(states_custom.numpy(), states_default[2:].numpy())
 
 
 def test_fc_dropout():

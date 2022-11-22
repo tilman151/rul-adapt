@@ -249,7 +249,6 @@ class _Rnn(nn.Module):
                 self._rnn_func(
                     int(input_channels * unit_multiplier),  # in channels could be odd
                     num_units,
-                    dropout=self.dropout,
                     bidirectional=self.bidirectional,
                 )
             )
@@ -259,7 +258,9 @@ class _Rnn(nn.Module):
     def forward(
         self, inputs: torch.Tensor
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        for rnn in self._layers:
+        for i, rnn in enumerate(self._layers, start=1):
             inputs, states = rnn(inputs)
+            if i < len(self._layers):  # no dropout on last layer outputs
+                inputs = nn.functional.dropout(inputs, self.dropout)
 
         return inputs, states
