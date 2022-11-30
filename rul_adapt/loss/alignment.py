@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 import torchmetrics
 
@@ -7,6 +9,13 @@ from rul_adapt.loss.utils import calc_pairwise_dot
 class HealthyStateAlignmentLoss(torchmetrics.Metric):
     """TODO: implement running var
     https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance"""
+
+    is_differentiable: bool = True
+    higher_is_better: bool = False
+    full_state_update: bool = False
+
+    loss: List[torch.Tensor]
+    total: List[int]
 
     def __init__(self):
         super().__init__()
@@ -27,6 +36,13 @@ class HealthyStateAlignmentLoss(torchmetrics.Metric):
 
 
 class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
+    is_differentiable: bool = True
+    higher_is_better: bool = False
+    full_state_update: bool = False
+
+    loss: List[torch.Tensor]
+    total: List[int]
+
     def __init__(self):
         super().__init__()
 
@@ -52,6 +68,13 @@ class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
 
 
 class DegradationLevelRegularizationLoss(torchmetrics.Metric):
+    is_differentiable: bool = True
+    higher_is_better: bool = False
+    full_state_update: bool = False
+
+    loss: List[torch.Tensor]
+    total: List[int]
+
     def __init__(self, max_rul: int) -> None:
         super().__init__()
 
