@@ -5,6 +5,7 @@ import torch
 from rul_adapt import loss
 
 
+@torch.no_grad()
 @pytest.mark.parametrize(
     ["inputs", "targets", "exp_result"],
     [(0.0, 0.0, 0.0), (1.0, 1.0, 0.0), (0.5, 1.0, 0.3921), (1.5, 1.0, 0.51271)],
@@ -18,6 +19,17 @@ def test_rul_score_functional(inputs, targets, exp_result):
     npt.assert_almost_equal(score, exp_result, decimal=5)
 
 
+def test_rul_score_functional_backward():
+    inputs = torch.randn(10, 1, requires_grad=True)
+    targets = torch.randn(10, 1)
+
+    score = loss.rul_score(inputs, targets, pos_factor=10.0, neg_factor=-13.0)
+    score.backward()
+
+    assert inputs.grad is not None
+
+
+@torch.no_grad()
 @pytest.mark.parametrize(
     ["inputs", "targets"],
     [(0.0, 0.0), (1.0, 1.0), (0.5, 1.0), (1.5, 1.0)],
@@ -37,3 +49,14 @@ def test_rul_score_modular(inputs, targets):
     total_functional_score = loss.rul_score(inputs, targets, pos_factor, neg_factor)
     total_module_score = score_module.compute()
     npt.assert_almost_equal(total_module_score, total_functional_score)
+
+
+def test_rul_score_modular_backward():
+    inputs = torch.randn(10, 1, requires_grad=True)
+    targets = torch.randn(10, 1)
+    score_module = loss.RULScore()
+
+    score = score_module(inputs, targets)
+    score.backward()
+
+    assert inputs.grad is not None

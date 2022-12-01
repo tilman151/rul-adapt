@@ -39,9 +39,10 @@ def rul_score(
     neg_factor: float,
 ) -> torch.Tensor:
     dist = inputs - targets
-    for i, d in enumerate(dist):
-        dist[i] = (d / neg_factor) if d < 0 else (d / pos_factor)
-    dist = torch.exp(dist) - 1
+    factors = torch.ones_like(dist)
+    factors[dist >= 0] /= pos_factor
+    factors[dist < 0] /= neg_factor
+    dist = torch.exp(dist * factors) - 1
     score = dist.sum()
 
     return score
