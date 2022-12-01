@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torchmetrics
 from torch import nn
 from torchmetrics import Metric
 
@@ -73,12 +74,19 @@ def test_configure_optimizer(models, weight_decay):
     assert "lr_scheduler" not in optim_conf
 
 
-@pytest.mark.parametrize("use_rmse", [True, False])
-def test_use_rmse(use_rmse):
-    approach = DannApproach(1.0, 0.001, use_rmse=use_rmse)
+@pytest.mark.parametrize(
+    ["loss_type", "expected"],
+    [
+        ("mae", torchmetrics.MeanAbsoluteError()),
+        ("mse", torchmetrics.MeanSquaredError()),
+        ("rmse", torchmetrics.MeanSquaredError(squared=False)),
+    ],
+)
+def test_loss_type(loss_type, expected):
+    approach = DannApproach(1.0, 0.001, loss_type=loss_type)
 
-    assert approach.use_rmse == use_rmse
-    assert not approach.train_mse.squared == use_rmse  # training uses rmse or mse
+    assert approach.loss_type == loss_type
+    assert approach.train_source_loss == expected
     assert not approach.val_source_rmse.squared  # val and test always uses rmse
     assert not approach.val_target_rmse.squared
     assert not approach.test_source_rmse.squared
@@ -160,19 +168,19 @@ def test_test_step(approach, inputs):
 @torch.no_grad()
 def test_train_step_logging(mocked_approach, inputs):
     approach = mocked_approach
-    approach.train_mse = mock.MagicMock(Metric)
+    approach.train_source_loss = mock.MagicMock(Metric)
     approach.dann_loss = mock.MagicMock(rul_adapt.loss.DomainAdversarialLoss)
     approach.log = mock.MagicMock()
 
     approach.training_step(*inputs)
 
-    approach.train_mse.assert_called_once()
+    approach.train_source_loss.assert_called_once()
     approach.dann_loss.assert_called_once()
 
     approach.log.assert_has_calls(
         [
             mock.call("train_loss", mock.ANY),
-            mock.call("train_source_mse", approach.train_mse),
+            mock.call("train_source_loss", approach.train_source_loss),
             mock.call("train_dann", approach.dann_loss),
         ]
     )
