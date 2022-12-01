@@ -56,26 +56,27 @@ def test_jmmd_diff_dist():
 
 
 def test_dann_perfect_disc():
-    inputs = torch.cat([torch.randn(500, 1) - 50, torch.randn(500, 1) + 50])
-    targets = torch.cat([torch.zeros(500, 1), torch.ones(500, 1)])
+    source = torch.randn(500, 1) - 50
+    target = torch.randn(500, 1) + 50
     dummy_disc = lambda x: torch.mean(x, dim=1, keepdim=True)
     dann = loss.DomainAdversarialLoss(dummy_disc)
 
-    dann_loss = dann(inputs, targets)
+    dann_loss = dann(source, target)
 
     npt.assert_almost_equal(dann_loss.item(), 0.0, decimal=3)
 
 
 @mock.patch("rul_adapt.loss.adaption.GradientReversalLayer.forward")
 def test_dann_grl(mock_grl):
-    inputs = torch.randn(1, 1)
-    targets = torch.zeros(1, 1)
-    mock_disc = mock.MagicMock(return_value=inputs)
+    source = torch.randn(1, 1)
+    target = torch.randn(1, 1)
+    preds = torch.zeros(2, 1)
+    mock_disc = mock.MagicMock(return_value=preds)
     dann = loss.DomainAdversarialLoss(mock_disc)
 
-    dann(inputs, targets)
+    dann(source, target)
 
-    mock_grl.assert_called_with(inputs)  # GRL received inputs
+    mock_grl.assert_called()  # GRL was called
     mock_disc.assert_called_with(mock_grl())  # disc received GRL outputs
 
 

@@ -193,22 +193,30 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         self.add_state("loss", [], dist_reduce_fx="cat")
         self.add_state("total", [], dist_reduce_fx="cat")
 
-    def update(self, inputs: torch.Tensor, targets: torch.Tensor) -> None:
+    def update(self, source: torch.Tensor, target: torch.Tensor) -> None:
         """
         Calculate the DANN loss as the binary cross entropy of the discriminators
-        prediction and the targets.
+        prediction for the source and target features.
 
-        The `targets` should be binary domain labels, i.e. either one or zero.
+        The source features receive a domain label of zero and the target features a
+        domain label of one.
 
         Args:
-            inputs: The features to be classified by the domain discriminator.
-            targets: The binary domain labels.
+            source: The source features with domain label zero.
+            target: The target features with domain label one.
         """
+        inputs = torch.cat([source, target])
+        combined_batch_size = inputs.shape[0]
+
+        labels = torch.ones(combined_batch_size, 1)
+        source_batch_size = source.shape[0]
+        labels[:source_batch_size] *= 0.0
+
         predictions = self.domain_disc(self.grl(inputs))
-        loss = nn.functional.binary_cross_entropy_with_logits(predictions, targets)
+        loss = nn.functional.binary_cross_entropy_with_logits(predictions, labels)
 
         self.loss.append(loss)
-        self.total.append(inputs.shape[0])
+        self.total.append(combined_batch_size)
 
     def compute(self) -> torch.Tensor:
         return weighted_mean(self.loss, self.total, self.device)
