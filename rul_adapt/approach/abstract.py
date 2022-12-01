@@ -1,6 +1,7 @@
 """A module for the abstract base class of all approaches."""
-
+import warnings
 from abc import ABCMeta
+from typing import Any
 
 import pytorch_lightning as pl
 from torch import nn
@@ -25,9 +26,19 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     _feature_extractor: nn.Module
     _regressor: nn.Module
 
-    def set_model(self, feature_extractor: nn.Module, regressor: nn.Module) -> None:
+    def set_model(
+        self,
+        feature_extractor: nn.Module,
+        regressor: nn.Module,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
         """
         Set the feature extractor and regressor for this approach.
+
+        Child classes can override this function to add additional models to an
+        approach. The `args` and `kwargs` making this possible are ignored in this
+        function.
 
         Args:
             feature_extractor: The feature extraction network.
@@ -35,6 +46,10 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
         """
         self._feature_extractor = feature_extractor
         self._regressor = regressor
+        if args:
+            warnings.warn("Additional position args were supplied, which are ignored.")
+        if kwargs:
+            warnings.warn("Additional keyword args were supplied, which are ignored.")
 
     @property
     def feature_extractor(self) -> nn.Module:
