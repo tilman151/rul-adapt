@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Literal
 
 import torch
 import torchmetrics
@@ -20,7 +20,7 @@ class DannApproach(AdaptionApproach):
         weight_decay: float = 0.0,
         lr_decay_factor: Optional[float] = None,
         lr_decay_epochs: Optional[int] = None,
-        use_rmse: bool = False,
+        loss_type: Literal["mae", "mse", "rmse"] = "mae",
     ):
         super().__init__()
 
@@ -35,10 +35,10 @@ class DannApproach(AdaptionApproach):
         self.lr = lr
         self.lr_decay_factor = lr_decay_factor
         self.lr_decay_epochs = lr_decay_epochs
-        self.use_rmse = use_rmse
+        self.loss_type = loss_type
 
         # training metrics
-        self.train_mse = torchmetrics.MeanSquaredError(squared=not self.use_rmse)
+        self.train_source_loss = self._get_train_source_loss()
 
         # validation metrics
         self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
@@ -53,6 +53,21 @@ class DannApproach(AdaptionApproach):
         self.test_target_score = rul_adapt.loss.RULScore()
 
         self.save_hyperparameters()
+
+    def _get_train_source_loss(self):
+        if self.loss_type == "mae":
+            train_source_loss = torchmetrics.MeanAbsoluteError()
+        elif self.loss_type == "mse":
+            train_source_loss = torchmetrics.MeanSquaredError()
+        elif self.loss_type == "rmse":
+            train_source_loss = torchmetrics.MeanSquaredError(squared=False)
+        else:
+            raise ValueError(
+                f"Unknown loss type '{self.loss_type}'. "
+                "Use either 'mae', 'mse' or 'rmse'."
+            )
+
+        return train_source_loss
 
     def set_model(
         self,
@@ -98,14 +113,14 @@ class DannApproach(AdaptionApproach):
         target = self.feature_extractor(target)
 
         rul_preds = self.regressor(source)
-        mse_loss = self.train_mse(rul_preds, source_labels)
+        mse_loss = self.train_source_loss(rul_preds, source_labels)
 
         dann_loss = self.dann_loss(source, target)
 
         loss = mse_loss + self.dann_factor * dann_loss
 
         self.log("train_loss", loss)
-        self.log("train_source_mse", self.train_mse)
+        self.log("train_source_loss", self.train_source_loss)
         self.log("train_dann", self.dann_loss)
 
         return loss
