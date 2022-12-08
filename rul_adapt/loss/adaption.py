@@ -43,7 +43,7 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     full_state_update = False
 
     loss: List[torch.Tensor]
-    total: List[int]
+    total: List[torch.Tensor]
 
     def __init__(self, num_kernels: int) -> None:
         """
@@ -84,10 +84,10 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         disc = _calc_discrepancy(distances, batch_size)
 
         self.loss.append(disc)
-        self.total.append(batch_size)
+        self.total.append(torch.tensor(batch_size))
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total, self.device)
+        return weighted_mean(self.loss, self.total)
 
 
 class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
@@ -111,7 +111,7 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     full_state_update = False
 
     loss: List[torch.Tensor]
-    total: List[int]
+    total: List[torch.Tensor]
 
     def __init__(self) -> None:
         """
@@ -152,10 +152,10 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         disc = _calc_discrepancy(merged_distances, batch_size)
 
         self.loss.append(disc)
-        self.total.append(batch_size)
+        self.total.append(torch.tensor(batch_size))
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total, self.device)
+        return weighted_mean(self.loss, self.total)
 
 
 class DomainAdversarialLoss(torchmetrics.Metric):
@@ -176,7 +176,7 @@ class DomainAdversarialLoss(torchmetrics.Metric):
     full_state_update = False
 
     loss: List[torch.Tensor]
-    total: List[int]
+    total: List[torch.Tensor]
 
     def __init__(self, domain_disc: nn.Module) -> None:
         """
@@ -216,10 +216,10 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         loss = nn.functional.binary_cross_entropy_with_logits(predictions, labels)
 
         self.loss.append(loss)
-        self.total.append(combined_batch_size)
+        self.total.append(torch.tensor(combined_batch_size))
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total, self.device)
+        return weighted_mean(self.loss, self.total)
 
 
 class GradientReversalLayer(nn.Module):

@@ -92,3 +92,26 @@ def test_gradient_reversal_layer():
     grad_grl = inputs.grad  # gradient passed through GRL
 
     assert -grad == grad_grl
+
+
+@pytest.mark.parametrize(
+    ["metric", "inputs"],
+    [
+        (
+            loss.DomainAdversarialLoss(lambda x: torch.mean(x, dim=1, keepdim=True)),
+            (torch.randn(10, 1), torch.randn(10, 1)),
+        ),
+        (
+            loss.MaximumMeanDiscrepancyLoss(5),
+            (torch.randn(10, 1), torch.randn(10, 1)),
+        ),
+        (
+            loss.JointMaximumMeanDiscrepancyLoss(),
+            ([torch.randn(10, 1)], [torch.randn(10, 1)]),
+        ),
+    ],
+)
+def test_device_moving(metric, inputs):
+    """Regression: check if metric can be moved from one device to another."""
+    metric(*inputs)
+    metric.cpu()
