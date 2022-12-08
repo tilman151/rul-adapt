@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict, Literal
+from typing import Any, Optional, Dict, Literal, List
 
 import torch
 import torchmetrics
@@ -106,9 +106,9 @@ class DannApproach(AdaptionApproach):
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.regressor(self.feature_extractor(inputs))
 
-    def training_step(
-        self, source: torch.Tensor, source_labels: torch.Tensor, target: torch.Tensor
-    ) -> torch.Tensor:
+    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> torch.Tensor:
+        source, source_labels, target = batch
+
         source = self.feature_extractor(source)
         target = self.feature_extractor(target)
 
@@ -126,8 +126,9 @@ class DannApproach(AdaptionApproach):
         return loss
 
     def validation_step(
-        self, features: torch.Tensor, labels: torch.Tensor, dataloader_idx: int
+        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
+        features, labels = batch
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.val_source_rmse(predictions, labels)
@@ -143,8 +144,9 @@ class DannApproach(AdaptionApproach):
             raise RuntimeError(f"Unexpected val data loader idx {dataloader_idx}")
 
     def test_step(
-        self, features: torch.Tensor, labels: torch.Tensor, dataloader_idx: int
+        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
+        features, labels = batch
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.test_source_rmse(predictions, labels)
