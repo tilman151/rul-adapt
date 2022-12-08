@@ -119,9 +119,9 @@ class DannApproach(AdaptionApproach):
 
         loss = mse_loss + self.dann_factor * dann_loss
 
-        self.log("train_loss", loss)
-        self.log("train_source_loss", self.train_source_loss)
-        self.log("train_dann", self.dann_loss)
+        self.log("train/loss", loss)
+        self.log("train/source_loss", self.train_source_loss)
+        self.log("train/dann", self.dann_loss)
 
         return loss
 
@@ -133,13 +133,13 @@ class DannApproach(AdaptionApproach):
         if dataloader_idx == 0:
             self.val_source_rmse(predictions, labels)
             self.val_source_score(predictions, labels)
-            self.log("val_source_rmse", self.val_source_rmse)
-            self.log("val_source_score", self.val_source_score)
+            self.log("val/source_rmse", self.val_source_rmse)
+            self.log("val/source_score", self.val_source_score)
         elif dataloader_idx == 1:
             self.val_target_rmse(predictions, labels)
             self.val_target_score(predictions, labels)
-            self.log("val_target_rmse", self.val_target_rmse)
-            self.log("val_target_score", self.val_target_score)
+            self.log("val/target_rmse", self.val_target_rmse)
+            self.log("val/target_score", self.val_target_score)
         else:
             raise RuntimeError(f"Unexpected val data loader idx {dataloader_idx}")
 
@@ -151,12 +151,12 @@ class DannApproach(AdaptionApproach):
         if dataloader_idx == 0:
             self.test_source_rmse(predictions, labels)
             self.test_source_score(predictions, labels)
-            self.log("test_source_rmse", self.test_source_rmse)
-            self.log("test_source_score", self.test_source_score)
+            self.log("test/source_rmse", self.test_source_rmse)
+            self.log("test/source_score", self.test_source_score)
         elif dataloader_idx == 1:
             self.test_target_rmse(predictions, labels)
             self.test_target_score(predictions, labels)
-            self.log("test_target_rmse", self.test_target_rmse)
-            self.log("test_target_score", self.test_target_score)
+            self.log("test/target_rmse", self.test_target_rmse)
+            self.log("test/target_score", self.test_target_score)
         else:
             raise RuntimeError(f"Unexpected test data loader idx {dataloader_idx}")
