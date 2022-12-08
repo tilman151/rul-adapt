@@ -4,9 +4,9 @@ import torch
 
 
 def weighted_mean(
-    inputs: List[torch.Tensor], weights: List[int], device: torch.device
+    inputs: List[torch.Tensor], weights: List[torch.Tensor]
 ) -> torch.Tensor:
-    torch_weights = torch.tensor(weights, device=device, dtype=torch.float)
+    torch_weights = torch.stack(weights).float()
     torch_weights /= torch.sum(torch_weights)
     mean = torch.sum(torch.stack(inputs) * torch_weights)
 
