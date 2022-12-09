@@ -87,8 +87,12 @@ def test_device_moving(net_func, inputs):
     net_back_on_cpu = net_on_gpu.cpu()
     outputs_back_on_cpu = net_back_on_cpu(inputs)
 
-    npt.assert_almost_equal(0.0, torch.sum(outputs_cpu - outputs_gpu.cpu()).item())
-    npt.assert_almost_equal(0.0, torch.sum(outputs_cpu - outputs_back_on_cpu).item())
+    npt.assert_almost_equal(
+        0.0, torch.sum(outputs_cpu - outputs_gpu.cpu()).item(), decimal=4
+    )
+    npt.assert_almost_equal(
+        0.0, torch.sum(outputs_cpu - outputs_back_on_cpu).item(), decimal=4
+    )
 
 
 def test_batch_independence(net_func, inputs):

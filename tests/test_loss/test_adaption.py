@@ -1,3 +1,4 @@
+from typing import Iterable
 from unittest import mock
 
 import numpy.testing as npt
@@ -120,6 +121,13 @@ class TestMetricsWithDevices:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="No GPU was detected")
     def test_on_gpu(self, metric, inputs):
         """Regression: check if metric can be moved from one device to another."""
+
+        def _to(movable):
+            if isinstance(movable, (list, tuple)):
+                return [_to(m) for m in movable]
+            else:
+                return movable.to("cuda:0")
+
         metric = metric.to("cuda:0")
-        metric(*(i.to("cuda:0") for i in inputs))
+        metric(*_to(inputs))
         metric.compute()
