@@ -1,8 +1,10 @@
 from unittest import mock
 
 import pytest
+import rul_datasets.reader
 import torch
 import torchmetrics
+import pytorch_lightning as pl
 from torch import nn
 from torchmetrics import Metric
 
@@ -264,3 +266,36 @@ def test_test_step_logging(mocked_approach, inputs):
             mock.call("test_target_score", approach.test_target_score),
         ]
     )
+
+
+@pytest.mark.integration
+def test_on_dummy():
+    pl.seed_everything(42)
+
+    fd3 = rul_datasets.reader.DummyReader(fd=1)
+    fd1 = fd3.get_compatible(fd=2, percent_broken=0.8)
+    dm = rul_datasets.DomainAdaptionDataModule(
+        rul_datasets.RulDataModule(fd3, 16), rul_datasets.RulDataModule(fd1, 16)
+    )
+
+    feature_extractor = rul_adapt.model.LstmExtractor(1, [16], 8)
+    regressor = rul_adapt.model.FullyConnectedHead(8, [1], act_func_on_last_layer=False)
+    disc = rul_adapt.model.FullyConnectedHead(
+        8, [8, 8, 1], act_func_on_last_layer=False
+    )
+
+    approach = rul_adapt.approach.DannApproach(
+        4.0, 0.01, 0.0001, 0.1, 100, loss_type="mae"
+    )
+    approach.set_model(feature_extractor, regressor, disc)
+
+    trainer = pl.Trainer(
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        max_epochs=10,
+        gradient_clip_val=1.0,
+    )
+    trainer.fit(approach, dm)
+    trainer.test(approach, dm)
