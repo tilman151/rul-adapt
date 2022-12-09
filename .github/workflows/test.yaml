@@ -11,4 +11,14 @@ jobs:
         with:
           poetry-version: "1.2.2"
           optional-groups: "no-gpu"
-      - run: poetry run pytest tests
+      - run: poetry run pytest tests -m "not integration"
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install-poetry
+        with:
+          poetry-version: "1.2.2"
+          optional-groups: "no-gpu"
+      - run: poetry run pytest tests -m integration

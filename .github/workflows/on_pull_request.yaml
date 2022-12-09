@@ -7,6 +7,6 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yaml
 
-  unit-test:
+  test:
     needs: [lint]
     uses: ./.github/workflows/test.yaml

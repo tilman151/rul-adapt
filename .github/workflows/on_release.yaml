@@ -7,12 +7,12 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yaml
 
-  unit-test:
+  test:
     needs: [ lint ]
     uses: ./.github/workflows/test.yaml
 
   deploy-test:
-    needs: [unit-test]
+    needs: [test]
     runs-on: ubuntu-latest
     environment:
       name: TestPyPI
