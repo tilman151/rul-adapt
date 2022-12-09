@@ -108,6 +108,7 @@ class DannApproach(AdaptionApproach):
 
     def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> torch.Tensor:
         source, source_labels, target = batch
+        source_labels = source_labels[:, None]
 
         source = self.feature_extractor(source)
         target = self.feature_extractor(target)
@@ -129,6 +130,7 @@ class DannApproach(AdaptionApproach):
         self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
         features, labels = batch
+        labels = labels[:, None]
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.val_source_rmse(predictions, labels)
@@ -147,6 +149,7 @@ class DannApproach(AdaptionApproach):
         self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
         features, labels = batch
+        labels = labels[:, None]
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.test_source_rmse(predictions, labels)
