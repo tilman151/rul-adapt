@@ -160,11 +160,11 @@ class DannApproach(AdaptionApproach):
             regressor: The RUL regression network.
             domain_disc: The domain discriminator network.
         """
-        self._check_domain_disc(domain_disc)
+        domain_disc = self._check_domain_disc(domain_disc)
         super().set_model(feature_extractor, regressor, *args, **kwargs)
         self.dann_loss = rul_adapt.loss.DomainAdversarialLoss(domain_disc)
 
-    def _check_domain_disc(self, domain_disc: nn.Module) -> None:
+    def _check_domain_disc(self, domain_disc: Optional[nn.Module]) -> nn.Module:
         if domain_disc is None:
             raise ValueError(
                 "No domain discriminator was set. This approach is unlikely to work."
@@ -178,6 +178,8 @@ class DannApproach(AdaptionApproach):
                 "This is not allowed due to torch.nn.BCEWithLogitsLoss being used as "
                 "its loss. Please set 'act_func_on_last_layer' to False."
             )
+
+        return domain_disc
 
     @property
     def domain_disc(self):
