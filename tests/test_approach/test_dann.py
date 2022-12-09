@@ -63,6 +63,18 @@ def test_set_model(models):
     assert approach.domain_disc is domain_disc  # domain_disc property works
 
 
+def test_domain_disc_check(models):
+    feature_extractor, regressor, _ = models
+    faulty_domain_disc = model.FullyConnectedHead(4, [1], act_func_on_last_layer=True)
+    approach = DannApproach(1.0, 0.001)
+
+    with pytest.raises(ValueError):
+        approach.set_model(feature_extractor, regressor)
+
+    with pytest.raises(ValueError):
+        approach.set_model(feature_extractor, regressor, faulty_domain_disc)
+
+
 @pytest.mark.parametrize("weight_decay", [0.0, 0.1])
 def test_configure_optimizer(models, weight_decay):
     approach = DannApproach(1.0, 0.001, weight_decay)
