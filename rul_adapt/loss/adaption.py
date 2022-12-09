@@ -84,7 +84,7 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         disc = _calc_discrepancy(distances, batch_size)
 
         self.loss.append(disc)
-        self.total.append(torch.tensor(batch_size))
+        self.total.append(torch.tensor(batch_size, device=self.device))
 
     def compute(self) -> torch.Tensor:
         return weighted_mean(self.loss, self.total)
@@ -152,7 +152,7 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         disc = _calc_discrepancy(merged_distances, batch_size)
 
         self.loss.append(disc)
-        self.total.append(torch.tensor(batch_size))
+        self.total.append(torch.tensor(batch_size, device=self.device))
 
     def compute(self) -> torch.Tensor:
         return weighted_mean(self.loss, self.total)
@@ -208,7 +208,7 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         inputs = torch.cat([source, target])
         combined_batch_size = inputs.shape[0]
 
-        labels = torch.ones(combined_batch_size, 1)
+        labels = torch.ones(combined_batch_size, 1, device=self.device)
         source_batch_size = source.shape[0]
         labels[:source_batch_size] *= 0.0
 
@@ -216,7 +216,7 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         loss = nn.functional.binary_cross_entropy_with_logits(predictions, labels)
 
         self.loss.append(loss)
-        self.total.append(torch.tensor(combined_batch_size))
+        self.total.append(torch.tensor(combined_batch_size, device=self.device))
 
     def compute(self) -> torch.Tensor:
         return weighted_mean(self.loss, self.total)

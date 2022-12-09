@@ -1,3 +1,4 @@
+from typing import Iterable
 from unittest import mock
 
 import numpy.testing as npt
@@ -111,7 +112,22 @@ def test_gradient_reversal_layer():
         ),
     ],
 )
-def test_device_moving(metric, inputs):
-    """Regression: check if metric can be moved from one device to another."""
-    metric(*inputs)
-    metric.cpu()
+class TestMetricsWithDevices:
+    def test_device_moving(self, metric, inputs):
+        """Regression: check if metric can be moved from one device to another."""
+        metric(*inputs)
+        metric.cpu()
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="No GPU was detected")
+    def test_on_gpu(self, metric, inputs):
+        """Regression: check if metric can be moved from one device to another."""
+
+        def _to(movable):
+            if isinstance(movable, (list, tuple)):
+                return [_to(m) for m in movable]
+            else:
+                return movable.to("cuda:0")
+
+        metric = metric.to("cuda:0")
+        metric(*_to(inputs))
+        metric.compute()
