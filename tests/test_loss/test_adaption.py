@@ -111,7 +111,15 @@ def test_gradient_reversal_layer():
         ),
     ],
 )
-def test_device_moving(metric, inputs):
-    """Regression: check if metric can be moved from one device to another."""
-    metric(*inputs)
-    metric.cpu()
+class TestMetricsWithDevices:
+    def test_device_moving(self, metric, inputs):
+        """Regression: check if metric can be moved from one device to another."""
+        metric(*inputs)
+        metric.cpu()
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="No GPU was detected")
+    def test_on_gpu(self, metric, inputs):
+        """Regression: check if metric can be moved from one device to another."""
+        metric = metric.to("cuda:0")
+        metric(*(i.to("cuda:0") for i in inputs))
+        metric.compute()
