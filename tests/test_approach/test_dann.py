@@ -46,7 +46,7 @@ def mocked_approach():
 def inputs():
     return (
         torch.randn(10, 14, 30),  # source
-        torch.arange(10, dtype=torch.float)[:, None],  # source_labels
+        torch.arange(10, dtype=torch.float),  # source_labels
         torch.randn(10, 14, 30),  # target
     )
 
@@ -133,14 +133,14 @@ def test_forward(approach, inputs):
 @torch.no_grad()
 def test_train_step(approach, inputs):
 
-    outputs = approach.training_step(*inputs)
+    outputs = approach.training_step(inputs, batch_idx=0)
 
     assert outputs.shape == torch.Size([])
 
 
 def test_train_step_backward(approach, inputs):
 
-    outputs = approach.training_step(*inputs)
+    outputs = approach.training_step(inputs, batch_idx=0)
     outputs.backward()
 
     extractor_parameter = next(approach.feature_extractor.parameters())
@@ -151,20 +151,20 @@ def test_train_step_backward(approach, inputs):
 def test_val_step(approach, inputs):
     features, labels, _ = inputs
 
-    approach.validation_step(features, labels, dataloader_idx=0)
-    approach.validation_step(features, labels, dataloader_idx=1)
+    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
+    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
     with pytest.raises(RuntimeError):
-        approach.validation_step(features, labels, dataloader_idx=2)
+        approach.validation_step([features, labels], batch_idx=0, dataloader_idx=2)
 
 
 @torch.no_grad()
 def test_test_step(approach, inputs):
     features, labels, _ = inputs
 
-    approach.test_step(features, labels, dataloader_idx=0)
-    approach.test_step(features, labels, dataloader_idx=1)
+    approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
+    approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
     with pytest.raises(RuntimeError):
-        approach.test_step(features, labels, dataloader_idx=2)
+        approach.test_step([features, labels], batch_idx=0, dataloader_idx=2)
 
 
 @torch.no_grad()
@@ -174,16 +174,16 @@ def test_train_step_logging(mocked_approach, inputs):
     approach.dann_loss = mock.MagicMock(rul_adapt.loss.DomainAdversarialLoss)
     approach.log = mock.MagicMock()
 
-    approach.training_step(*inputs)
+    approach.training_step(inputs, batch_idx=0)
 
     approach.train_source_loss.assert_called_once()
     approach.dann_loss.assert_called_once()
 
     approach.log.assert_has_calls(
         [
-            mock.call("train_loss", mock.ANY),
-            mock.call("train_source_loss", approach.train_source_loss),
-            mock.call("train_dann", approach.dann_loss),
+            mock.call("train/loss", mock.ANY),
+            mock.call("train/source_loss", approach.train_source_loss),
+            mock.call("train/dann", approach.dann_loss),
         ]
     )
 
@@ -199,15 +199,15 @@ def test_val_step_logging(mocked_approach, inputs):
     approach.log = mock.MagicMock()
 
     # check source data loader call
-    approach.validation_step(features, labels, dataloader_idx=0)
+    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
     approach.val_source_rmse.assert_called_once()
     approach.val_source_score.assert_called_once()
     approach.val_target_rmse.assert_not_called()
     approach.val_target_score.assert_not_called()
     approach.log.assert_has_calls(
         [
-            mock.call("val_source_rmse", approach.val_source_rmse),
-            mock.call("val_source_score", approach.val_source_score),
+            mock.call("val/source_rmse", approach.val_source_rmse),
+            mock.call("val/source_score", approach.val_source_score),
         ]
     )
 
@@ -215,15 +215,15 @@ def test_val_step_logging(mocked_approach, inputs):
     approach.val_source_score.reset_mock()
 
     # check target data loader call
-    approach.validation_step(features, labels, dataloader_idx=1)
+    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
     approach.val_source_rmse.assert_not_called()
     approach.val_source_score.assert_not_called()
     approach.val_target_rmse.assert_called_once()
     approach.val_target_score.assert_called_once()
     approach.log.assert_has_calls(
         [
-            mock.call("val_target_rmse", approach.val_target_rmse),
-            mock.call("val_target_score", approach.val_target_score),
+            mock.call("val/target_rmse", approach.val_target_rmse),
+            mock.call("val/target_score", approach.val_target_score),
         ]
     )
 
@@ -239,15 +239,15 @@ def test_test_step_logging(mocked_approach, inputs):
     approach.log = mock.MagicMock()
 
     # check source data loader call
-    approach.test_step(features, labels, dataloader_idx=0)
+    approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
     approach.test_source_rmse.assert_called_once()
     approach.test_source_score.assert_called_once()
     approach.test_target_rmse.assert_not_called()
     approach.test_target_score.assert_not_called()
     approach.log.assert_has_calls(
         [
-            mock.call("test_source_rmse", approach.test_source_rmse),
-            mock.call("test_source_score", approach.test_source_score),
+            mock.call("test/source_rmse", approach.test_source_rmse),
+            mock.call("test/source_score", approach.test_source_score),
         ]
     )
 
@@ -255,15 +255,15 @@ def test_test_step_logging(mocked_approach, inputs):
     approach.test_source_score.reset_mock()
 
     # check target data loader call
-    approach.test_step(features, labels, dataloader_idx=1)
+    approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
     approach.test_source_rmse.assert_not_called()
     approach.test_source_score.assert_not_called()
     approach.test_target_rmse.assert_called_once()
     approach.test_target_score.assert_called_once()
     approach.log.assert_has_calls(
         [
-            mock.call("test_target_rmse", approach.test_target_rmse),
-            mock.call("test_target_score", approach.test_target_score),
+            mock.call("test/target_rmse", approach.test_target_rmse),
+            mock.call("test/target_score", approach.test_target_score),
         ]
     )
 
