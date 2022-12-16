@@ -33,3 +33,10 @@ def test_regressor():
 
     with pytest.raises(RuntimeError):
         _ = approach.regressor
+
+
+@pytest.mark.integration
+def test_dummy_integration():
+    """This is a dummy test so that the integration workflow does not report missing
+    test cases when no approach has integration tests yet. """
+    pass
