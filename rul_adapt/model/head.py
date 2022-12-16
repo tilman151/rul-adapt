@@ -53,6 +53,7 @@ class FullyConnectedHead(nn.Module):
         self,
         input_channels: int,
         units: List[int],
+        dropout: float = 0.0,
         act_func: Type[nn.Module] = nn.ReLU,
         act_func_on_last_layer: bool = True,
     ) -> None:
@@ -60,11 +61,14 @@ class FullyConnectedHead(nn.Module):
         Create a new fully connected head network.
 
         The `units` are the number of output units for each FC layer. The number of
-        output features is `units[-1]`.
+        output features is `units[-1]`. If dropout is used, it is applied in *each*
+        layer, including input.
 
         Args:
             input_channels: The number of input channels.
             units: The number of output units for the FC layers.
+            dropout: The dropout probability before each layer. Set to zero to
+                     deactivate.
             act_func: The activation function for each layer.
             act_func_on_last_layer: Whether to add the activation function to the last
                                     layer.
@@ -73,6 +77,7 @@ class FullyConnectedHead(nn.Module):
 
         self.input_channels = input_channels
         self.units = units
+        self.dropout = dropout
         self.act_func = act_func
         self.act_func_on_last_layer = act_func_on_last_layer
 
@@ -96,10 +101,14 @@ class FullyConnectedHead(nn.Module):
         self, in_units: int, out_units: int, act_func: Optional[Type[nn.Module]]
     ) -> nn.Module:
         layer: nn.Module
-        if act_func is None:
-            layer = nn.Linear(in_units, out_units)
+        if self.dropout > 0:
+            layer = nn.Sequential(nn.Dropout(self.dropout))
         else:
-            layer = nn.Sequential(nn.Linear(in_units, out_units), act_func())
+            layer = nn.Sequential()
+
+        layer.append(nn.Linear(in_units, out_units))
+        if act_func is not None:
+            layer.append(act_func())
 
         return layer
 

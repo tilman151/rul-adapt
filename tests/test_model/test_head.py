@@ -20,7 +20,7 @@ def test_forward(inputs, units):
 @pytest.mark.parametrize("units", [[1], [32, 1]])
 @pytest.mark.parametrize("act_func", [nn.ReLU, nn.Sigmoid])
 def test_act_func(units, act_func):
-    head = FullyConnectedHead(14, units, act_func)
+    head = FullyConnectedHead(14, units, act_func=act_func)
 
     for m in head._layers:
         assert isinstance(m[-1], act_func)
@@ -32,8 +32,20 @@ def test_act_func_on_last_layer(act_func_on_last_layer):
         14, [10, 1], act_func_on_last_layer=act_func_on_last_layer
     )
 
+    assert isinstance(head._layers[-1], nn.Sequential)
     if act_func_on_last_layer:
-        assert isinstance(head._layers[-1], nn.Sequential)
         assert isinstance(head._layers[-1][-1], head.act_func)
     else:
-        assert isinstance(head._layers[-1], nn.Linear)
+        assert isinstance(head._layers[-1][-1], nn.Linear)
+
+
+@pytest.mark.parametrize("dropout", [0.0, 0.1])
+def test_dropout(dropout):
+    head = FullyConnectedHead(14, [10, 1], dropout)
+
+    for module in head._layers:
+        if dropout:
+            assert isinstance(module[0], nn.Dropout)
+            assert module[0].p == dropout
+        else:
+            assert not isinstance(module[0], nn.Dropout)

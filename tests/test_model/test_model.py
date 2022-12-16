@@ -48,7 +48,7 @@ def cnn_extractor_bn():
 
 def fc_head():
     return nn.Sequential(
-        nn.Flatten(), model.FullyConnectedHead(14 * 30, [10, 1], nn.Sigmoid)
+        nn.Flatten(), model.FullyConnectedHead(14 * 30, [10, 1], 0.1, nn.Sigmoid)
     )
 
 
