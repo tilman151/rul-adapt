@@ -70,7 +70,7 @@ class CnnExtractor(nn.Module):
 
         Dropout can be applied to each CNN layer by setting `conv_dropout` to a
         number greater than zero. The same is valid for the fully connected layer and
-        `fc_dropout`.
+        `fc_dropout`. Dropout will never be applied to the input layer.
 
         The whole network uses ReLU activation functions. This can be customized by
         setting either `conv_act_func` or `fc_act_func`.
@@ -113,25 +113,26 @@ class CnnExtractor(nn.Module):
     def _get_layers(self) -> nn.Module:
         layers = nn.Sequential()
         filter_iter = pairwise([self.input_channels] + self.conv_filters)
-        for i, (input_channels, output_channels) in enumerate(filter_iter):
-            kernel_size = self._kernel_sizes[i]
-            layers.add_module(
-                f"conv_{i}",
-                self._get_conv_layer(input_channels, output_channels, kernel_size),
-            )
+        layer_iter = zip(filter_iter, self._kernel_sizes)
+        for i, ((in_ch, out_ch), ks) in enumerate(layer_iter):
+            layers.add_module(f"conv_{i}", self._get_conv_layer(in_ch, out_ch, ks, i))
+
         layers.append(nn.Flatten())
         if self.fc_units is not None:
-            layers.add_module(
-                "fc", self._get_fc_layer(self._get_flat_dim(), self.fc_units)
-            )
+            flat_dim = self._get_flat_dim()
+            layers.add_module("fc", self._get_fc_layer(flat_dim, self.fc_units))
 
         return layers
 
     def _get_conv_layer(
-        self, input_channels: int, output_channels: int, kernel_size: int
+        self,
+        input_channels: int,
+        output_channels: int,
+        kernel_size: int,
+        num_layer: int,
     ) -> nn.Module:
         conv_layer = nn.Sequential()
-        if self.conv_dropout > 0:
+        if num_layer > 0 and self.conv_dropout > 0:
             conv_layer.append(nn.Dropout1d(self.conv_dropout))
         conv_layer.append(
             nn.Conv1d(

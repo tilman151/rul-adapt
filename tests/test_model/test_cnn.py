@@ -47,7 +47,7 @@ def test_conv_layers(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len)
 
-    def _check_conv_layer(module):
+    def _check_conv_layer(module, module_name):
         assert len(module) == 2
         assert isinstance(module[0], nn.Conv1d)
         assert module[0].bias is not None
@@ -59,7 +59,7 @@ def test_batch_norm(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len, batch_norm=True)
 
-    def _check_batch_norm(module):
+    def _check_batch_norm(module, module_name):
         assert len(module) == 3
         assert isinstance(module[1], nn.BatchNorm1d)
         assert module[0].bias is None
@@ -71,10 +71,14 @@ def test_conv_dropout(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len, conv_dropout=0.5)
 
-    def _check_dropout(module):
-        assert len(module) == 3
-        assert isinstance(module[0], nn.Dropout1d)
-        assert module[0].p == 0.5
+    def _check_dropout(module, module_name):
+        if module_name.endswith("conv_0"):
+            assert len(module) == 2
+            assert not isinstance(module[0], nn.Dropout1d)
+        else:
+            assert len(module) == 3
+            assert isinstance(module[0], nn.Dropout1d)
+            assert module[0].p == 0.5
 
     _check_each_conv_layer(cnn, _check_dropout)
 
@@ -85,7 +89,7 @@ def test_conv_act_func(inputs):
         input_channels, [num_filters], seq_len, conv_act_func=nn.LeakyReLU
     )
 
-    def _check_act_func(module):
+    def _check_act_func(module, module_name):
         assert isinstance(module[-1], nn.LeakyReLU)
 
     _check_each_conv_layer(cnn, _check_act_func)
@@ -96,7 +100,7 @@ def _check_each_conv_layer(cnn, check_func):
     checked_any = False
     for module_name, module in cnn.named_modules():
         if conv_pattern.match(module_name) is not None:
-            check_func(module)
+            check_func(module, module_name)
             checked_any = True
 
     if not checked_any:
