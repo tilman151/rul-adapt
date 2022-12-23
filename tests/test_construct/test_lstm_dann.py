@@ -14,3 +14,9 @@ def test_get_lstm_dann(source_fd, target_fd):
             rul_adapt.construct.get_lstm_dann(source_fd, target_fd)
     else:
         rul_adapt.construct.get_lstm_dann(source_fd, target_fd)
+
+
+def test_get_lstm_dann_trainer_override():
+    _, _, trainer = rul_adapt.construct.get_lstm_dann(1, 2, max_epochs=5, min_epochs=4)
+    assert trainer.max_epochs == 5  # override existing option
+    assert trainer.min_epochs == 4  # override additional option
