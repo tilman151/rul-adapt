@@ -1,0 +1,27 @@
+# @package _global_
+
+dann:
+  dann_factor: 0.8
+  lr: 0.01
+  weight_decay: 0.01
+
+dm:
+  batch_size: 256
+  source:
+    fd: 1
+  target:
+    fd: 2
+
+domain_disc:
+  dropout: 0.3
+  units: [32, 1]
+
+feature_extractor:
+  fc_dropout: 0.5
+  fc_units: 64
+  lstm_dropout: 0.5
+  lstm_units: [128]
+
+regressor:
+  dropout: 0.3
+  units: [32, 1]
