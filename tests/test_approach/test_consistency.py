@@ -120,6 +120,42 @@ class TestConsistencyPretraining:
 
 
 class TestConsistencyApproach:
+    def test_set_model(self, pretraining_approach, approach, models):
+        _, _, domain_disc = models
+        approach.set_model(
+            pretraining_approach.feature_extractor,
+            pretraining_approach.regressor,
+            domain_disc,
+        )
+
+        assert approach.feature_extractor is pretraining_approach.feature_extractor
+        assert approach.regressor is pretraining_approach.regressor
+        assert hasattr(approach, "dann_loss")  # dann loss was created
+        assert approach.dann_loss.domain_disc is domain_disc  # disc was assigned
+        assert approach.domain_disc is domain_disc  # domain_disc property works
+
+        param_pairs = zip(
+            approach.feature_extractor.parameters(),
+            approach.frozen_feature_extractor.parameters(),
+        )
+        for fe_param, frozen_param in param_pairs:
+            assert fe_param is not frozen_param  # frozen params are different objs
+            assert torch.dist(fe_param, frozen_param) == 0.0  # have same values
+            assert not frozen_param.requires_grad  # are frozen
+
+    def test_domain_disc_check(self, models):
+        feature_extractor, regressor, _ = models
+        faulty_domain_disc = model.FullyConnectedHead(
+            20, [1], act_func_on_last_layer=True
+        )
+        approach = ConsistencyApproach(1.0, 0.001, 3000)
+
+        with pytest.raises(ValueError):
+            approach.set_model(feature_extractor, regressor)
+
+        with pytest.raises(ValueError):
+            approach.set_model(feature_extractor, regressor, faulty_domain_disc)
+
     def test_forward(self, inputs, approach):
         features, *_ = inputs
 

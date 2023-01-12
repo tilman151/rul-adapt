@@ -1,7 +1,7 @@
 import copy
 import math
 from itertools import chain
-from typing import Tuple, Optional, Any, List
+from typing import Optional, Any, List
 
 import torch
 import torchmetrics
