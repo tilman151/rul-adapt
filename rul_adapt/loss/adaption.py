@@ -328,7 +328,7 @@ class ConsistencyLoss(torchmetrics.Metric):
         self, leader_features: torch.Tensor, follower_features: torch.Tensor
     ) -> None:
         loss = torch.mean(torch.abs(leader_features - follower_features))
-        batch_size = torch.tensor(leader_features.shape[0])
+        batch_size = torch.tensor(leader_features.shape[0], device=self.device)
 
         self.loss.append(loss)
         self.total.append(batch_size)
