@@ -308,3 +308,30 @@ def _get_gammas(distances: torch.Tensor, num_kernels: int) -> List[float]:
     gammas = [bandwidth * (2**i) for i in range(num_kernels)]
 
     return gammas
+
+
+class ConsistencyLoss(torchmetrics.Metric):
+    is_differentiable = True
+    higher_is_better = False
+    full_state_update = False
+
+    loss: List[torch.Tensor]
+    total: List[torch.Tensor]
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_state("loss", [], dist_reduce_fx="cat")
+        self.add_state("total", [], dist_reduce_fx="cat")
+
+    def update(
+        self, leader_features: torch.Tensor, follower_features: torch.Tensor
+    ) -> None:
+        loss = torch.mean(torch.abs(leader_features - follower_features))
+        batch_size = torch.tensor(leader_features.shape[0])
+
+        self.loss.append(loss)
+        self.total.append(batch_size)
+
+    def compute(self) -> torch.Tensor:
+        return weighted_mean(self.loss, self.total)
