@@ -40,6 +40,7 @@ def models(pretraining_models):
 def pretraining_approach(pretraining_models):
     approach = ConsistencyApproachPretraining(lr=0.001)
     approach.set_model(*pretraining_models)
+    approach.log = mock.MagicMock()
 
     return approach
 
@@ -48,6 +49,7 @@ def pretraining_approach(pretraining_models):
 def approach(models):
     approach = ConsistencyApproach(0.1, 0.001, 3000)
     approach.set_model(*models)
+    approach.log = mock.MagicMock()
 
     return approach
 
@@ -58,6 +60,7 @@ def mocked_pretraining_approach():
     regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
     approach = ConsistencyApproachPretraining(0.001)
     approach.set_model(feature_extractor, regressor)
+    approach.log = mock.MagicMock()
 
     return approach
 
@@ -69,6 +72,7 @@ def mocked_approach():
     disc = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
     approach = ConsistencyApproach(0.1, 0.001, 3000)
     approach.set_model(feature_extractor, regressor, disc)
+    approach.log = mock.MagicMock()
 
     return approach
 
@@ -100,7 +104,6 @@ class TestConsistencyPretraining:
     def test_train_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
         approach = mocked_pretraining_approach
         approach.train_loss = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
 
         approach.training_step(pretraining_inputs, batch_idx=0)
 
@@ -111,7 +114,6 @@ class TestConsistencyPretraining:
     def test_val_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
         approach = mocked_pretraining_approach
         approach.val_loss = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
 
         approach.validation_step(pretraining_inputs, batch_idx=0)
 
@@ -193,7 +195,6 @@ class TestConsistencyApproach:
         approach.train_source_loss = mock.MagicMock(Metric)
         approach.dann_loss = mock.MagicMock(Metric)
         approach.consistency_loss = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
 
         approach.training_step(inputs, batch_idx=0)
 
@@ -218,7 +219,6 @@ class TestConsistencyApproach:
         approach.val_source_score = mock.MagicMock(Metric)
         approach.val_target_rmse = mock.MagicMock(Metric)
         approach.val_target_score = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
 
         # check source data loader call
         approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
@@ -257,7 +257,6 @@ class TestConsistencyApproach:
         approach.test_source_score = mock.MagicMock(Metric)
         approach.test_target_rmse = mock.MagicMock(Metric)
         approach.test_target_score = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
 
         # check source data loader call
         approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
