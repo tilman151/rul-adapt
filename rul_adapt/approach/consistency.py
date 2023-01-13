@@ -3,6 +3,7 @@ import math
 from itertools import chain
 from typing import Optional, Any, List
 
+import numpy as np
 import torch
 import torchmetrics
 from torch import nn
@@ -233,3 +234,11 @@ class ConsistencyApproach(AdaptionApproach):
             self.log("test/target_score", self.test_target_score)
         else:
             raise RuntimeError(f"Unexpected test data loader idx {dataloader_idx}")
+
+
+class StdExtractor:
+    def __init__(self, channels: List[int]) -> None:
+        self.channels = channels
+
+    def __call__(self, inputs: np.ndarray):
+        return np.std(inputs[:, :, self.channels], axis=1)

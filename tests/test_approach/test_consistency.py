@@ -1,5 +1,7 @@
 from unittest import mock
 
+import numpy as np
+import numpy.testing as npt
 import pytest
 import pytorch_lightning as pl
 import rul_datasets
@@ -9,6 +11,7 @@ from torchmetrics import Metric
 
 from rul_adapt import model
 from rul_adapt.approach import ConsistencyApproachPretraining, ConsistencyApproach
+from rul_adapt.approach.consistency import StdExtractor
 
 
 @pytest.fixture()
@@ -286,6 +289,16 @@ class TestConsistencyApproach:
                 mock.call("test/target_score", approach.test_target_score),
             ]
         )
+
+
+def test_std_extractor():
+    inputs = np.random.randn(100, 3000, 2)
+    extractor = StdExtractor(channels=[1])
+
+    outputs = extractor(inputs)
+
+    assert outputs.shape == (100, 1)
+    npt.assert_almost_equal(outputs, inputs[:, :, [1]].std(axis=1))
 
 
 @pytest.mark.integration
