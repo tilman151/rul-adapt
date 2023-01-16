@@ -10,7 +10,6 @@ jobs:
       - uses: ./.github/actions/install-poetry
         with:
           poetry-version: "1.2.2"
-          optional-groups: "no-gpu"
       - run: poetry run pytest tests -m "not integration"
 
   integration:
@@ -21,5 +20,4 @@ jobs:
       - uses: ./.github/actions/install-poetry
         with:
           poetry-version: "1.2.2"
-          optional-groups: "no-gpu"
       - run: poetry run pytest tests -m integration
