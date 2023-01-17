@@ -11,7 +11,7 @@ def test_get_lstm_dann_cmapss(source_fd, target_fd):
 
 @pytest.mark.parametrize("source_fd", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("target_fd", [0, 1, 2, 3, 4])
-def test_get_lstm_dann_cmapss(source_fd, target_fd):
+def test_get_lstm_dann_xjtu_sy(source_fd, target_fd):
     _check_config("xjtu-sy", source_fd, target_fd, lower=1, upper=3)
 
 
