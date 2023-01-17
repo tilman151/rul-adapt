@@ -24,6 +24,28 @@ def get_consistency_dann(
         pl.Trainer,
     ],
 ]:
+    """
+    Construct a Consistency DANN approach with the original hyperparameters.
+
+    Examples:
+        ```pycon
+        >>> import rul_adapt
+        >>> pre, main = rul_adapt.construct.get_consistency_dann("cmapss", 3, 1)
+        >>> pre_dm, pre_approach, pre_trainer = pre
+        >>> dm, approach, domain_disc, trainer = main
+        ```
+
+    Args:
+        dataset: The name of the dataset, either `cmapss` or `xjtu-sy`.
+        source_fd: The source FD of CMAPSS.
+        target_fd: The target FD of CMAPSS.
+        pre_trainer_kwargs: Overrides for the pre-training trainer class.
+        trainer_kwargs: Overrides for the main trainer class.
+    Returns:
+        pre: The data module, approach and trainer for the pre-training stage
+        main: The data module, approach, domain discriminator and trainer for
+              the main stage
+    """
     config = get_consistency_dann_config(dataset, source_fd, target_fd)
     consistency_dann = consistency_dann_from_config(
         config, pre_trainer_kwargs, trainer_kwargs
@@ -35,6 +57,20 @@ def get_consistency_dann(
 def get_consistency_dann_config(
     dataset: Literal["cmapss", "xjtu-sy"], source_fd: int, target_fd: int
 ) -> omegaconf.DictConfig:
+    """
+    Get a configuration for the Consistency DANN approach.
+
+    The configuration can be modified and fed to [consistency_dann_from_config]
+    [rul_adapt.construct.consistency.consistency_dann_from_config] to create the
+    approach.
+
+    Args:
+        dataset: The name of the dataset, either `cmapss` or `xjtu-sy`.
+        source_fd: The source FD of CMAPSS.
+        target_fd: The target FD of CMAPSS.
+    Returns:
+        The Consistency DANN configuration.
+    """
     _validate(dataset, source_fd, target_fd)
     with hydra.initialize("config", version_base="1.1"):
         config = hydra.compose(
@@ -62,6 +98,20 @@ def consistency_dann_from_config(
         pl.Trainer,
     ],
 ]:
+    """
+    Construct a Consistency DANN approach from a configuration.
+    The configuration can be created by calling [get_consistency_dann_config]
+    [rul_adapt.construct.consistency.get_consistency_dann_config].
+
+    Args:
+        config: The Consistency DANN config.
+        pre_trainer_kwargs: Overrides for the pre-training trainer class.
+        trainer_kwargs: Overrides for the main trainer class.
+    Returns:
+        pre: The data module, approach and trainer for the pre-training stage
+        main: The data module, approach, domain discriminator and trainer for
+              the main stage
+    """
     source = hydra.utils.instantiate(config.dm.source)
     target = source.get_compatible(**config.dm.target)
     dm_pre = rul_datasets.RulDataModule(source, **config.dm.kwargs)
