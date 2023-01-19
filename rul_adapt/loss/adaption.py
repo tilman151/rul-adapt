@@ -1,6 +1,6 @@
 """A module for unsupervised domain adaption losses."""
 
-from typing import List, Any
+from typing import List, Any, Tuple
 
 import torch
 import torchmetrics
@@ -224,35 +224,54 @@ class DomainAdversarialLoss(torchmetrics.Metric):
 
 class GradientReversalLayer(nn.Module):
     """The gradient reversal layer (GRL) acts as an identity function in the forward
-    pass and negates the gradient in the backward pass.
+    pass and scales the gradient by a negative scalar in the backward pass.
 
     ```python
     GRL(f(x)) = f(x)
-    GRL`(f(x)) = -f`(x)
+    GRL`(f(x)) = -lambda * f`(x)
     ```
     """
 
+    grad_weight: torch.Tensor
+
+    def __init__(self, grad_weight: float = 1.0) -> None:
+        """
+        Create a new Gradient Reversal Layer.
+
+        Args:
+            grad_weight: The scalar that weights the negative gradient.
+        """
+        super().__init__()
+
+        self.register_buffer("grad_weight", torch.tensor(grad_weight))
+
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return _gradient_reversal(inputs)
+        return _gradient_reversal(inputs, self.grad_weight)
 
 
-def _gradient_reversal(x: torch.Tensor) -> torch.Tensor:
+def _gradient_reversal(x: torch.Tensor, grad_weight: torch.Tensor) -> torch.Tensor:
     """Perform gradient reversal on input."""
-    return _GradientReverse.apply(x)
+    return _GradientReverse.apply(x, grad_weight)
 
 
 class _GradientReverse(torch.autograd.Function):
     """Gradient reversal forward and backward definitions."""
 
     @staticmethod
-    def forward(ctx: Any, inputs: torch.Tensor) -> torch.Tensor:  # type: ignore
+    def forward(  # type: ignore
+        ctx: Any, inputs: torch.Tensor, grad_weight: torch.Tensor
+    ) -> torch.Tensor:
         """Forward pass as identity mapping."""
+        ctx.grad_weight = grad_weight
+
         return inputs
 
     @staticmethod
-    def backward(ctx: Any, grad: torch.Tensor) -> torch.Tensor:  # type: ignore
-        """Backward pass as negative of gradient."""
-        return -grad
+    def backward(  # type: ignore
+        ctx: Any, grad: torch.Tensor
+    ) -> Tuple[torch.Tensor, None]:
+        """Backward pass as negative, scaled gradient."""
+        return -ctx.grad_weight * grad, None
 
     @staticmethod
     def jvp(ctx: Any, *grad_inputs: Any) -> Any:
