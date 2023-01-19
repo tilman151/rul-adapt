@@ -36,7 +36,7 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     `['_domain_disc']`. Otherwise, loading a checkpoint of this approach will fail.
     """
 
-    CHECKPOINT_MODELS = []
+    CHECKPOINT_MODELS: List[str] = []
 
     _feature_extractor: nn.Module
     _regressor: nn.Module
@@ -101,14 +101,15 @@ def _get_hydra_config(model: nn.Module) -> Dict[str, Any]:
 
 
 def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
-    signature = inspect.signature(obj.__init__)
+    signature = inspect.signature(type(obj).__init__)
     init_args = dict()
     for arg_name in signature.parameters:
-        _check_has_attr(obj, arg_name)
-        arg = getattr(obj, arg_name)
-        if isinstance(arg, nn.Module):
-            arg = _get_hydra_config(arg)
-        init_args[arg_name] = arg
+        if not arg_name == "self":
+            _check_has_attr(obj, arg_name)
+            arg = getattr(obj, arg_name)
+            if isinstance(arg, nn.Module):
+                arg = _get_hydra_config(arg)
+            init_args[arg_name] = arg
 
     return init_args
 
