@@ -81,9 +81,10 @@ def test_dann_grl(mock_grl):
     mock_disc.assert_called_with(mock_grl())  # disc received GRL outputs
 
 
-def test_gradient_reversal_layer():
+@pytest.mark.parametrize("grad_weight", [1.0, 2.0])
+def test_gradient_reversal_layer(grad_weight):
     inputs = torch.randn(1, requires_grad=True)
-    grl = loss.adaption.GradientReversalLayer()
+    grl = loss.adaption.GradientReversalLayer(grad_weight)
 
     inputs.mean().backward()
     grad = inputs.grad  # regular gradient
@@ -92,7 +93,7 @@ def test_gradient_reversal_layer():
     grl(inputs).mean().backward()
     grad_grl = inputs.grad  # gradient passed through GRL
 
-    assert -grad == grad_grl
+    assert -grad_weight * grad == grad_grl
 
 
 @pytest.mark.parametrize(
