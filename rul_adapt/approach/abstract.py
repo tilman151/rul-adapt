@@ -34,7 +34,7 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
         feature_extractor: nn.Module,
         regressor: nn.Module,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """
         Set the feature extractor and regressor for this approach.
@@ -72,7 +72,7 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         to_checkpoint = ["_feature_extractor", "_regressor"] + self.CHECKPOINT_MODELS
-        models = {}
+        models = dict()
         for model_name in to_checkpoint:
             model = getattr(self, model_name)
             models[model_name] = type(model), _get_init_args(model)
@@ -83,8 +83,21 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             setattr(self, name, model_type(*init_args))
 
 
-def _get_init_args(obj: Any) -> List[Any]:
+def _get_init_args(obj: nn.Module) -> List[Any]:
     signature = inspect.signature(obj.__init__)
-    init_args = [getattr(obj, param) for param in signature.parameters]
+    init_args = []
+    for param in signature.parameters:
+        _check_has_param(obj, param)
+        init_args.append(getattr(obj, param))
 
     return init_args
+
+
+def _check_has_param(obj: Any, param: str) -> None:
+    if not hasattr(obj, param):
+        raise RuntimeError(
+            f"The object of type '{type(obj)}' has an initialization parameter "
+            f"named '{param}' which is not saved as a member variable, i.e. "
+            f"'self.{param}'. Therefore, we cannot retrieve the value of "
+            f"'{param}' the object was initialized with."
+        )

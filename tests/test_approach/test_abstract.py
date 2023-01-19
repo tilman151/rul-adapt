@@ -30,6 +30,21 @@ class DummyApproachWithExtraModel(DummyApproach):
         self._extra = extra
 
 
+class UncheckpointableModel(nn.Module):
+    """To be checkpoint-able with this library's mechanism, a model has to save all
+    arguments of its constructor as member variables under the same name. Otherwise,
+    the arguments the model was initialized with cannot be retrieved."""
+
+    def __init__(self, a):
+        super().__init__()
+
+        self.b = a  # init arg is not saved under same name as a member var
+        self.layer = nn.Linear(self.b, 1)
+
+    def forward(self, inputs):
+        return self.layer(inputs)
+
+
 def test_set_model():
     mock_feature_extractor = mock.MagicMock()
     mock_regressor = mock.MagicMock()
@@ -85,17 +100,31 @@ def test_regressor():
 def test_checkpointing(tmp_path, approach, models):
     ckpt_path = tmp_path / "checkpoint.ckpt"
     approach.set_model(*models)
-    dm = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(1), 32)
-
-    trainer = pl.Trainer(max_epochs=0)
-    trainer.fit(approach, dm)
-    trainer.save_checkpoint(ckpt_path)
+    _checkpoint(approach, ckpt_path)
     restored = type(approach).load_from_checkpoint(ckpt_path)
 
     paired_params = zip(approach.parameters(), restored.parameters())
     for org_weight, restored_weight in paired_params:
         assert torch.dist(org_weight, restored_weight) == 0.0
         assert org_weight.requires_grad == restored_weight.requires_grad
+
+
+def test_error_on_uncheckpointable_model(tmp_path):
+    fe = model.LstmExtractor(14, [16], 16)
+    reg = UncheckpointableModel(16)
+    approach = DummyApproach()
+    approach.set_model(fe, reg)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        _checkpoint(approach, tmp_path / "checkpoint.ckpt")
+        assert exc_info.value.args[0].startswith("The object of type ")
+
+
+def _checkpoint(approach, ckpt_path):
+    dm = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(1), 32)
+    trainer = pl.Trainer(max_epochs=0)
+    trainer.fit(approach, dm)
+    trainer.save_checkpoint(ckpt_path)
 
 
 @pytest.mark.integration
