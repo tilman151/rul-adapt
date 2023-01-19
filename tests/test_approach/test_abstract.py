@@ -7,7 +7,7 @@ import torch.optim
 from torch import nn
 
 from rul_adapt import model
-from rul_adapt.approach.abstract import AdaptionApproach
+from rul_adapt.approach.abstract import AdaptionApproach, _get_hydra_config
 
 
 class DummyApproach(AdaptionApproach):
@@ -43,6 +43,21 @@ class UncheckpointableModel(nn.Module):
 
     def forward(self, inputs):
         return self.layer(inputs)
+
+
+class NestedModel(nn.Module):
+    """This model takes another model as an init arg. The argument should not be
+    pickled but treated like the top-level model. It's class and init args should be
+    saved so that it's weights can later be set via the state dict."""
+
+    def __init__(self, another_model):
+        super().__init__()
+
+        self.another_model = another_model
+        self.layer = nn.Linear(1, 1)
+
+    def forward(self, inputs):
+        return self.layer(self.another_model(inputs))
 
 
 def test_set_model():
@@ -88,6 +103,13 @@ def test_regressor():
             ],
         ),
         (
+            DummyApproach(),
+            [
+                model.LstmExtractor(14, [16], 16),
+                NestedModel(model.FullyConnectedHead(16, [1])),
+            ],
+        ),
+        (
             DummyApproachWithExtraModel(),
             [
                 model.CnnExtractor(14, [8], 10, fc_units=16),
@@ -125,6 +147,23 @@ def _checkpoint(approach, ckpt_path):
     trainer = pl.Trainer(max_epochs=0)
     trainer.fit(approach, dm)
     trainer.save_checkpoint(ckpt_path)
+
+
+@pytest.mark.parametrize(
+    "network",
+    [
+        model.CnnExtractor(14, [8], 10, fc_units=16),
+        model.LstmExtractor(14, [16], 16),
+        model.FullyConnectedHead(16, [1]),
+        NestedModel(model.FullyConnectedHead(16, [1])),
+        pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail()),
+    ],
+)
+def test_get_hydra_config(network):
+    config = _get_hydra_config(network)
+    assert "_target_" in config
+    for value in config.values():
+        assert not isinstance(value, nn.Module)
 
 
 @pytest.mark.integration

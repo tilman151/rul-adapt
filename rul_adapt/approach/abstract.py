@@ -4,6 +4,7 @@ import warnings
 from abc import ABCMeta
 from typing import Any, Dict, List
 
+import hydra.utils
 import pytorch_lightning as pl
 from torch import nn
 
@@ -72,28 +73,36 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         to_checkpoint = ["_feature_extractor", "_regressor"] + self.CHECKPOINT_MODELS
-        models = dict()
-        for model_name in to_checkpoint:
-            model = getattr(self, model_name)
-            models[model_name] = type(model), _get_init_args(model)
-        checkpoint["model_init_args"] = models
+        configs = {m: _get_hydra_config(getattr(self, m)) for m in to_checkpoint}
+        checkpoint["model_configs"] = configs
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        for name, (model_type, init_args) in checkpoint["model_init_args"].items():
-            setattr(self, name, model_type(*init_args))
+        for name, config in checkpoint["model_configs"].items():
+            setattr(self, name, hydra.utils.instantiate(config))
 
 
-def _get_init_args(obj: nn.Module) -> List[Any]:
+def _get_hydra_config(model: nn.Module) -> Dict[str, Any]:
+    model_type = type(model)
+    class_name = f"{model_type.__module__}.{model_type.__qualname__}"
+    config = {"_target_": class_name, **_get_init_args(model)}
+
+    return config
+
+
+def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
     signature = inspect.signature(obj.__init__)
-    init_args = []
-    for param in signature.parameters:
-        _check_has_param(obj, param)
-        init_args.append(getattr(obj, param))
+    init_args = dict()
+    for arg_name in signature.parameters:
+        _check_has_attr(obj, arg_name)
+        arg = getattr(obj, arg_name)
+        if isinstance(arg, nn.Module):
+            arg = _get_hydra_config(arg)
+        init_args[arg_name] = arg
 
     return init_args
 
 
-def _check_has_param(obj: Any, param: str) -> None:
+def _check_has_attr(obj: Any, param: str) -> None:
     if not hasattr(obj, param):
         raise RuntimeError(
             f"The object of type '{type(obj)}' has an initialization parameter "
