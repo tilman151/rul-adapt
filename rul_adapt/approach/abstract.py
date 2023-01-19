@@ -1,7 +1,8 @@
 """A module for the abstract base class of all approaches."""
+import inspect
 import warnings
 from abc import ABCMeta
-from typing import Any
+from typing import Any, Dict, List
 
 import pytorch_lightning as pl
 from torch import nn
@@ -66,3 +67,23 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             return self._regressor
         else:
             raise RuntimeError("Regressor used before 'set_model' was called.")
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        fe_init_args = self._get_init_args(self._feature_extractor)
+        reg_init_args = self._get_init_args(self._regressor)
+        checkpoint["model_init_args"] = {
+            "feature_extractor": (type(self._feature_extractor), fe_init_args),
+            "regressor": (type(self._regressor), reg_init_args),
+        }
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        fe_type, fe_init_args = checkpoint["model_init_args"]["feature_extractor"]
+        self._feature_extractor = fe_type(*fe_init_args)
+        reg_type, reg_init_args = checkpoint["model_init_args"]["regressor"]
+        self._regressor = reg_type(*reg_init_args)
+
+    def _get_init_args(self, obj: Any) -> List[Any]:
+        signature = inspect.signature(obj.__init__)
+        init_args = [getattr(obj, param) for param in signature.parameters]
+
+        return init_args
