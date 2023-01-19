@@ -1775,7 +1775,7 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "rul-datasets"
-version = "0.3.2"
+version = "0.4.0"
 description = "A collection of datasets for RUL estimation as Lightning Data Modules."
 category = "main"
 optional = false
@@ -2209,7 +2209,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "335b1422727d920c942d7f8793b876dbea2e7798ce54a55be8b79d29ff6c91d5"
+content-hash = "ebf49cf1ac37ca4d33956f9414b2cc166b10a706ed337111fd38f0f2665c4993"
 
 [metadata.files]
 absl-py = [
@@ -3365,8 +3365,8 @@ rsa = [
     {file = "rsa-4.9.tar.gz", hash = "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21"},
 ]
 rul-datasets = [
-    {file = "rul_datasets-0.3.2-py3-none-any.whl", hash = "sha256:6fdf233214ed5186d4ed3afa44d482421d94e9de89296fc46780e98b10a3403f"},
-    {file = "rul_datasets-0.3.2.tar.gz", hash = "sha256:c10e899559b71d1697022ae27b5a8c81ef93cfb13de2836367945a0abdbc1e75"},
+    {file = "rul_datasets-0.4.0-py3-none-any.whl", hash = "sha256:9d954da8969b33579674ad9ee0c991ce1a55acc334b76abecf080d9b51feb96b"},
+    {file = "rul_datasets-0.4.0.tar.gz", hash = "sha256:928fe12e2cbfef10d65ba595b8f7e4b57eb4e4e1ea81e030a2f7e8edb93cc711"},
 ]
 scikit-learn = [
     {file = "scikit-learn-1.2.0.tar.gz", hash = "sha256:680b65b3caee469541385d2ca5b03ff70408f6c618c583948312f0d2125df680"},
