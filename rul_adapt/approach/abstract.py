@@ -23,6 +23,17 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     [rul_adapt.approach.abstract.AdaptionApproach.set_model]. This way, the approach can
     be initialized with all hyperparameters first and afterwards supplied with the
     networks. This is useful for initializing the networks with pre-trained weights.
+
+    Because models are constructed outside the approach, the default checkpointing
+    mechanism of PyTorch Lightning fails to load checkpoints of AdaptionApproaches.
+    We extended the checkpointing mechanism by implementing the `on_save_checkpoint`
+    and `on_load_checkpoint` callbacks to make it work. If a subclass uses an
+    additional model, besides feature extractor and regressor, that is not
+    initialized in the constructor, the subclass needs to implement the
+    `CHECKPOINT_MODELS` class variable. This variable is a list of model names to be
+    included in the checkpoint. For example, if your approach has an additional model
+    `self._domain_disc`, the `CHECKPOINT_MODELS` variable should be set to
+    `['_domain_disc']`. Otherwise, loading a checkpoint of this approach will fail.
     """
 
     CHECKPOINT_MODELS = []
