@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Any, Dict
+from typing import Literal, Tuple, Any, Dict, Optional
 
 import hydra
 import omegaconf
@@ -13,8 +13,8 @@ def get_consistency_dann(
     dataset: Literal["cmapss", "xjtu-sy"],
     source_fd: int,
     target_fd: int,
-    pre_trainer_kwargs: Dict[str, Any] = None,
-    trainer_kwargs: Dict[str, Any] = None,
+    pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
+    trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
     Tuple[rul_datasets.RulDataModule, ConsistencyApproachPretraining, pl.Trainer],
     Tuple[
@@ -87,8 +87,8 @@ def get_consistency_dann_config(
 
 def consistency_dann_from_config(
     config: omegaconf.DictConfig,
-    pre_trainer_kwargs: Dict[str, Any],
-    trainer_kwargs: Dict[str, Any],
+    pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
+    trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
     Tuple[rul_datasets.RulDataModule, ConsistencyApproachPretraining, pl.Trainer],
     Tuple[
