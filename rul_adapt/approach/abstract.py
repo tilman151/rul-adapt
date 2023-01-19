@@ -24,6 +24,8 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     networks. This is useful for initializing the networks with pre-trained weights.
     """
 
+    CHECKPOINT_MODELS = []
+
     _feature_extractor: nn.Module
     _regressor: nn.Module
 
@@ -69,21 +71,20 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             raise RuntimeError("Regressor used before 'set_model' was called.")
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        fe_init_args = self._get_init_args(self._feature_extractor)
-        reg_init_args = self._get_init_args(self._regressor)
-        checkpoint["model_init_args"] = {
-            "feature_extractor": (type(self._feature_extractor), fe_init_args),
-            "regressor": (type(self._regressor), reg_init_args),
-        }
+        to_checkpoint = ["_feature_extractor", "_regressor"] + self.CHECKPOINT_MODELS
+        models = {}
+        for model_name in to_checkpoint:
+            model = getattr(self, model_name)
+            models[model_name] = type(model), _get_init_args(model)
+        checkpoint["model_init_args"] = models
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        fe_type, fe_init_args = checkpoint["model_init_args"]["feature_extractor"]
-        self._feature_extractor = fe_type(*fe_init_args)
-        reg_type, reg_init_args = checkpoint["model_init_args"]["regressor"]
-        self._regressor = reg_type(*reg_init_args)
+        for name, (model_type, init_args) in checkpoint["model_init_args"].items():
+            setattr(self, name, model_type(*init_args))
 
-    def _get_init_args(self, obj: Any) -> List[Any]:
-        signature = inspect.signature(obj.__init__)
-        init_args = [getattr(obj, param) for param in signature.parameters]
 
-        return init_args
+def _get_init_args(obj: Any) -> List[Any]:
+    signature = inspect.signature(obj.__init__)
+    init_args = [getattr(obj, param) for param in signature.parameters]
+
+    return init_args
