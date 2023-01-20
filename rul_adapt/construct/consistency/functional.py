@@ -114,9 +114,10 @@ def consistency_dann_from_config(
     """
     source = hydra.utils.instantiate(config.dm.source)
     target = source.get_compatible(**config.dm.target)
-    dm_pre = rul_datasets.RulDataModule(source, **config.dm.kwargs)
+    kwargs = hydra.utils.instantiate(config.dm.kwargs)
+    dm_pre = rul_datasets.RulDataModule(source, **kwargs)
     dm = rul_datasets.DomainAdaptionDataModule(
-        dm_pre, rul_datasets.RulDataModule(target, **config.dm.kwargs)
+        dm_pre, rul_datasets.RulDataModule(target, **kwargs)
     )
 
     feature_extractor = hydra.utils.instantiate(config.feature_extractor)
