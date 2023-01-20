@@ -149,6 +149,8 @@ class ConsistencyApproach(AdaptionApproach):
         ```
     """
 
+    CHECKPOINT_MODELS = ["dann_loss", "frozen_feature_extractor"]
+
     dann_loss: rul_adapt.loss.DomainAdversarialLoss
     frozen_feature_extractor: nn.Module
 

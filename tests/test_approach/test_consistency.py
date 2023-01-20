@@ -12,6 +12,7 @@ from torchmetrics import Metric
 from rul_adapt import model
 from rul_adapt.approach import ConsistencyApproachPretraining, ConsistencyApproach
 from rul_adapt.approach.consistency import StdExtractor
+from tests.test_approach import utils
 
 
 @pytest.fixture()
@@ -122,6 +123,16 @@ class TestConsistencyPretraining:
 
         approach.val_loss.assert_called_once()
         approach.log.assert_called_with("val/loss", approach.val_loss)
+
+    def test_checkpointing(self, tmp_path):
+        ckpt_path = tmp_path / "checkpoint.ckpt"
+        fe = model.CnnExtractor(1, [16], 10, fc_units=16)
+        reg = model.FullyConnectedHead(16, [1])
+        approach = ConsistencyApproachPretraining(0.01)
+        approach.set_model(fe, reg)
+
+        utils.checkpoint(approach, ckpt_path)
+        ConsistencyApproachPretraining.load_from_checkpoint(ckpt_path)
 
 
 class TestConsistencyApproach:
@@ -289,6 +300,17 @@ class TestConsistencyApproach:
                 mock.call("test/target_score", approach.test_target_score),
             ]
         )
+
+    def test_checkpointing(self, tmp_path):
+        ckpt_path = tmp_path / "checkpoint.ckpt"
+        fe = model.CnnExtractor(1, [16], 10, fc_units=16)
+        reg = model.FullyConnectedHead(16, [1])
+        disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
+        approach = ConsistencyApproach(1.0, 0.01, 1)
+        approach.set_model(fe, reg, disc)
+
+        utils.checkpoint(approach, ckpt_path)
+        ConsistencyApproachPretraining.load_from_checkpoint(ckpt_path)
 
 
 def test_std_extractor():
