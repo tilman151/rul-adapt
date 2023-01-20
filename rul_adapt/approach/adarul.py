@@ -1,3 +1,4 @@
+import copy
 from typing import Tuple, Optional, Any, List
 
 import torch
@@ -45,9 +46,10 @@ class AdaRulApproachPretraining(AdaptionApproach):
 
 class AdaRulApproach(AdaptionApproach):
 
-    CHECKPOINT_MODELS = ["_domain_disc"]
+    CHECKPOINT_MODELS = ["_domain_disc", "frozen_feature_extractor"]
 
     _domain_disc: nn.Module
+    frozen_feature_extractor: nn.Module
 
     def __init__(self, lr: float):
         super().__init__()
@@ -91,6 +93,8 @@ class AdaRulApproach(AdaptionApproach):
         domain_disc = self._check_domain_disc(domain_disc)
         super().set_model(feature_extractor, regressor, *args, **kwargs)
         self._domain_disc = domain_disc
+        self.frozen_feature_extractor = copy.deepcopy(feature_extractor)
+        self.frozen_feature_extractor.requires_grad_(False)  # freeze network
 
     def _check_domain_disc(self, domain_disc: Optional[nn.Module]) -> nn.Module:
         if domain_disc is None:
@@ -160,9 +164,9 @@ class AdaRulApproach(AdaptionApproach):
 
     def _get_disc_loss(self, source, target):
         batch_size = source.shape[0]
-        source = self.feature_extractor(source).detach()
+        source = self.frozen_feature_extractor(source).detach()
         target = self.feature_extractor(target).detach()
-        domain_pred = self._domain_disc(torch.cat([source, target]))
+        domain_pred = self.domain_disc(torch.cat([source, target]))
         domain_labels = torch.cat(
             [
                 torch.zeros(batch_size, 1, device=self.device),
@@ -176,7 +180,7 @@ class AdaRulApproach(AdaptionApproach):
     def _get_gen_loss(self, target):
         batch_size = target.shape[0]
         target = self.feature_extractor(target)
-        domain_pred = self._domain_disc(target)
+        domain_pred = self.domain_disc(target)
         domain_labels = torch.zeros(batch_size, 1, device=self.device)
         loss = -self.gan_loss(domain_pred, domain_labels)  # should maximize loss
 

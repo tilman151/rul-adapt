@@ -136,6 +136,15 @@ class TestAdaRulApproach:
         assert hasattr(approach, "_domain_disc")  # domain_disc was assigned
         assert approach.domain_disc is domain_disc  # domain_disc property works
 
+        param_pairs = zip(
+            approach.feature_extractor.parameters(),
+            approach.frozen_feature_extractor.parameters(),
+        )
+        for fe_param, frozen_param in param_pairs:
+            assert fe_param is not frozen_param  # frozen params are different objs
+            assert torch.dist(fe_param, frozen_param) == 0.0  # have same values
+            assert not frozen_param.requires_grad  # are frozen
+
     def test_domain_disc_check(self, models):
         feature_extractor, regressor, _ = models
         faulty_domain_disc = model.FullyConnectedHead(
@@ -181,11 +190,13 @@ class TestAdaRulApproach:
 
     def test_train_step_backward_disc(self, inputs, approach):
         """Feature extractor should have no gradients in disc step. Disc should have
-        gradients."""
+        gradients. Frozen feature extractor should never have gradients."""
         outputs = approach.training_step(inputs, batch_idx=0, optimizer_idx=0)
         outputs.backward()
 
         for param in approach.feature_extractor.parameters():
+            assert param.grad is None
+        for param in approach.frozen_feature_extractor.parameters():
             assert param.grad is None
         for param in approach.domain_disc.parameters():
             assert param.grad is not None
