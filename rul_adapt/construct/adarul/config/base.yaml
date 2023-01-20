@@ -1,0 +1,44 @@
+dm:
+  source:
+    _target_: rul_datasets.CmapssReader
+    fd: ???
+    window_size: 30
+  target:
+    fd: ???
+    percent_broken: 0.8
+  batch_size: 10
+
+feature_extractor:
+  _target_: rul_adapt.model.LstmExtractor
+  input_channels: 14
+  lstm_units: [32, 32, 32]
+  bidirectional: True
+
+regressor:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 64
+  act_func_on_last_layer: False
+  units: [64, 32, 1]
+  dropout: 0.5
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 64
+  act_func_on_last_layer: False
+  units: [64, 32, 1]
+
+adarul_pre:
+  _target_: rul_adapt.approach.AdaRulApproachPretraining
+  lr: 1e-4
+
+adarul:
+  _target_: rul_adapt.approach.AdaRulApproach
+  lr: 1e-4
+
+trainer_pre:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 100
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 20
