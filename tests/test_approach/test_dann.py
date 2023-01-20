@@ -11,6 +11,7 @@ from torchmetrics import Metric
 import rul_adapt.loss
 from rul_adapt import model
 from rul_adapt.approach.dann import DannApproach
+from tests.test_approach import utils
 
 
 @pytest.fixture()
@@ -278,6 +279,18 @@ def test_test_step_logging(mocked_approach, inputs):
             mock.call("test/target_score", approach.test_target_score),
         ]
     )
+
+
+def test_checkpointing(tmp_path):
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    fe = model.CnnExtractor(1, [16], 10, fc_units=16)
+    reg = model.FullyConnectedHead(16, [1])
+    disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
+    approach = DannApproach(1.0, 0.01)
+    approach.set_model(fe, reg, disc)
+
+    utils.checkpoint(approach, ckpt_path)
+    DannApproach.load_from_checkpoint(ckpt_path)
 
 
 @pytest.mark.integration

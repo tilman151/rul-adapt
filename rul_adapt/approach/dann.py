@@ -61,6 +61,8 @@ class DannApproach(AdaptionApproach):
         ```
     """
 
+    CHECKPOINT_MODELS = ["dann_loss"]
+
     dann_loss: rul_adapt.loss.DomainAdversarialLoss
 
     def __init__(

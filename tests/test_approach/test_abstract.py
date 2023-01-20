@@ -1,13 +1,12 @@
 from unittest import mock
 
 import pytest
-import pytorch_lightning as pl
-import rul_datasets
 import torch.optim
 from torch import nn
 
 from rul_adapt import model
 from rul_adapt.approach.abstract import AdaptionApproach, _get_hydra_config
+from tests.test_approach import utils
 
 
 class DummyApproach(AdaptionApproach):
@@ -122,7 +121,7 @@ def test_regressor():
 def test_checkpointing(tmp_path, approach, models):
     ckpt_path = tmp_path / "checkpoint.ckpt"
     approach.set_model(*models)
-    _checkpoint(approach, ckpt_path)
+    utils.checkpoint(approach, ckpt_path)
     restored = type(approach).load_from_checkpoint(ckpt_path)
 
     paired_params = zip(approach.parameters(), restored.parameters())
@@ -138,15 +137,8 @@ def test_error_on_uncheckpointable_model(tmp_path):
     approach.set_model(fe, reg)
 
     with pytest.raises(RuntimeError) as exc_info:
-        _checkpoint(approach, tmp_path / "checkpoint.ckpt")
+        utils.checkpoint(approach, tmp_path / "checkpoint.ckpt")
         assert exc_info.value.args[0].startswith("The object of type ")
-
-
-def _checkpoint(approach, ckpt_path):
-    dm = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(1), 32)
-    trainer = pl.Trainer(max_epochs=0)
-    trainer.fit(approach, dm)
-    trainer.save_checkpoint(ckpt_path)
 
 
 @pytest.mark.parametrize(
