@@ -169,8 +169,8 @@ class AdaRulApproach(AdaptionApproach):
         domain_pred = self.domain_disc(torch.cat([source, target]))
         domain_labels = torch.cat(
             [
-                torch.zeros(batch_size, 1, device=self.device),
-                torch.ones(batch_size, 1, device=self.device),
+                torch.ones(batch_size, 1, device=self.device),  # real labels
+                torch.zeros(batch_size, 1, device=self.device),  # fake labels
             ]
         )
         loss = self.gan_loss(domain_pred, domain_labels)
@@ -181,7 +181,7 @@ class AdaRulApproach(AdaptionApproach):
         batch_size = target.shape[0]
         target = self.feature_extractor(target)
         domain_pred = self.domain_disc(target)
-        domain_labels = torch.zeros(batch_size, 1, device=self.device)
+        domain_labels = torch.zeros(batch_size, 1, device=self.device)  # fake labels
         loss = -self.gan_loss(domain_pred, domain_labels)  # should maximize loss
 
         return loss
