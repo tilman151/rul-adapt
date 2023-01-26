@@ -237,7 +237,7 @@ class TestAdaRulApproach:
         approach.training_step(inputs, batch_idx=0, optimizer_idx=1)
 
         approach.gan_loss.assert_called_once()
-        approach.log.assert_called_with("train/gen_loss", -approach.gan_loss())
+        approach.log.assert_called_with("train/gen_loss", approach.gan_loss())
 
     @torch.no_grad()
     def test_val_step_logging(self, mocked_approach, inputs):
