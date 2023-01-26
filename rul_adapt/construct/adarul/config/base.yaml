@@ -10,13 +10,12 @@ dm:
   batch_size: 10
 
 feature_extractor:
-  _target_: rul_adapt.model.wrapper.ActivationDropoutWrapper
+  _target_: rul_adapt.model.ActivationDropoutWrapper
   wrapped:
     _target_: rul_adapt.model.LstmExtractor
     input_channels: 14
     lstm_units: [32, 32, 32]
     bidirectional: True
-  act_func: nn.ReLU
   dropout: 0.5
 
 regressor:
