@@ -11,10 +11,11 @@ from rul_adapt.model import FullyConnectedHead
 
 
 class AdaRulApproachPretraining(AdaptionApproach):
-    def __init__(self, lr: float):
+    def __init__(self, lr: float, max_rul: int) -> None:
         super().__init__()
 
         self.lr = lr
+        self.max_rul = max_rul
 
         self.train_loss = torchmetrics.MeanSquaredError()
         self.val_loss = torchmetrics.MeanSquaredError(squared=False)
@@ -23,7 +24,7 @@ class AdaRulApproachPretraining(AdaptionApproach):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        return self.regressor(self.feature_extractor(inputs))
+        return self.regressor(self.feature_extractor(inputs)) * self.max_rul
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -51,10 +52,11 @@ class AdaRulApproach(AdaptionApproach):
     _domain_disc: nn.Module
     frozen_feature_extractor: nn.Module
 
-    def __init__(self, lr: float):
+    def __init__(self, lr: float, max_rul: int):
         super().__init__()
 
         self.lr = lr
+        self.max_rul = max_rul
 
         # training metrics
         self.gan_loss = nn.BCEWithLogitsLoss()
@@ -133,7 +135,7 @@ class AdaRulApproach(AdaptionApproach):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
-        return self.regressor(self.feature_extractor(inputs))
+        return self.regressor(self.feature_extractor(inputs)) * self.max_rul
 
     def training_step(
         self, batch: List[torch.Tensor], batch_idx: int, optimizer_idx: int

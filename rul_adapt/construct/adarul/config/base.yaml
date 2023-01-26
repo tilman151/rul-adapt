@@ -35,10 +35,12 @@ domain_disc:
 adarul_pre:
   _target_: rul_adapt.approach.AdaRulApproachPretraining
   lr: 1e-4
+  max_rul: ${dm.source.max_rul}
 
 adarul:
   _target_: rul_adapt.approach.AdaRulApproach
   lr: 1e-4
+  max_rul: ${dm.source.max_rul}
 
 trainer_pre:
   _target_: pytorch_lightning.Trainer

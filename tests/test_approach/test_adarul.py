@@ -39,7 +39,7 @@ def models(pretraining_models):
 
 @pytest.fixture()
 def pretraining_approach(pretraining_models):
-    approach = AdaRulApproachPretraining(lr=0.001)
+    approach = AdaRulApproachPretraining(lr=0.001, max_rul=130)
     approach.set_model(*pretraining_models)
 
     return approach
@@ -47,7 +47,7 @@ def pretraining_approach(pretraining_models):
 
 @pytest.fixture()
 def approach(models):
-    approach = AdaRulApproach(0.001)
+    approach = AdaRulApproach(0.001, max_rul=130)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
 
@@ -58,7 +58,7 @@ def approach(models):
 def mocked_pretraining_approach():
     feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 20))
     regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = AdaRulApproachPretraining(0.001)
+    approach = AdaRulApproachPretraining(0.001, 130)
     approach.set_model(feature_extractor, regressor)
 
     return approach
@@ -69,7 +69,7 @@ def mocked_approach():
     feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 20))
     regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
     disc = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = AdaRulApproach(0.001)
+    approach = AdaRulApproach(0.001, 130)
     approach.set_model(feature_extractor, regressor, disc)
     approach.log = mock.MagicMock()
 
@@ -150,7 +150,7 @@ class TestAdaRulApproach:
         faulty_domain_disc = model.FullyConnectedHead(
             20, [1], act_func_on_last_layer=True
         )
-        approach = AdaRulApproach(0.01)
+        approach = AdaRulApproach(0.01, 130)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor)
@@ -323,10 +323,10 @@ class TestAdaRulApproach:
         )
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = AdaRulApproach(0.01)
+        approach = AdaRulApproach(0.01, 130)
         approach.set_model(fe, reg, disc)
 
-        utils.checkpoint(approach, ckpt_path)
+        utils.checkpoint(approach, ckpt_path, max_rul=130)
         AdaRulApproach.load_from_checkpoint(ckpt_path)
 
 
@@ -340,7 +340,7 @@ def test_on_dummy():
     feature_extractor = model.LstmExtractor(1, [10], bidirectional=True)
     regressor = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    pre_approach = AdaRulApproachPretraining(0.0001)
+    pre_approach = AdaRulApproachPretraining(0.0001, 130)
     pre_approach.set_model(feature_extractor, regressor)
 
     trainer = pl.Trainer(
@@ -359,7 +359,7 @@ def test_on_dummy():
 
     disc = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    approach = AdaRulApproach(0.0001)
+    approach = AdaRulApproach(0.0001, 130)
     approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, disc)
 
     trainer = pl.Trainer(
