@@ -318,7 +318,9 @@ class TestAdaRulApproach:
 
     def test_checkpointing(self, tmp_path):
         ckpt_path = tmp_path / "checkpoint.ckpt"
-        fe = model.CnnExtractor(1, [16], 10, fc_units=16)
+        fe = model.ActivationDropoutWrapper(
+            model.CnnExtractor(1, [16], 10, fc_units=16), nn.ReLU, 0.5
+        )
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
         approach = AdaRulApproach(0.01)

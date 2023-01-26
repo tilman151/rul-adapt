@@ -10,15 +10,14 @@ dm:
   batch_size: 10
 
 feature_extractor:
-  _target_: torch.nn.Sequential
-  args:
-    - _target_: rul_adapt.model.LstmExtractor
-      input_channels: 14
-      lstm_units: [32, 32, 32]
-      bidirectional: True
-    - _target_: nn.ReLU
-    - _target_: nn.Dropout
-      p: 0.5
+  _target_: rul_adapt.model.wrapper.ActivationDropoutWrapper
+  wrapped:
+    _target_: rul_adapt.model.LstmExtractor
+    input_channels: 14
+    lstm_units: [32, 32, 32]
+    bidirectional: True
+  act_func: nn.ReLU
+  dropout: 0.5
 
 regressor:
   _target_: rul_adapt.model.FullyConnectedHead
