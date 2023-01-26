@@ -44,7 +44,7 @@ adarul:
 
 trainer_pre:
   _target_: pytorch_lightning.Trainer
-  max_epochs: 100
+  max_epochs: 5  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/pre_train_test_split.py#L32
   gradient_clip_val: 1.0  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/train_eval.py#L34
 
 trainer:
