@@ -3,16 +3,22 @@ dm:
     _target_: rul_datasets.CmapssReader
     fd: ???
     window_size: 30
+    max_rul: 130  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/train_eval.py#L5
   target:
     fd: ???
     percent_broken: 0.8
   batch_size: 10
 
 feature_extractor:
-  _target_: rul_adapt.model.LstmExtractor
-  input_channels: 14
-  lstm_units: [32, 32, 32]
-  bidirectional: True
+  _target_: torch.nn.Sequential
+  args:
+    - _target_: rul_adapt.model.LstmExtractor
+      input_channels: 14
+      lstm_units: [32, 32, 32]
+      bidirectional: True
+    - _target_: nn.ReLU
+    - _target_: nn.Dropout
+      p: 0.5
 
 regressor:
   _target_: rul_adapt.model.FullyConnectedHead

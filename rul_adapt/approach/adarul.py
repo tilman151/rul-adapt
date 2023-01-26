@@ -122,10 +122,14 @@ class AdaRulApproach(AdaptionApproach):
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
     def configure_optimizers(self) -> List[torch.optim.Adam]:
-        return [
-            torch.optim.Adam(self.domain_disc.parameters(), self.lr),
-            torch.optim.Adam(self.feature_extractor.parameters(), self.lr),
+        lr = self.lr
+        betas = (0.5, 0.5)
+        optims = [
+            torch.optim.Adam(self.domain_disc.parameters(), lr, betas),
+            torch.optim.Adam(self.feature_extractor.parameters(), lr, betas),
         ]
+
+        return optims
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
