@@ -40,8 +40,8 @@ adarul:
   _target_: rul_adapt.approach.AdaRulApproach
   lr: 1e-4
   max_rul: ${dm.source.max_rul}
-  num_disc_updates: 35
-  num_gen_updates: 1
+  num_disc_updates: 35  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L204
+  num_gen_updates: 1  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L204
 
 trainer_pre:
   _target_: pytorch_lightning.Trainer
