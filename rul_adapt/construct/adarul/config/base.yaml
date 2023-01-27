@@ -40,6 +40,8 @@ adarul:
   _target_: rul_adapt.approach.AdaRulApproach
   lr: 1e-4
   max_rul: ${dm.source.max_rul}
+  num_disc_updates: 35
+  num_gen_updates: 1
 
 trainer_pre:
   _target_: pytorch_lightning.Trainer
@@ -49,3 +51,4 @@ trainer_pre:
 trainer:
   _target_: pytorch_lightning.Trainer
   max_epochs: 20
+  limit_train_batches: 36

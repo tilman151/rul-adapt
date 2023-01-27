@@ -47,31 +47,18 @@ def pretraining_approach(pretraining_models):
 
 @pytest.fixture()
 def approach(models):
-    approach = AdaRulApproach(0.001, max_rul=130)
+    approach = AdaRulApproach(0.001, 130, 35, 1)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
 
-    return approach
-
-
-@pytest.fixture()
-def mocked_pretraining_approach():
-    feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 20))
-    regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = AdaRulApproachPretraining(0.001, 130)
-    approach.set_model(feature_extractor, regressor)
-
-    return approach
-
-
-@pytest.fixture()
-def mocked_approach():
-    feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 20))
-    regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    disc = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = AdaRulApproach(0.001, 130)
-    approach.set_model(feature_extractor, regressor, disc)
-    approach.log = mock.MagicMock()
+    approach.manual_backward = mock.MagicMock(name="manual_backward")
+    approach.optimizers = mock.MagicMock(
+        name="optimizers",
+        return_value=(
+            mock.MagicMock(name="disc_optim"),
+            mock.MagicMock(name="gen_optim"),
+        ),
+    )
 
     return approach
 
@@ -100,8 +87,9 @@ class TestAdaRulPretraining:
         pretraining_approach.validation_step(pretraining_inputs, batch_idx=0)
 
     @torch.no_grad()
-    def test_train_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
-        approach = mocked_pretraining_approach
+    def test_train_step_logging(self, pretraining_inputs, pretraining_approach):
+        approach = pretraining_approach
+
         approach.train_loss = mock.MagicMock(Metric)
         approach.log = mock.MagicMock()
 
@@ -111,8 +99,9 @@ class TestAdaRulPretraining:
         approach.log.assert_called_with("train/loss", approach.train_loss)
 
     @torch.no_grad()
-    def test_val_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
-        approach = mocked_pretraining_approach
+    def test_val_step_logging(self, pretraining_inputs, pretraining_approach):
+        approach = pretraining_approach
+
         approach.val_loss = mock.MagicMock(Metric)
         approach.log = mock.MagicMock()
 
@@ -150,7 +139,7 @@ class TestAdaRulApproach:
         faulty_domain_disc = model.FullyConnectedHead(
             20, [1], act_func_on_last_layer=True
         )
-        approach = AdaRulApproach(0.01, 130)
+        approach = AdaRulApproach(0.01, 130, 35, 1)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor)
@@ -166,14 +155,29 @@ class TestAdaRulApproach:
         assert outputs.shape == torch.Size([10, 1])
 
     def test_train_step(self, inputs, approach):
-        outputs = approach.training_step(inputs, batch_idx=0, optimizer_idx=0)
-        assert outputs.shape == torch.Size([])
+        mock_disc_loss = mock.MagicMock(
+            name="disc_loss", return_value=torch.zeros(10, requires_grad=True)
+        )
+        mock_gen_loss = mock.MagicMock(
+            name="gen_loss", return_value=torch.zeros(10, requires_grad=True)
+        )
+        approach._get_disc_loss = mock_disc_loss
+        approach._get_gen_loss = mock_gen_loss
 
-        outputs = approach.training_step(inputs, batch_idx=0, optimizer_idx=1)
-        assert outputs.shape == torch.Size([])
-
-        with pytest.raises(RuntimeError):
-            approach.training_step(inputs, batch_idx=0, optimizer_idx=2)
+        for e in range(2):
+            approach.on_train_epoch_start()  # reset counters on start of epoch
+            for i in range(100):
+                approach.training_step(inputs, batch_idx=i)
+                # start over after all updates are done
+                i = i % (approach.num_disc_updates + approach.num_gen_updates)
+                if i < approach.num_disc_updates:  # make disc updates first
+                    mock_disc_loss.assert_called()
+                    mock_gen_loss.assert_not_called()
+                else:  # make gen updates afterwards
+                    mock_disc_loss.assert_not_called()
+                    mock_gen_loss.assert_called()
+                mock_disc_loss.reset_mock()
+                mock_gen_loss.reset_mock()
 
     def test_configure_optimizer(self, approach):
         disc_optim, gen_optim = approach.configure_optimizers()
@@ -191,24 +195,21 @@ class TestAdaRulApproach:
     def test_train_step_backward_disc(self, inputs, approach):
         """Feature extractor should have no gradients in disc step. Disc should have
         gradients. Frozen feature extractor should never have gradients."""
-        outputs = approach.training_step(inputs, batch_idx=0, optimizer_idx=0)
-        outputs.backward()
+        approach.training_step(inputs, batch_idx=0)
 
-        for param in approach.feature_extractor.parameters():
-            assert param.grad is None
-        for param in approach.frozen_feature_extractor.parameters():
-            assert param.grad is None
-        for param in approach.domain_disc.parameters():
-            assert param.grad is not None
+        approach.manual_backward.assert_called()
+        disc_optim, _ = approach.optimizers()
+        disc_optim.step.assert_called()
 
     def test_train_step_backward_gen(self, inputs, approach):
         """Feature extractor should have gradients in gen step. Disc will necessarily
         have gradients but this is unimportant here."""
-        outputs = approach.training_step(inputs, batch_idx=0, optimizer_idx=1)
-        outputs.backward()
+        approach._disc_counter = approach.num_disc_updates
+        approach.training_step(inputs, batch_idx=0)
 
-        for param in approach.feature_extractor.parameters():
-            assert param.grad is not None
+        approach.manual_backward.assert_called()
+        _, gen_optim = approach.optimizers()
+        gen_optim.step.assert_called()
 
     @torch.no_grad()
     def test_val_step(self, inputs, approach):
@@ -220,29 +221,28 @@ class TestAdaRulApproach:
             approach.validation_step([features, labels], batch_idx=0, dataloader_idx=2)
 
     @torch.no_grad()
-    def test_train_step_disc_logging(self, inputs, mocked_approach):
-        approach = mocked_approach
+    def test_train_step_disc_logging(self, inputs, approach):
         approach.gan_loss = mock.MagicMock(nn.Module)
+        approach._disc_counter = 0
 
-        approach.training_step(inputs, batch_idx=0, optimizer_idx=0)
+        approach.training_step(inputs, batch_idx=0)
 
         approach.gan_loss.assert_called_once()
         approach.log.assert_called_with("train/disc_loss", approach.gan_loss())
 
     @torch.no_grad()
-    def test_train_step_gen_logging(self, inputs, mocked_approach):
-        approach = mocked_approach
+    def test_train_step_gen_logging(self, inputs, approach):
         approach.gan_loss = mock.MagicMock(nn.Module)
+        approach._disc_counter = approach.num_disc_updates
+        approach._gen_counter = 0
 
-        approach.training_step(inputs, batch_idx=0, optimizer_idx=1)
+        approach.training_step(inputs, batch_idx=0)
 
         approach.gan_loss.assert_called_once()
         approach.log.assert_called_with("train/gen_loss", approach.gan_loss())
 
     @torch.no_grad()
-    def test_val_step_logging(self, mocked_approach, inputs):
-        approach = mocked_approach
-
+    def test_val_step_logging(self, approach, inputs):
         features, labels, _ = inputs
         approach.val_source_rmse = mock.MagicMock(Metric)
         approach.val_source_score = mock.MagicMock(Metric)
@@ -279,8 +279,7 @@ class TestAdaRulApproach:
         )
 
     @torch.no_grad()
-    def test_test_step_logging(self, mocked_approach, inputs):
-        approach = mocked_approach
+    def test_test_step_logging(self, approach, inputs):
         features, labels, _ = inputs
         approach.test_source_rmse = mock.MagicMock(Metric)
         approach.test_source_score = mock.MagicMock(Metric)
@@ -323,7 +322,7 @@ class TestAdaRulApproach:
         )
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = AdaRulApproach(0.01, 130)
+        approach = AdaRulApproach(0.01, 130, 35, 1)
         approach.set_model(fe, reg, disc)
 
         utils.checkpoint(approach, ckpt_path, max_rul=130)

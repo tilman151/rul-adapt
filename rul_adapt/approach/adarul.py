@@ -52,11 +52,19 @@ class AdaRulApproach(AdaptionApproach):
     _domain_disc: nn.Module
     frozen_feature_extractor: nn.Module
 
-    def __init__(self, lr: float, max_rul: int):
+    def __init__(
+        self, lr: float, max_rul: int, num_disc_updates: int, num_gen_updates: int
+    ) -> None:
         super().__init__()
+
+        self.automatic_optimization = False  # use manual optimization loop
 
         self.lr = lr
         self.max_rul = max_rul
+        self.num_disc_updates = num_disc_updates
+        self.num_gen_updates = num_gen_updates
+
+        self._disc_counter, self._gen_counter = 0, 0
 
         # training metrics
         self.gan_loss = nn.BCEWithLogitsLoss()
@@ -137,9 +145,10 @@ class AdaRulApproach(AdaptionApproach):
         """Predict the RUL values for a batch of input features."""
         return self.regressor(self.feature_extractor(inputs)) * self.max_rul
 
-    def training_step(
-        self, batch: List[torch.Tensor], batch_idx: int, optimizer_idx: int
-    ) -> torch.Tensor:
+    def on_train_epoch_start(self) -> None:
+        self._reset_update_counters()
+
+    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> torch.Tensor:
         """
         Execute one training step.
         The `batch` argument is a list of three tensors representing the source
@@ -157,16 +166,43 @@ class AdaRulApproach(AdaptionApproach):
         """
         source, _, target = batch
 
-        if optimizer_idx == 0:
+        if self._updates_done():
+            self._reset_update_counters()
+
+        if self._should_update_disc():
+            optim, _ = self.optimizers()
             loss = self._get_disc_loss(source, target)
             self.log("train/disc_loss", loss)
-        elif optimizer_idx == 1:
+            self._disc_counter += 1
+        elif self._should_update_gen():
+            _, optim = self.optimizers()
             loss = self._get_gen_loss(target)
             self.log("train/gen_loss", loss)
+            self._gen_counter += 1
         else:
-            raise RuntimeError("Too many optimizers.")
+            raise RuntimeError("Configuration error. Did update neither disc nor gen.")
 
-        return loss
+        optim.zero_grad()
+        self.manual_backward(loss)
+        optim.step()
+
+    def _should_update_disc(self):
+        return self._disc_counter < self.num_disc_updates and self._gen_counter == 0
+
+    def _should_update_gen(self):
+        return (
+            self._disc_counter == self.num_disc_updates
+            and self._gen_counter < self.num_gen_updates
+        )
+
+    def _reset_update_counters(self):
+        self._disc_counter, self._gen_counter = 0, 0
+
+    def _updates_done(self) -> bool:
+        return (
+            self._disc_counter == self.num_disc_updates
+            and self._gen_counter == self.num_gen_updates
+        )
 
     def _get_disc_loss(self, source, target):
         batch_size = source.shape[0]
