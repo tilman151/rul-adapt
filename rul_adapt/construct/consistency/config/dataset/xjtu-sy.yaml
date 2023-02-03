@@ -6,10 +6,10 @@ dm:
     window_size: null
   kwargs:
     feature_extractor:
-      _target_: rul_adapt.approach.consistency.StdExtractor
-      channels: [0]
-    window_size: 30
+      _target_: rul_adapt.approach.consistency.TumblingWindowExtractor
+      channels: [1]
+      window_size: 30
 
 feature_extractor:
   input_channels: 1
-  seq_len: ${dm.kwargs.window_size}
+  seq_len: ${dm.kwargs.feature_extractor.window_size}
