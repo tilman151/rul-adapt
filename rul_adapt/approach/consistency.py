@@ -27,7 +27,7 @@ This version of DANN was introduced by
 import copy
 import math
 from itertools import chain
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Tuple
 
 import numpy as np
 import torch
@@ -393,7 +393,9 @@ class StdExtractor:
         """
         self.channels = channels
 
-    def __call__(self, inputs: np.ndarray) -> np.ndarray:
+    def __call__(
+        self, inputs: np.ndarray, targets: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Extract features from the input data.
 
@@ -406,4 +408,21 @@ class StdExtractor:
         Returns:
             The features extracted from the input data.
         """
-        return np.std(inputs[:, :, self.channels], axis=1)
+        return np.std(inputs[:, :, self.channels], axis=1), targets
+
+
+class TumblingWindowExtractor:
+    def __init__(self, window_size: int) -> None:
+        self.window_size = window_size
+
+    def __call__(
+        self, features: np.ndarray, targets: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        _, org_window_size, num_features = features.shape
+        window_multiplier = org_window_size // self.window_size
+        crop_size = self.window_size * window_multiplier
+
+        features = features[:, :crop_size].reshape(-1, self.window_size, num_features)
+        targets = np.repeat(targets, window_multiplier)
+
+        return features, targets

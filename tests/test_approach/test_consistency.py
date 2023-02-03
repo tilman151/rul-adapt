@@ -11,7 +11,7 @@ from torchmetrics import Metric
 
 from rul_adapt import model
 from rul_adapt.approach import ConsistencyApproachPretraining, ConsistencyApproach
-from rul_adapt.approach.consistency import StdExtractor
+from rul_adapt.approach.consistency import StdExtractor, TumblingWindowExtractor
 from tests.test_approach import utils
 
 
@@ -315,12 +315,29 @@ class TestConsistencyApproach:
 
 def test_std_extractor():
     inputs = np.random.randn(100, 3000, 2)
+    targets = np.random.randn(100)
     extractor = StdExtractor(channels=[1])
 
-    outputs = extractor(inputs)
+    ex_inputs, ex_targets = extractor(inputs, targets)
 
-    assert outputs.shape == (100, 1)
-    npt.assert_almost_equal(outputs, inputs[:, :, [1]].std(axis=1))
+    assert ex_inputs.shape == (100, 1)
+    npt.assert_almost_equal(ex_inputs, inputs[:, :, [1]].std(axis=1))
+    assert ex_targets.shape == targets.shape
+    npt.assert_equal(ex_targets, targets)
+
+
+def test_tumbling_window_extractor():
+    inputs = np.random.randn(100, 3000, 2)
+    targets = np.arange(len(inputs), 0, -1)
+    extractor = TumblingWindowExtractor(30)
+
+    ex_inputs, ex_targets = extractor(inputs, targets)
+
+    assert ex_inputs.shape == (100 * 100, 30, 2)
+    npt.assert_equal(inputs[10, 30:60], ex_inputs[10 * 100 + 1])  # check window
+
+    assert ex_targets.shape == (100 * 100,)
+    assert targets[10] == ex_targets[10 * 100 + 1]
 
 
 @pytest.mark.integration
