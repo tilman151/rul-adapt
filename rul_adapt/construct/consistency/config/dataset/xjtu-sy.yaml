@@ -7,7 +7,7 @@ dm:
   kwargs:
     feature_extractor:
       _target_: rul_adapt.approach.consistency.TumblingWindowExtractor
-      channels: [1]
+      channels: [0]
       window_size: 30
 
 feature_extractor:
