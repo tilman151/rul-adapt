@@ -329,12 +329,12 @@ def test_std_extractor():
 def test_tumbling_window_extractor():
     inputs = np.random.randn(100, 3000, 2)
     targets = np.arange(len(inputs), 0, -1)
-    extractor = TumblingWindowExtractor(30)
+    extractor = TumblingWindowExtractor(30, [0])
 
     ex_inputs, ex_targets = extractor(inputs, targets)
 
-    assert ex_inputs.shape == (100 * 100, 30, 2)
-    npt.assert_equal(inputs[10, 30:60], ex_inputs[10 * 100 + 1])  # check window
+    assert ex_inputs.shape == (100 * 100, 30, 1)
+    npt.assert_equal(inputs[10, 30:60, 0:1], ex_inputs[10 * 100 + 1])  # check window
 
     assert ex_targets.shape == (100 * 100,)
     assert targets[10] == ex_targets[10 * 100 + 1]
