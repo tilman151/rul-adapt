@@ -51,5 +51,5 @@ trainer_pre:
 
 trainer:
   _target_: pytorch_lightning.Trainer
-  max_epochs: 20
+  max_epochs: ???  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L56
   limit_train_batches: 36

@@ -34,7 +34,11 @@ def get_adarul_config(source_fd: int, target_fd: int) -> omegaconf.DictConfig:
     with hydra.initialize("config", version_base="1.1"):
         config = hydra.compose(
             "base",
-            overrides=[f"dm.source.fd={source_fd}", f"dm.target.fd={target_fd}"],
+            overrides=[
+                f"dm.source.fd={source_fd}",
+                f"dm.target.fd={target_fd}",
+                f"+task_source=fd{source_fd}",
+            ],
         )
 
     return config
