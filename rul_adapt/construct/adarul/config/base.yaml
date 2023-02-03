@@ -4,6 +4,7 @@ dm:
     fd: ???
     window_size: 30
     max_rul: 130  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/train_eval.py#L5
+    operation_condition_aware_scaling: True
   target:
     fd: ???
     percent_broken: 0.8
