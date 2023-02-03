@@ -412,17 +412,20 @@ class StdExtractor:
 
 
 class TumblingWindowExtractor:
-    def __init__(self, window_size: int) -> None:
+    def __init__(self, window_size: int, channels: List[int]) -> None:
         self.window_size = window_size
+        self.channels = channels
 
     def __call__(
         self, features: np.ndarray, targets: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        _, org_window_size, num_features = features.shape
+        org_window_size = features.shape[1]
         window_multiplier = org_window_size // self.window_size
         crop_size = self.window_size * window_multiplier
+        num_channels = len(self.channels)
 
-        features = features[:, :crop_size].reshape(-1, self.window_size, num_features)
+        features = features[:, :, self.channels]
+        features = features[:, :crop_size].reshape(-1, self.window_size, num_channels)
         targets = np.repeat(targets, window_multiplier)
 
         return features, targets
