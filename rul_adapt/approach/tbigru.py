@@ -3,13 +3,12 @@ from typing import List, Tuple, Optional
 
 import numpy as np
 import pywt  # type: ignore
-import rul_datasets.reader.scaling
 import torch
 import torchmetrics
 from dtaidistance import dtw  # type: ignore
 from rul_datasets.reader import AbstractReader
 from scipy.stats import wasserstein_distance  # type: ignore
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler  # type: ignore
 
 import rul_adapt
 from rul_adapt.approach.abstract import AdaptionApproach
@@ -108,6 +107,9 @@ def std_ihs(inputs: np.ndarray) -> np.ndarray:
 
 
 class VibrationFeatureExtractor:
+
+    _scaler: Optional[MinMaxScaler]
+
     def __init__(
         self, num_input_features: int, feature_idx: Optional[List[int]] = None
     ) -> None:
@@ -141,7 +143,7 @@ class VibrationFeatureExtractor:
 
 
 def _extract_all(features: np.ndarray, num_features: int) -> np.ndarray:
-    features = [
+    feature_list = [
         rms(features),
         kurtosis(features),
         p2p(features),
@@ -160,7 +162,7 @@ def _extract_all(features: np.ndarray, num_features: int) -> np.ndarray:
         std_ihc(features),
         std_ihs(features),
     ]
-    features = np.concatenate(features, axis=1)
+    features = np.concatenate(feature_list, axis=1)
 
     return features
 
@@ -187,7 +189,7 @@ def select_features(
         for i, (s, f) in enumerate(zip(source_feats.T, target_feats.T)):
             distances[i] += domain_distance(s, f)
 
-    feature_idx = np.argsort(distances)[:num_features]
+    feature_idx = np.argsort(distances)[:num_features].tolist()
 
     return feature_idx
 
