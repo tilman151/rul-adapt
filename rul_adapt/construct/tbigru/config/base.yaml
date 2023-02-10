@@ -1,0 +1,40 @@
+dm:
+  source:
+    _target_: rul_datasets.FemtoReader
+    fd: ???
+  target:
+    fd: ???
+    percent_broken: 0.8
+  batch_size: 150
+  feature_extractor:
+    _target_: rul_adapt.approach.tbigru.VibrationFeatureExtractor
+    num_input_features: 2
+    feature_idx: ???
+  window_size: 20
+
+feature_extractor:
+  _target_: rul_adapt.model.GruExtractor
+  input_channels: 30
+  fc_units: [15, 5]
+  gru_units: [5]
+
+regressor:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 10
+  act_func_on_last_layer: False
+  units: [1]
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 10
+  act_func_on_last_layer: False
+  units: [1]
+
+tbigru:
+  _target_: rul_adapt.approach.TBiGruApproach
+  lr: 0.001
+  mmd_factor: 0.1
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 5000
