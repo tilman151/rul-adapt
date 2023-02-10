@@ -121,11 +121,14 @@ def test_band_energies(inputs_normal):
 def test_std_ihc(inputs_normal):
     ihc = tbigru.std_ihc(inputs_normal)
     _assert_shape(ihc)
+    assert np.all(np.isfinite(ihc))
+    assert np.all(np.isreal(ihc))
 
 
 def test_std_ihs(inputs_normal):
     ihs = tbigru.std_ihs(inputs_normal)
     _assert_shape(ihs)
+    assert np.all(np.isfinite(ihs))
 
 
 def _assert_shape(outputs, multiplier=1):
@@ -159,7 +162,7 @@ def test_feature_extractor_selection():
 
 
 def test_feature_extractor_as_scaler():
-    inputs = np.random.randn(10, 2560, 2)
+    inputs = np.random.default_rng(seed=42).standard_normal((10, 2560, 2))
     targets = np.arange(10)
     extractor = tbigru.VibrationFeatureExtractor(2, [0, 1, 20, 40])
     extractor.fit([inputs])

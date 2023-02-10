@@ -100,11 +100,11 @@ def band_energies(inputs: np.ndarray) -> np.ndarray:
 
 
 def std_ihc(inputs: np.ndarray) -> np.ndarray:
-    return np.std(np.log(inputs + np.sqrt(inputs**2 - 1)), axis=-2)
+    return np.std((np.arccosh(inputs + 0j)), axis=-2)
 
 
 def std_ihs(inputs: np.ndarray) -> np.ndarray:
-    return np.std(np.log(inputs + np.sqrt(inputs**2 + 1)), axis=-2)
+    return np.std(np.arcsinh(inputs), axis=-2)
 
 
 class VibrationFeatureExtractor:
