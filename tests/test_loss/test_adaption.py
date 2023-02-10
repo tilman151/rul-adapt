@@ -14,8 +14,8 @@ def manual_seed():
 
 
 def test_mmd_same_dist():
-    source = torch.randn(1000, 1)
-    target = torch.randn(1000, 1)
+    source = torch.randn(1000, 10)
+    target = torch.randn(1000, 10)
     mmd = loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
 
     mmd_loss = mmd(source, target)
@@ -24,14 +24,26 @@ def test_mmd_same_dist():
 
 
 def test_mmd_diff_dist():
-    source = torch.randn(1000, 1)
-    target = torch.randn(1000, 1)
+    source = torch.randn(100, 10)
+    target = torch.randn(100, 10)
     mmd = loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
 
     mmd_loss_1 = mmd(source * 2, target)
     mmd_loss_2 = mmd((source * 2) + 1, target)
 
     assert mmd_loss_1 < mmd_loss_2
+
+
+def test_mmd_backward():
+    source = torch.randn(100, 10, requires_grad=True)
+    target = torch.randn(100, 10, requires_grad=True)
+    mmd = loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
+
+    mmd_loss_1 = mmd(source * 2, target)
+    mmd_loss_1.backward()
+
+    assert not source.grad.isnan().any()
+    assert not target.grad.isnan().any()
 
 
 def test_jmmd_same_dist():
@@ -57,8 +69,8 @@ def test_jmmd_diff_dist():
 
 
 def test_dann_perfect_disc():
-    source = torch.randn(500, 1) - 50
-    target = torch.randn(500, 1) + 50
+    source = torch.randn(50, 10) - 50
+    target = torch.randn(50, 10) + 50
     dummy_disc = lambda x: torch.mean(x, dim=1, keepdim=True)
     dann = loss.DomainAdversarialLoss(dummy_disc)
 
