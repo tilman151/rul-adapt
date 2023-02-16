@@ -17,6 +17,7 @@ feature_extractor:
   input_channels: 30
   fc_units: [15, 5]
   gru_units: [5]
+  bidirectional: True
 
 regressor:
   _target_: rul_adapt.model.FullyConnectedHead
