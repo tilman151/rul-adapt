@@ -207,13 +207,13 @@ def mac(inputs: np.ndarray, window_size: int) -> np.ndarray:
 
 
 def energy_entropies(inputs: np.ndarray) -> np.ndarray:
-    coeffs = pywt.swt(inputs, "sym4", level=4, axis=1)
+    coeffs = pywt.swt(inputs, "sym4", level=4, axis=-2)
     # flatten coefficient list to length of num_features * 2 * level
     coeffs = [signal.T for pair in coeffs for coeff in pair for signal in coeff.T]
-    coeffs = np.stack(coeffs, axis=2)
+    coeffs = np.stack(coeffs, axis=-1)
     energies = energy(coeffs)
-    ratios = energies / np.sum(energies, axis=1, keepdims=True)
-    entropy = -np.sum(ratios * np.log(ratios), axis=1, keepdims=True)
+    ratios = energies / np.sum(energies, axis=-1, keepdims=True)
+    entropy = -np.sum(ratios * np.log(ratios), axis=-1, keepdims=True)
     entropies = ratios / entropy
 
     return entropies
