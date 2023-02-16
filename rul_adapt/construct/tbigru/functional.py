@@ -29,7 +29,7 @@ def tbigru_from_config(
     config: omegaconf.DictConfig, **trainer_kwargs: Any
 ) -> Tuple[rul_datasets.DomainAdaptionDataModule, TBiGruApproach, pl.Trainer]:
     source = hydra.utils.instantiate(config.dm.source)
-    target = source.get_compatible(**config.dm.target)
+    target = hydra.utils.instantiate(config.dm.target)
     extractor = hydra.utils.instantiate(config.dm.feature_extractor)
     extractor.fit(source.load_split("dev")[0] + target.load_split("dev")[0])
     dm = rul_datasets.DomainAdaptionDataModule(
