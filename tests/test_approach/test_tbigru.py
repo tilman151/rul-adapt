@@ -3,6 +3,7 @@ import numpy.testing as npt
 import pytest
 import rul_datasets
 import pytorch_lightning as pl
+import scipy.stats
 import torch
 from rul_datasets import utils
 
@@ -10,7 +11,7 @@ import rul_adapt.model
 from rul_adapt.approach import tbigru
 
 
-@pytest.fixture(params=[(5000, 2), (10, 5000, 2)], ids=["unbatched", "batched"])
+@pytest.fixture(params=[(4096, 2), (10, 4096, 2)], ids=["unbatched", "batched"])
 def inputs_normal(request):
     return np.random.default_rng(seed=42).standard_normal(request.param)
 
@@ -195,6 +196,26 @@ def test_feature_selection():
     assert len(feature_idx) == 15
     assert max(feature_idx) < 30
     assert min(feature_idx) >= 0
+
+
+def test_energy_entropies(inputs_normal):
+    entropies = tbigru.energy_entropies(inputs_normal)
+    _assert_shape(entropies, multiplier=8)
+
+
+def test_pearson():
+    x = np.random.randn(1, 1, 16)
+    y = np.random.randn(1, 1, 16) + 1
+    pearson = tbigru.pearson(x, y)
+    expected = scipy.stats.pearsonr(x.squeeze(), y.squeeze())
+    assert pearson.shape == (1, 1)
+    npt.assert_almost_equal(pearson.squeeze(), expected.statistic)
+
+
+def test_mac():
+    inputs = np.random.default_rng(seed=42).standard_normal((10, 128, 2))
+    mac = tbigru.mac(inputs, 9)
+    assert mac.shape == (2,)
 
 
 @pytest.mark.integration

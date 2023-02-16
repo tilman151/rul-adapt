@@ -7,10 +7,12 @@ import torch
 import torchmetrics
 from dtaidistance import dtw  # type: ignore
 from rul_datasets.reader import AbstractReader
+from rul_datasets.utils import extract_windows
 from scipy.stats import wasserstein_distance  # type: ignore
 from sklearn.preprocessing import MinMaxScaler  # type: ignore
 
 import rul_adapt
+from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 
 
@@ -192,6 +194,39 @@ def select_features(
     feature_idx = np.argsort(distances)[:num_features].tolist()
 
     return feature_idx
+
+
+def mac(inputs: np.ndarray, window_size: int) -> np.ndarray:
+    entropies = energy_entropies(inputs)
+    entropies = extract_windows(entropies, window_size)
+    anchor, queries = entropies[:, -2:-1], entropies[:, :-1]
+    corr = pearson(anchor, queries)
+    corr = np.mean(np.abs(corr), axis=1)
+
+    return corr
+
+
+def energy_entropies(inputs: np.ndarray) -> np.ndarray:
+    coeffs = pywt.swt(inputs, "sym4", level=4, axis=1)
+    # flatten coefficient list to length of num_features * 2 * level
+    coeffs = [signal.T for pair in coeffs for coeff in pair for signal in coeff.T]
+    coeffs = np.stack(coeffs, axis=2)
+    energies = energy(coeffs)
+    ratios = energies / np.sum(energies, axis=1, keepdims=True)
+    entropy = -np.sum(ratios * np.log(ratios), axis=1, keepdims=True)
+    entropies = ratios / entropy
+
+    return entropies
+
+
+def pearson(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    diff_x = x - np.mean(x, axis=2, keepdims=True)
+    diff_y = y - np.mean(y, axis=2, keepdims=True)
+    cov = np.sum(diff_y * diff_x, axis=2)
+    std_product = np.sqrt(np.sum(diff_y**2, axis=2) * np.sum(diff_x**2, axis=2))
+    corr = cov / std_product
+
+    return corr
 
 
 class TBiGruApproach(AdaptionApproach):
