@@ -14,6 +14,7 @@ from sklearn.preprocessing import MinMaxScaler  # type: ignore
 import rul_adapt
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
+from rul_adapt.approach.modwt import modwt
 
 
 def rms(inputs: np.ndarray) -> np.ndarray:
@@ -196,8 +197,8 @@ def select_features(
     return feature_idx
 
 
-def mac(inputs: np.ndarray, window_size: int) -> np.ndarray:
-    entropies = energy_entropies(inputs)
+def mac(inputs: np.ndarray, window_size: int, wavelet: str = "sym4") -> np.ndarray:
+    entropies = energy_entropies(inputs, wavelet)
     entropies = extract_windows(entropies, window_size)
     anchor, queries = entropies[:, -2:-1], entropies[:, :-1]
     corr = pearson(anchor, queries)
@@ -206,11 +207,8 @@ def mac(inputs: np.ndarray, window_size: int) -> np.ndarray:
     return corr
 
 
-def energy_entropies(inputs: np.ndarray) -> np.ndarray:
-    coeffs = pywt.swt(inputs, "sym4", level=4, axis=-2)
-    # flatten coefficient list to length of num_features * 2 * level
-    coeffs = [signal.T for pair in coeffs for coeff in pair for signal in coeff.T]
-    coeffs = np.stack(coeffs, axis=-1)
+def energy_entropies(inputs: np.ndarray, wavelet: str = "sym4") -> np.ndarray:
+    coeffs = modwt(inputs, wavelet, 4)
     energies = energy(coeffs)
     ratios = energies / np.sum(energies, axis=-1, keepdims=True)
     entropy = -np.sum(ratios * np.log(ratios), axis=-1, keepdims=True)

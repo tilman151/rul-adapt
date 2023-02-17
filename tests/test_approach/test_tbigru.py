@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
+import pywt
 import rul_datasets
 import pytorch_lightning as pl
 import scipy.stats
@@ -8,7 +9,7 @@ import torch
 from rul_datasets import utils
 
 import rul_adapt.model
-from rul_adapt.approach import tbigru
+from rul_adapt.approach import tbigru, modwt
 
 
 @pytest.fixture(params=[(4096, 2), (10, 4096, 2)], ids=["unbatched", "batched"])
@@ -196,6 +197,28 @@ def test_feature_selection():
     assert len(feature_idx) == 15
     assert max(feature_idx) < 30
     assert min(feature_idx) >= 0
+
+
+def test_circular_convolve_fast():
+    h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
+    inputs = np.random.randn(1024)
+    for i in range(4):
+        fast_outputs = modwt.circular_convolve_fast(h, inputs[:, None], i + 1)
+        outputs = modwt.circular_convolve_d(h, inputs, i + 1)
+        npt.assert_almost_equal(fast_outputs.squeeze(), outputs)
+        inputs = outputs
+
+
+def test_cicular_convolve_multidim():
+    h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
+    inputs = np.random.randn(10, 1024, 3)
+    outputs_fast = modwt.circular_convolve_fast(h, inputs, 1)
+    outputs = np.empty_like(inputs)
+    for w, window in enumerate(inputs):
+        for f, feature in enumerate(window.T):
+            outputs[w, :, f] = modwt.circular_convolve_d(h, feature, 1)
+
+    npt.assert_almost_equal(outputs_fast, outputs)
 
 
 def test_energy_entropies(inputs_normal):
