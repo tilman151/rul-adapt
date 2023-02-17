@@ -3,11 +3,13 @@ dm:
     _target_: rul_datasets.FemtoReader
     fd: ???
     run_split_dist: ???
+    first_time_to_predict: ???
   target:
     _target_: rul_datasets.FemtoReader
     fd: ???
     percent_broken: 0.8
     run_split_dist: ???
+    first_time_to_predict: ???
   batch_size: 150
   feature_extractor:
     _target_: rul_adapt.approach.tbigru.VibrationFeatureExtractor
