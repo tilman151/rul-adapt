@@ -5,12 +5,12 @@ import omegaconf
 import pytorch_lightning as pl
 import rul_datasets
 
-from rul_adapt.approach import TBiGruApproach
+from rul_adapt.approach import MmdApproach
 
 
 def get_tbigru(
     source_fd: int, target_fd: int, **trainer_kwargs: Any
-) -> Tuple[rul_datasets.DomainAdaptionDataModule, TBiGruApproach, pl.Trainer]:
+) -> Tuple[rul_datasets.DomainAdaptionDataModule, MmdApproach, pl.Trainer]:
     config = get_tbigru_config(source_fd, target_fd)
     dm, dann, trainer = tbigru_from_config(config, **trainer_kwargs)
 
@@ -27,7 +27,7 @@ def get_tbigru_config(source_fd: int, target_fd: int) -> omegaconf.DictConfig:
 
 def tbigru_from_config(
     config: omegaconf.DictConfig, **trainer_kwargs: Any
-) -> Tuple[rul_datasets.DomainAdaptionDataModule, TBiGruApproach, pl.Trainer]:
+) -> Tuple[rul_datasets.DomainAdaptionDataModule, MmdApproach, pl.Trainer]:
     source = hydra.utils.instantiate(config.dm.source)
     target = hydra.utils.instantiate(config.dm.target)
 

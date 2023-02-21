@@ -110,12 +110,31 @@ def std_ihs(inputs: np.ndarray) -> np.ndarray:
 
 
 class VibrationFeatureExtractor:
+    """This class extracts a number of features from a raw acceleration signal.
+
+    The 30 features are: RMS, kurtosis, peak2peak, standard deviation, skewness,
+    margin factor, impulse factor, energy, median absolute, gini factor, maximum
+    absolute, mean absolute, energies of the 16 bands resulting from wavelet packet
+    decomposition, standard deviation of arccosh and arcsinh. If the input has n
+    features, n*30 features are extracted. Additionally, it features a scaler that
+    can be fit to scale all extracted features between [0, 1]."""
 
     _scaler: Optional[MinMaxScaler]
 
     def __init__(
         self, num_input_features: int, feature_idx: Optional[List[int]] = None
     ) -> None:
+        """
+        Create a new vibration feature extractor with the selected features.
+
+        The features are sorted as f1_1, .., f1_j, ..., fi_j, where i is the index of
+        the computed feature (between 0 and 30) and j is the index of the raw
+        feature (between 0 and `num_input_features`).
+
+        Args:
+            num_input_features: The number of input features.
+            feature_idx: The indices of the features to compute.
+        """
         self.num_input_features = num_input_features
         self.feature_idx = list(range(60)) if feature_idx is None else feature_idx
 
@@ -127,6 +146,16 @@ class VibrationFeatureExtractor:
     def __call__(
         self, features: np.ndarray, targets: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Extract the features from the input and optionally scale them.
+
+        Args:
+            features: The input features.
+            targets: The input targets.
+
+        Returns:
+            The extracted features and input targets.
+        """
         features = self._extract_selected(features)
         if self._scaler is not None:
             features = self._scaler.transform(features)
@@ -137,6 +166,18 @@ class VibrationFeatureExtractor:
         return _extract_all(features, self.num_input_features)[:, self.feature_idx]
 
     def fit(self, features: List[np.ndarray]) -> "VibrationFeatureExtractor":
+        """
+        Fit the internal scaler on a list of raw feature time series.
+
+        The time series are passed through the feature extractor and then used to fit
+        the internal min-max scaler.
+
+        Args:
+            features: The list of raw feature time series.
+
+        Returns:
+            The feature extractor itself.
+        """
         features = [self._extract_selected(f) for f in features]
         self._scaler = MinMaxScaler()
         for feat in features:
@@ -170,17 +211,30 @@ def _extract_all(features: np.ndarray, num_features: int) -> np.ndarray:
     return features
 
 
-def domain_distance(source: np.ndarray, target: np.ndarray, ratio=0.4) -> float:
-    dtw_dist = dtw.distance_fast(source, target)
-    wasserstein_dist = wasserstein_distance(source, target)
-    distance = ratio * dtw_dist + (1 - ratio) * wasserstein_dist
-
-    return distance
-
-
 def select_features(
     source: AbstractReader, target: AbstractReader, num_features: int
 ) -> List[int]:
+    """
+    Select the most transferable features between source and target domain.
+
+    30 features are considered: RMS, kurtosis, peak2peak, standard deviation, skewness,
+    margin factor, impulse factor, energy, median absolute, gini factor, maximum
+    absolute, mean absolute, energies of the 16 bands resulting from wavelet packet
+    decomposition, standard deviation of arccosh and arcsinh. If the input has n raw
+    features, n*30 features are extracted.
+
+    The `dev` splits of both domains are used to calculate a distance metric based on
+    Dynamic Time Warping and the Wasserstein Distance. The indices of the
+    `num_feature` features with the lowest distances are returned.
+
+    Args:
+        source: The reader of the source domain.
+        target: The reader of the target domain.
+        num_features: The number of transferable features to return.
+
+    Returns:
+        The indices of features ordered by transferability.
+    """
     source.prepare_data()
     target.prepare_data()
     source_runs, _ = source.load_split("dev")
@@ -192,24 +246,48 @@ def select_features(
         source_feats = _extract_all(source_run, num_features=num_org_features)
         target_feats = _extract_all(target_run, num_features=num_org_features)
         for i, (s, f) in enumerate(zip(source_feats.T, target_feats.T)):
-            distances[i] += domain_distance(s, f)
+            distances[i] += _domain_distance(s, f)
 
     feature_idx = np.argsort(distances)[:num_features].tolist()
 
     return feature_idx
 
 
+def _domain_distance(source: np.ndarray, target: np.ndarray, ratio=0.4) -> float:
+    dtw_dist = dtw.distance_fast(source, target)
+    wasserstein_dist = wasserstein_distance(source, target)
+    distance = ratio * dtw_dist + (1 - ratio) * wasserstein_dist
+
+    return distance
+
+
 def mac(inputs: np.ndarray, window_size: int, wavelet: str = "sym4") -> np.ndarray:
-    entropies = energy_entropies(inputs, wavelet)
+    """
+    Calculate the moving average correlation (MAC) of the energy entropies of four
+    levels of maximal overlap discrete wavelet transform (MODWT) decompositions.
+
+    The `wavelet` is a wavelet description that can be passed to `pywt`. For more
+    options call `pywt.wavelist`.
+
+    Args:
+        inputs: The input acceleration signal.
+        window_size: The window size of the sliding window to calculate the average
+                     over.
+        wavelet: The description of the wavelet, e.g. 'sym4'.
+
+    Returns:
+        The MAC of the input signal which is `window_size - 1` shorter.
+    """
+    entropies = _energy_entropies(inputs, wavelet)
     entropies = extract_windows(entropies, window_size)
     anchor, queries = entropies[:, -2:-1], entropies[:, :-1]
-    corr = pearson(anchor, queries)
+    corr = _pearson(anchor, queries)
     corr = np.mean(np.abs(corr), axis=1)
 
     return corr
 
 
-def energy_entropies(inputs: np.ndarray, wavelet: str = "sym4") -> np.ndarray:
+def _energy_entropies(inputs: np.ndarray, wavelet: str = "sym4") -> np.ndarray:
     coeffs = modwt(inputs, wavelet, 4)
     energies = energy(coeffs)
     ratios = energies / np.sum(energies, axis=-1, keepdims=True)
@@ -219,7 +297,7 @@ def energy_entropies(inputs: np.ndarray, wavelet: str = "sym4") -> np.ndarray:
     return entropies
 
 
-def pearson(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+def _pearson(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     diff_x = x - np.mean(x, axis=2, keepdims=True)
     diff_y = y - np.mean(y, axis=2, keepdims=True)
     cov = np.sum(diff_y * diff_x, axis=2)
@@ -229,8 +307,36 @@ def pearson(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return corr
 
 
-class TBiGruApproach(AdaptionApproach):
-    def __init__(self, lr: float, mmd_factor: float):
+class MmdApproach(AdaptionApproach):
+    """The MMD uses the Maximum Mean Discrepancy to adapt a feature extractor to
+    be used with the source regressor.
+
+    The regressor needs the same number of input units as the feature extractor has
+    output units.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt import model
+        >>> from rul_adapt import approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> tbigru = approach.MmdApproach(0.01, 0.1)
+        >>> tbigru.set_model(feat_ex, reg)
+        ```
+    """
+
+    def __init__(self, lr: float, mmd_factor: float) -> None:
+        """
+        Create a new MMD approach.
+
+        The strength of the influence of the MMD loss on the feature
+        extractor is controlled by the `mmd_factor`. The higher it is the stronger
+        the influence.
+
+        Args:
+            lr: The learning rate.
+            mmd_factor: The strength of the influence of the MMD loss.
+        """
         super().__init__()
 
         self.lr = lr
@@ -255,6 +361,7 @@ class TBiGruApproach(AdaptionApproach):
         self.save_hyperparameters()
 
     def configure_optimizers(self) -> torch.optim.Adam:
+        """Configure an Adam optimizer."""
         return torch.optim.Adam(self.parameters(), self.lr)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -262,6 +369,21 @@ class TBiGruApproach(AdaptionApproach):
         return self.regressor(self.feature_extractor(inputs))
 
     def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> torch.Tensor:
+        """
+        Execute one training step.
+
+        The `batch` argument is a list of three tensors representing the source
+        features, source labels and target features. Both types of features are fed
+        to the feature extractor. Then the regression loss for the source domain and
+        the MMD loss between domains is computed. The regression, MMD and combined
+        loss are logged.
+
+        Args:
+            batch: A list of a source feature, source label and target feature tensors.
+            batch_idx: The index of the current batch.
+        Returns:
+            The combined loss.
+        """
         source, source_labels, target = batch
         source_labels = source_labels[:, None]
 
@@ -284,12 +406,14 @@ class TBiGruApproach(AdaptionApproach):
     ) -> None:
         """
         Execute one validation step.
+
         The `batch` argument is a list of two tensors representing features and
         labels. A RUL prediction is made from the features and the validation RMSE
         and RUL score are calculated. The metrics recorded for dataloader idx zero
         are assumed to be from the source domain and for dataloader idx one from the
         target domain. The metrics are written to the configured logger under the
         prefix `val`.
+
         Args:
             batch: A list containing a feature and a label tensor.
             batch_idx: The index of the current batch.
@@ -316,12 +440,14 @@ class TBiGruApproach(AdaptionApproach):
     ) -> None:
         """
         Execute one test step.
+
         The `batch` argument is a list of two tensors representing features and
         labels. A RUL prediction is made from the features and the validation RMSE
         and RUL score are calculated. The metrics recorded for dataloader idx zero
         are assumed to be from the source domain and for dataloader idx one from the
         target domain. The metrics are written to the configured logger under the
         prefix `test`.
+
         Args:
             batch: A list containing a feature and a label tensor.
             batch_idx: The index of the current batch.

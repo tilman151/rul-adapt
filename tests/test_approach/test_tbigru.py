@@ -180,11 +180,11 @@ def test_domain_distance():
     target_close = np.sin(2 * np.linspace(0, 10, 2560)) + np.random.randn(2560) * 1e-4
     target_far = np.sin(3 * np.linspace(0, 10, 2560)) + np.random.randn(2560) * 1e-2
 
-    distance = tbigru.domain_distance(source, source)
+    distance = tbigru._domain_distance(source, source)
     assert distance == 0.0
 
-    distance_close = tbigru.domain_distance(source, target_close)
-    distance_far = tbigru.domain_distance(source, target_far)
+    distance_close = tbigru._domain_distance(source, target_close)
+    distance_far = tbigru._domain_distance(source, target_far)
     assert distance_close < distance_far
 
 
@@ -203,8 +203,8 @@ def test_circular_convolve_fast():
     h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
     inputs = np.random.randn(1024)
     for i in range(4):
-        fast_outputs = modwt.circular_convolve_fast(h, inputs[:, None], i + 1)
-        outputs = modwt.circular_convolve_d(h, inputs, i + 1)
+        fast_outputs = modwt._circular_convolve_fast(h, inputs[:, None], i + 1)
+        outputs = modwt._circular_convolve_d(h, inputs, i + 1)
         npt.assert_almost_equal(fast_outputs.squeeze(), outputs)
         inputs = outputs
 
@@ -212,24 +212,24 @@ def test_circular_convolve_fast():
 def test_cicular_convolve_multidim():
     h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
     inputs = np.random.randn(10, 1024, 3)
-    outputs_fast = modwt.circular_convolve_fast(h, inputs, 1)
+    outputs_fast = modwt._circular_convolve_fast(h, inputs, 1)
     outputs = np.empty_like(inputs)
     for w, window in enumerate(inputs):
         for f, feature in enumerate(window.T):
-            outputs[w, :, f] = modwt.circular_convolve_d(h, feature, 1)
+            outputs[w, :, f] = modwt._circular_convolve_d(h, feature, 1)
 
     npt.assert_almost_equal(outputs_fast, outputs)
 
 
 def test_energy_entropies(inputs_normal):
-    entropies = tbigru.energy_entropies(inputs_normal)
+    entropies = tbigru._energy_entropies(inputs_normal)
     _assert_shape(entropies, multiplier=8)
 
 
 def test_pearson():
     x = np.random.randn(1, 1, 16)
     y = np.random.randn(1, 1, 16) + 1
-    pearson = tbigru.pearson(x, y)
+    pearson = tbigru._pearson(x, y)
     expected = scipy.stats.pearsonr(x.squeeze(), y.squeeze())
     assert pearson.shape == (1, 1)
     npt.assert_almost_equal(pearson.squeeze(), expected.statistic)
@@ -256,7 +256,7 @@ def test_on_dummy():
 
     fe = rul_adapt.model.CnnExtractor(15, [16, 16], 20, fc_units=16)
     reg = rul_adapt.model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = tbigru.TBiGruApproach(0.001, 0.1)
+    approach = tbigru.MmdApproach(0.001, 0.1)
     approach.set_model(fe, reg)
 
     # workaround because test split has only one window by default
