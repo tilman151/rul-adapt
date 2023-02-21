@@ -7,7 +7,9 @@ import rul_adapt.construct
 
 @pytest.mark.parametrize("source_fd", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("target_fd", [0, 1, 2, 3, 4])
-@mock.patch("rul_datasets.reader.FemtoReader.load_split", return_value=([], []))
+@mock.patch(
+    "rul_datasets.reader.FemtoReader.load_complete_split", return_value=([], [])
+)
 def test_get_lstm_dann(_, source_fd, target_fd):
     """Reader is mocked to avoid loading data because VibrationFeatureExtractor is
     fitted on it."""
@@ -21,7 +23,9 @@ def test_get_lstm_dann(_, source_fd, target_fd):
         rul_adapt.construct.get_tbigru(source_fd, target_fd)
 
 
-@mock.patch("rul_datasets.reader.FemtoReader.load_split", return_value=([], []))
+@mock.patch(
+    "rul_datasets.reader.FemtoReader.load_complete_split", return_value=([], [])
+)
 def test_get_lstm_dann_trainer_override(_):
     """Reader is mocked to avoid loading data because VibrationFeatureExtractor is
     fitted on it."""

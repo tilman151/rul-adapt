@@ -30,8 +30,12 @@ def tbigru_from_config(
 ) -> Tuple[rul_datasets.DomainAdaptionDataModule, TBiGruApproach, pl.Trainer]:
     source = hydra.utils.instantiate(config.dm.source)
     target = hydra.utils.instantiate(config.dm.target)
+
+    source.prepare_data()  # needed in case this is the first use of FEMTO
+    target.prepare_data()
     extractor = hydra.utils.instantiate(config.dm.feature_extractor)
     extractor.fit(source.load_split("dev")[0] + target.load_split("dev")[0])
+
     dm = rul_datasets.DomainAdaptionDataModule(
         rul_datasets.RulDataModule(
             source, config.dm.batch_size, extractor, config.dm.window_size
