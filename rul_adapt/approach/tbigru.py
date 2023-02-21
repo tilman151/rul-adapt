@@ -181,6 +181,8 @@ def domain_distance(source: np.ndarray, target: np.ndarray, ratio=0.4) -> float:
 def select_features(
     source: AbstractReader, target: AbstractReader, num_features: int
 ) -> List[int]:
+    source.prepare_data()
+    target.prepare_data()
     source_runs, _ = source.load_split("dev")
     target_runs, _ = target.load_split("dev")
 
