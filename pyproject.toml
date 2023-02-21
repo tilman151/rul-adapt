@@ -40,6 +40,7 @@ mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.5.0"
 mkdocs-section-index = "^0.3.4"
 jupyter = "^1.0.0"
+matplotlib = "^3.7.0"
 
 [tool.pytest.ini_options]
 markers = ["integration: does a full train-test run"]
