@@ -12,7 +12,7 @@ dm:
     fd: 3
     run_split_dist:
       dev: [1, 2]
-      val: []
+      val: [2]
       test: [3]
     first_time_to_predict: [ 250, 1340, 240 ]
   feature_extractor:
