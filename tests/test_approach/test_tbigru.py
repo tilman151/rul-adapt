@@ -1,15 +1,14 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
+import pytorch_lightning as pl
 import pywt
 import rul_datasets
-import pytorch_lightning as pl
 import scipy.stats
 import torch
-from rul_datasets import utils
 
-import rul_adapt.model
-from rul_adapt.approach import tbigru, modwt
+from rul_adapt import model
+from rul_adapt.approach import tbigru, mmd
 
 
 @pytest.fixture(params=[(4096, 2), (10, 4096, 2)], ids=["unbatched", "batched"])
@@ -203,8 +202,8 @@ def test_circular_convolve_fast():
     h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
     inputs = np.random.randn(1024)
     for i in range(4):
-        fast_outputs = modwt._circular_convolve_fast(h, inputs[:, None], i + 1)
-        outputs = modwt._circular_convolve_d(h, inputs, i + 1)
+        fast_outputs = tbigru._circular_convolve_fast(h, inputs[:, None], i + 1)
+        outputs = tbigru._circular_convolve_d(h, inputs, i + 1)
         npt.assert_almost_equal(fast_outputs.squeeze(), outputs)
         inputs = outputs
 
@@ -212,11 +211,11 @@ def test_circular_convolve_fast():
 def test_cicular_convolve_multidim():
     h = pywt.Wavelet("db1").dec_hi / np.sqrt(2)
     inputs = np.random.randn(10, 1024, 3)
-    outputs_fast = modwt._circular_convolve_fast(h, inputs, 1)
+    outputs_fast = tbigru._circular_convolve_fast(h, inputs, 1)
     outputs = np.empty_like(inputs)
     for w, window in enumerate(inputs):
         for f, feature in enumerate(window.T):
-            outputs[w, :, f] = modwt._circular_convolve_d(h, feature, 1)
+            outputs[w, :, f] = tbigru._circular_convolve_d(h, feature, 1)
 
     npt.assert_almost_equal(outputs_fast, outputs)
 
@@ -254,9 +253,9 @@ def test_on_dummy():
         rul_datasets.RulDataModule(target, 32, source_extractor, 20),
     )
 
-    fe = rul_adapt.model.CnnExtractor(15, [16, 16], 20, fc_units=16)
-    reg = rul_adapt.model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = tbigru.MmdApproach(0.001, 0.1)
+    fe = model.CnnExtractor(15, [16, 16], 20, fc_units=16)
+    reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
+    approach = mmd.MmdApproach(0.001, 0.1)
     approach.set_model(fe, reg)
 
     # workaround because test split has only one window by default
