@@ -170,21 +170,23 @@ class AdaRulApproach(AdaptionApproach):
             self._reset_update_counters()
 
         if self._should_update_disc():
-            optim, _ = self.optimizers()
+            optim, _ = self.optimizers()  # type: ignore[misc]
             loss = self._get_disc_loss(source, target)
             self.log("train/disc_loss", loss)
             self._disc_counter += 1
         elif self._should_update_gen():
-            _, optim = self.optimizers()
+            _, optim = self.optimizers()  # type: ignore[misc]
             loss = self._get_gen_loss(target)
             self.log("train/gen_loss", loss)
             self._gen_counter += 1
         else:
             raise RuntimeError("Configuration error. Did update neither disc nor gen.")
 
-        optim.zero_grad()
+        optim.zero_grad()  # type: ignore[union-attr]
         self.manual_backward(loss)
         optim.step()
+
+        return loss
 
     def _should_update_disc(self):
         return self._disc_counter < self.num_disc_updates and self._gen_counter == 0

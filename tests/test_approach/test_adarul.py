@@ -358,7 +358,7 @@ def test_on_dummy():
 
     disc = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    approach = AdaRulApproach(0.0001, 130)
+    approach = AdaRulApproach(0.0001, 130, 35, 1)
     approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, disc)
 
     trainer = pl.Trainer(
