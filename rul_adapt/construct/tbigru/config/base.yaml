@@ -39,7 +39,7 @@ domain_disc:
   units: [1]
 
 tbigru:
-  _target_: rul_adapt.approach.TBiGruApproach
+  _target_: rul_adapt.approach.MmdApproach
   lr: 0.001
   mmd_factor: 0.1
 
