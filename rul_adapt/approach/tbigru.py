@@ -20,6 +20,7 @@ https://doi.org/10.1016/j.measurement.2021.109287) and evaluated on the FEMTO Be
 dataset."""
 
 from itertools import product
+from queue import Queue
 from typing import List, Tuple, Optional
 
 import numpy as np
@@ -308,7 +309,7 @@ def mac(inputs: np.ndarray, window_size: int, wavelet: str = "dmey") -> np.ndarr
 
 
 def _energy_entropies(inputs: np.ndarray, wavelet: str = "sym4") -> np.ndarray:
-    coeffs = modwt(inputs, wavelet, 4)
+    coeffs = modwpt(inputs, wavelet, 4)
     energies = energy(coeffs)
     ratios = energies / np.sum(energies, axis=-1, keepdims=True)
     entropy = -np.sum(ratios * np.log(ratios), axis=-1, keepdims=True)
@@ -327,10 +328,10 @@ def _pearson(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return corr
 
 
-def modwt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
+def modwpt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
     """
-    Apply Maximal Overlap Discrete Wavelet Transformation (MODWT) of `level` to the
-    input.
+    Apply Maximal Overlap Discrete Wavelet Packet Transformation (MODWT) of `level`
+    to the input.
 
     The `wavelet` should be a string that can be passed to `pywt` to construct a
     wavelet function. For more options call `pywt.wavelist`. The implementation was
@@ -342,20 +343,33 @@ def modwt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
         level: The decomposition level.
 
     Returns:
-        The decompositions in the last axis ordered as D1, A1, D2, A2, ..., Dn, An.
+        The 2**level decompositions stacked in the last axis.
     """
+    if level < 1:
+        raise ValueError("The level needs to be a positive integer.")
     wavelet_func = pywt.Wavelet(wavelet)
     dec_hi = np.array(wavelet_func.dec_hi) / np.sqrt(2)
     dec_lo = np.array(wavelet_func.dec_lo) / np.sqrt(2)
-    coeffs = []
-    approx = inputs
+
+    input_queue = Queue(maxsize=2**level)
+    input_queue.put(inputs)
     for j in range(level):
-        detail = _circular_convolve_fast(dec_hi, approx, j + 1)
-        approx = _circular_convolve_fast(dec_lo, approx, j + 1)
-        coeffs.append(detail)
-        coeffs.append(approx)
+        coeffs = _decompose_level(input_queue, dec_hi, dec_lo, j)
+        [input_queue.put(d) for d in coeffs]
 
     return np.concatenate(coeffs, axis=-1)
+
+
+def _decompose_level(input_queue, dec_hi, dec_lo, level):
+    coeffs = []
+    while not input_queue.empty():
+        signal = input_queue.get()
+        detail = _circular_convolve_fast(dec_hi, signal, level + 1)
+        approx = _circular_convolve_fast(dec_lo, signal, level + 1)
+        coeffs.append(approx)
+        coeffs.append(detail)
+
+    return coeffs
 
 
 def _circular_convolve_d(

@@ -222,7 +222,7 @@ def test_cicular_convolve_multidim():
 
 def test_energy_entropies(inputs_normal):
     entropies = tbigru._energy_entropies(inputs_normal)
-    _assert_shape(entropies, multiplier=8)
+    _assert_shape(entropies, multiplier=16)
 
 
 def test_pearson():
