@@ -25,7 +25,7 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import List
+from typing import List, Literal
 
 import torch
 import torchmetrics
@@ -52,7 +52,13 @@ class MmdApproach(AdaptionApproach):
         ```
     """
 
-    def __init__(self, lr: float, mmd_factor: float) -> None:
+    def __init__(
+        self,
+        lr: float,
+        mmd_factor: float,
+        num_mmd_kernels: int = 5,
+        loss_type: Literal["mse", "rmse", "mae"] = "mse",
+    ) -> None:
         """
         Create a new MMD approach.
 
@@ -63,15 +69,19 @@ class MmdApproach(AdaptionApproach):
         Args:
             lr: The learning rate.
             mmd_factor: The strength of the influence of the MMD loss.
+            num_mmd_kernels: The number of kernels for the MMD loss.
+            loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
         """
         super().__init__()
 
         self.lr = lr
         self.mmd_factor = mmd_factor
+        self.num_mmd_kernels = num_mmd_kernels
+        self.loss_type = loss_type
 
         # training metrics
-        self.train_source_loss = torchmetrics.MeanSquaredError()
-        self.mmd_loss = rul_adapt.loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
+        self.train_source_loss = self._get_train_source_loss()
+        self.mmd_loss = rul_adapt.loss.MaximumMeanDiscrepancyLoss(self.num_mmd_kernels)
 
         # validation metrics
         self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
@@ -86,6 +96,21 @@ class MmdApproach(AdaptionApproach):
         self.test_target_score = rul_adapt.loss.RULScore()
 
         self.save_hyperparameters()
+
+    def _get_train_source_loss(self):
+        if self.loss_type == "mae":
+            train_source_loss = torchmetrics.MeanAbsoluteError()
+        elif self.loss_type == "mse":
+            train_source_loss = torchmetrics.MeanSquaredError()
+        elif self.loss_type == "rmse":
+            train_source_loss = torchmetrics.MeanSquaredError(squared=False)
+        else:
+            raise ValueError(
+                f"Unknown loss type '{self.loss_type}'. "
+                "Use either 'mae', 'mse' or 'rmse'."
+            )
+
+        return train_source_loss
 
     def configure_optimizers(self) -> torch.optim.Adam:
         """Configure an Adam optimizer."""

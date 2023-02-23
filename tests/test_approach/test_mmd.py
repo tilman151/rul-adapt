@@ -61,7 +61,6 @@ def test_configure_optimizer(models):
     assert list(approach.parameters()) == optim.param_groups[0]["params"]
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     ["loss_type", "expected"],
     [
@@ -79,6 +78,12 @@ def test_loss_type(loss_type, expected):
     assert not approach.val_target_rmse.squared
     assert not approach.test_source_rmse.squared
     assert not approach.test_target_rmse.squared
+
+
+def test_num_mmd_kernels():
+    approach = MmdApproach(0.01, 0.1, num_mmd_kernels=3)
+
+    assert approach.mmd_loss.num_kernels == 3
 
 
 @torch.no_grad()
