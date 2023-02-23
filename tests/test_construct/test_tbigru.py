@@ -10,7 +10,8 @@ import rul_adapt.construct
 @mock.patch(
     "rul_datasets.reader.FemtoReader.load_complete_split", return_value=([], [])
 )
-def test_get_lstm_dann(_, source_fd, target_fd):
+@mock.patch("rul_datasets.reader.FemtoReader.prepare_data")
+def test_get_lstm_dann(_, __, source_fd, target_fd):
     """Reader is mocked to avoid loading data because VibrationFeatureExtractor is
     fitted on it."""
     if source_fd == target_fd:
@@ -26,7 +27,8 @@ def test_get_lstm_dann(_, source_fd, target_fd):
 @mock.patch(
     "rul_datasets.reader.FemtoReader.load_complete_split", return_value=([], [])
 )
-def test_get_lstm_dann_trainer_override(_):
+@mock.patch("rul_datasets.reader.FemtoReader.prepare_data")
+def test_get_lstm_dann_trainer_override(_, __):
     """Reader is mocked to avoid loading data because VibrationFeatureExtractor is
     fitted on it."""
     _, _, trainer = rul_adapt.construct.get_tbigru(1, 2, max_epochs=5, min_epochs=4)
