@@ -108,7 +108,7 @@ def _approx_batched_gini_factor(inputs: np.ndarray) -> np.ndarray:
 
 
 def band_energies(inputs: np.ndarray) -> np.ndarray:
-    wp = pywt.WaveletPacket(inputs, wavelet="db1", maxlevel=4, axis=-2)
+    wp = pywt.WaveletPacket(inputs, wavelet="dmey", maxlevel=4, axis=-2)
     bands = (node.data for node in wp.get_level(4))
     energies = np.concatenate([energy(b) for b in bands], axis=-1)
 
@@ -279,14 +279,15 @@ def _domain_distance(source: np.ndarray, target: np.ndarray, ratio=0.4) -> float
     return distance
 
 
-def mac(inputs: np.ndarray, window_size: int, wavelet: str = "sym4") -> np.ndarray:
+def mac(inputs: np.ndarray, window_size: int, wavelet: str = "dmey") -> np.ndarray:
     """
     Calculate the moving average correlation (MAC) of the energy entropies of four
     levels of maximal overlap discrete wavelet transform (MODWT) decompositions.
 
-    The `wavelet` is a wavelet description that can be passed to `pywt`. For more
-    options call `pywt.wavelist`. The input signal should have the shape
-    `[num_windows, window_size, num_features]`.
+    The `wavelet` is a wavelet description that can be passed to `pywt`. The default
+    wavelet was confirmed by the original authors. For more options call
+    `pywt.wavelist`. The input signal should have the shape `[num_windows,
+    window_size, num_features]`.
 
     Args:
         inputs: The input acceleration signal.
