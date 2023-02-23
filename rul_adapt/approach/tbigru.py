@@ -343,9 +343,9 @@ def modwt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
     Returns:
         The decompositions in the last axis ordered as D1, A1, D2, A2, ..., Dn, An.
     """
-    wavelet = pywt.Wavelet(wavelet)
-    dec_hi = np.array(wavelet.dec_hi) / np.sqrt(2)
-    dec_lo = np.array(wavelet.dec_lo) / np.sqrt(2)
+    wavelet_func = pywt.Wavelet(wavelet)
+    dec_hi = np.array(wavelet_func.dec_hi) / np.sqrt(2)
+    dec_lo = np.array(wavelet_func.dec_lo) / np.sqrt(2)
     coeffs = []
     approx = inputs
     for j in range(level):
