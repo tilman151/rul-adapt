@@ -1,3 +1,24 @@
+"""The TBiGRU approach uses a feature selection mechanism to mine transferable
+features and a bearing running state detection to determine the
+first-time-to-predict. The training is done with an [MMD approach]
+[rul_adapt.approach.mmd].
+
+The feature selection uses a distance measure based on Dynamic Time Warping and the
+Wasserstein distance. From a set of 30 common vibration features the ones with the
+smallest distance between source and target domain are selected. These features serve
+as inputs to the network.
+
+The first-time-to-predict (FTTP) is used to generate the RUL labels for training.
+FTTP is the time step where the degradation can be detected for the first time. The
+RUL labels before this time step should be constant. The TBiGRU approach uses the
+moving average correlation (MAC) of the energy entropies of four levels of maximal
+overlap discrete wavelet transform (MODWT) decompositions to determine four running
+states of each bearing. The end of the steady running state marks the FTTP.
+
+TBiGRU was introduced by [Cao et al.](
+https://doi.org/10.1016/j.measurement.2021.109287) and evaluated on the FEMTO Bearing
+dataset."""
+
 from itertools import product
 from typing import List, Tuple, Optional
 
@@ -103,9 +124,9 @@ def std_ihs(inputs: np.ndarray) -> np.ndarray:
 
 
 class VibrationFeatureExtractor:
-    """This class extracts a number of features from a raw acceleration signal.
+    """This class extracts 30 different features from a raw acceleration signal.
 
-    The 30 features are: RMS, kurtosis, peak2peak, standard deviation, skewness,
+    The features are: RMS, kurtosis, peak2peak, standard deviation, skewness,
     margin factor, impulse factor, energy, median absolute, gini factor, maximum
     absolute, mean absolute, energies of the 16 bands resulting from wavelet packet
     decomposition, standard deviation of arccosh and arcsinh. If the input has n
@@ -142,6 +163,9 @@ class VibrationFeatureExtractor:
         """
         Extract the features from the input and optionally scale them.
 
+        The features should have the shape `[num_windows, window_size,
+        num_input_features]` and the targets `[num_windows]`.
+
         Args:
             features: The input features.
             targets: The input targets.
@@ -163,7 +187,8 @@ class VibrationFeatureExtractor:
         Fit the internal scaler on a list of raw feature time series.
 
         The time series are passed through the feature extractor and then used to fit
-        the internal min-max scaler.
+        the internal min-max scaler. Each time series in the list should have the
+        shape `[num_windows, window_size, num_input_features]`.
 
         Args:
             features: The list of raw feature time series.
@@ -260,7 +285,8 @@ def mac(inputs: np.ndarray, window_size: int, wavelet: str = "sym4") -> np.ndarr
     levels of maximal overlap discrete wavelet transform (MODWT) decompositions.
 
     The `wavelet` is a wavelet description that can be passed to `pywt`. For more
-    options call `pywt.wavelist`.
+    options call `pywt.wavelist`. The input signal should have the shape
+    `[num_windows, window_size, num_features]`.
 
     Args:
         inputs: The input acceleration signal.
@@ -306,7 +332,8 @@ def modwt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
     input.
 
     The `wavelet` should be a string that can be passed to `pywt` to construct a
-    wavelet function. For more options call `pywt.wavelist`.
+    wavelet function. For more options call `pywt.wavelist`. The implementation was
+    inspired by [this repository](https://github.com/pistonly/modwtpy).
 
     Args:
         inputs: An input signal of shape `[num_windows, window_size, num_features]`.

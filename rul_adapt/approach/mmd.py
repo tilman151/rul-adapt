@@ -1,10 +1,36 @@
+"""The Maximum Mean Discrepancy (MMD) approach uses the distance measure of the same
+name to adapt a feature extractor. This implementation uses a multi-kernel variant of
+the [MMD loss][rul_adapt.loss.adaption.MaximumMeanDiscrepancyLoss] with bandwidths
+set via the median heuristic.
+
+```python
+Source --> FeatEx --> Source Feats -----------> Regressor  --> RUL Prediction
+        ^         |                 |
+        |         |                 v
+Target --         --> Target Feats -->  MMD Loss
+```
+
+It was first introduced by [Long et al.](
+https://dl.acm.org/doi/10.5555/3045118.3045130) as Deep Adaption Network (DAN) for
+image classification.
+
+Used In:
+    * Cao et al. (2021). **Transfer learning for remaining useful life prediction of
+    multi-conditions bearings based on bidirectional-GRU network.**
+    *Measurement: Journal of the International Measurement Confederation*, *178*.
+    [10.1016/j.measurement.2021.109287](https://doi.org/10.1016/j.measurement.2021.109287)
+    * Krokotsch et al. (2020). **A Novel Evaluation Framework for Unsupervised Domain
+    Adaption on Remaining Useful Lifetime Estimation.**
+    *2020 IEEE International Conference on Prognostics and Health Management (ICPHM)*.
+    [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
+"""
+
 from typing import List
 
 import torch
 import torchmetrics
 
 import rul_adapt
-from rul_adapt import model, approach
 from rul_adapt.approach.abstract import AdaptionApproach
 
 
