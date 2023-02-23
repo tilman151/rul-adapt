@@ -11,6 +11,26 @@ from rul_adapt.approach import MmdApproach
 def get_tbigru(
     source_fd: int, target_fd: int, **trainer_kwargs: Any
 ) -> Tuple[rul_datasets.DomainAdaptionDataModule, MmdApproach, pl.Trainer]:
+    """
+    Construct a TBiGRU approach for FEMTO with the original hyperparameters.
+
+    Examples:
+        ```pycon
+        >>> import rul_adapt
+        >>> dm, tbigru, trainer = rul_adapt.construct.get_tbigru(3, 1)
+        >>> trainer.fit(tbigru, dm)
+        >>> trainer.test(tbigru, dm)
+        ```
+
+    Args:
+        source_fd: The source FD of FEMTO.
+        target_fd: The target FD of FEMTO.
+        trainer_kwargs: Overrides for the trainer class.
+    Returns:
+        dm: The data module for adaption of two FEMTO sub-datasets.
+        dann: The TBiGRU approach with feature extractor and regressor.
+        trainer: The trainer object.
+    """
     config = get_tbigru_config(source_fd, target_fd)
     dm, dann, trainer = tbigru_from_config(config, **trainer_kwargs)
 
@@ -18,6 +38,18 @@ def get_tbigru(
 
 
 def get_tbigru_config(source_fd: int, target_fd: int) -> omegaconf.DictConfig:
+    """
+    Get a configuration for the TBiGRU approach.
+
+    The configuration can be modified and fed to [tbigru_from_config]
+    [rul_adapt.construct.tbigru.tbigru_from_config] to create the approach.
+
+    Args:
+        source_fd: The source FD of FEMTO.
+        target_fd: The target FD of FEMTO.
+    Returns:
+        The TBiGRU configuration.
+    """
     _validate(source_fd, target_fd)
     with hydra.initialize("config", version_base="1.1"):
         config = hydra.compose("base", overrides=[f"+task={source_fd}-{target_fd}"])
@@ -28,6 +60,19 @@ def get_tbigru_config(source_fd: int, target_fd: int) -> omegaconf.DictConfig:
 def tbigru_from_config(
     config: omegaconf.DictConfig, **trainer_kwargs: Any
 ) -> Tuple[rul_datasets.DomainAdaptionDataModule, MmdApproach, pl.Trainer]:
+    """
+    Construct a TBiGRU approach from a configuration.
+    The configuration can be created by calling [get_tbigru_config]
+    [rul_adapt.construct.tbigru.get_tbigru_config].
+
+    Args:
+        config: The TBiGRU configuration.
+        trainer_kwargs: Overrides for the trainer class.
+    Returns:
+        dm: The data module for adaption of two FEMTO sub-datasets.
+        dann: The TBiGRU approach with feature extractor and regressor.
+        trainer: The trainer object.
+    """
     source = hydra.utils.instantiate(config.dm.source)
     target = hydra.utils.instantiate(config.dm.target)
 
