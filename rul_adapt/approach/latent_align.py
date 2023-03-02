@@ -1,4 +1,4 @@
-from itertools import chain
+from typing import Tuple, List
 
 import torch
 import torchmetrics
@@ -14,7 +14,6 @@ class LatentAlignApproach(AdaptionApproach):
         alpha_direction: float,
         alpha_level: float,
         alpha_fusion: float,
-        max_rul: int,
         lr: float,
     ):
         super().__init__()
@@ -29,22 +28,25 @@ class LatentAlignApproach(AdaptionApproach):
         self.train_mse = torchmetrics.MeanSquaredError()
         self.healthy_align = rul_adapt.loss.HealthyStateAlignmentLoss()
         self.direction_align = rul_adapt.loss.DegradationDirectionAlignmentLoss()
-        self.level_align = rul_adapt.loss.DegradationLevelRegularizationLoss(max_rul)
+        self.level_align = rul_adapt.loss.DegradationLevelRegularizationLoss()
         self.fusion_align = rul_adapt.loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
 
         # validation metrics
-        self.val_source_mse = torchmetrics.MeanSquaredError()
-        self.val_target_mse = torchmetrics.MeanSquaredError()
+        self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
+        self.val_target_rmse = torchmetrics.MeanSquaredError(squared=False)
+        self.val_source_score = rul_adapt.loss.RULScore()
+        self.val_target_score = rul_adapt.loss.RULScore()
 
         # testing metrics
-        self.test_source_mse = torchmetrics.MeanSquaredError()
-        self.test_target_mse = torchmetrics.MeanSquaredError()
+        self.test_source_rmse = torchmetrics.MeanSquaredError(squared=False)
+        self.test_target_rmse = torchmetrics.MeanSquaredError(squared=False)
+        self.test_source_score = rul_adapt.loss.RULScore()
+        self.test_target_score = rul_adapt.loss.RULScore()
 
         self.save_hyperparameters()
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
-        params = chain(self.feature_extractor.parameters(), self.regressor.parameters())
-        optim = torch.optim.Adam(params, self.lr)
+        optim = torch.optim.Adam(self.parameters(), self.lr)
 
         return optim
 
@@ -52,13 +54,12 @@ class LatentAlignApproach(AdaptionApproach):
         return self.regressor(self.feature_extractor(features))
 
     def training_step(
-        self,
-        healthy: torch.Tensor,
-        source: torch.Tensor,
-        source_labels: torch.Tensor,
-        target: torch.Tensor,
-        target_degradation_steps: torch.Tensor,
+        self, batch: Tuple[torch.Tensor, ...], batch_idx: int
     ) -> torch.Tensor:
+        source, source_degradation_steps, source_labels, *_ = batch
+        *_, target, target_degradation_steps, healthy = batch
+        source_labels = source_labels[:, None]
+
         healthy = self.feature_extractor(healthy)
         source = self.feature_extractor(source)
         target = self.feature_extractor(target)
@@ -69,7 +70,7 @@ class LatentAlignApproach(AdaptionApproach):
         healthy_loss = self.healthy_align(healthy)
         direction_loss = self.direction_align(healthy, torch.cat([source, target]))
         level_loss = self.level_align(
-            healthy, source, source_labels, target, target_degradation_steps
+            healthy, source, source_degradation_steps, target, target_degradation_steps
         )
         fusion_loss = self.fusion_align(source, target)
 
@@ -86,32 +87,74 @@ class LatentAlignApproach(AdaptionApproach):
         self.log("healthy_align", self.healthy_align)
         self.log("direction_align", self.direction_align)
         self.log("level_align", self.level_align)
-        self.log("fusion_align", fusion_loss)
+        self.log("fusion_align", self.fusion_align)
 
         return loss
 
     def validation_step(
-        self, features: torch.Tensor, labels: torch.Tensor, dataloader_idx: int
+        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
+        """
+        Execute one validation step.
+
+        The `batch` argument is a list of two tensors representing features and
+        labels. A RUL prediction is made from the features and the validation RMSE
+        and RUL score are calculated. The metrics recorded for dataloader idx zero
+        are assumed to be from the source domain and for dataloader idx one from the
+        target domain. The metrics are written to the configured logger under the
+        prefix `val`.
+
+        Args:
+            batch: A list containing a feature and a label tensor.
+            batch_idx: The index of the current batch.
+            dataloader_idx: The index of the current dataloader (0: source, 1: target).
+        """
+        features, labels = batch
+        labels = labels[:, None]
         predictions = self.forward(features)
         if dataloader_idx == 0:
-            self.val_source_mse(predictions, labels)
-            self.log("val_source_mse", self.val_source_mse)
+            self.val_source_rmse(predictions, labels)
+            self.val_source_score(predictions, labels)
+            self.log("val/source_rmse", self.val_source_rmse)
+            self.log("val/source_score", self.val_source_score)
         elif dataloader_idx == 1:
-            self.val_target_mse(predictions, labels)
-            self.log("val_target_mse", self.val_target_mse)
+            self.val_target_rmse(predictions, labels)
+            self.val_target_score(predictions, labels)
+            self.log("val/target_rmse", self.val_target_rmse)
+            self.log("val/target_score", self.val_target_score)
         else:
             raise RuntimeError(f"Unexpected val data loader idx {dataloader_idx}")
 
     def test_step(
-        self, features: torch.Tensor, labels: torch.Tensor, dataloader_idx: int
+        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
+        """
+        Execute one test step.
+
+        The `batch` argument is a list of two tensors representing features and
+        labels. A RUL prediction is made from the features and the validation RMSE
+        and RUL score are calculated. The metrics recorded for dataloader idx zero
+        are assumed to be from the source domain and for dataloader idx one from the
+        target domain. The metrics are written to the configured logger under the
+        prefix `test`.
+
+        Args:
+            batch: A list containing a feature and a label tensor.
+            batch_idx: The index of the current batch.
+            dataloader_idx: The index of the current dataloader (0: source, 1: target).
+        """
+        features, labels = batch
+        labels = labels[:, None]
         predictions = self.forward(features)
         if dataloader_idx == 0:
-            self.test_source_mse(predictions, labels)
-            self.log("test_source_mse", self.test_source_mse)
+            self.test_source_rmse(predictions, labels)
+            self.test_source_score(predictions, labels)
+            self.log("test/source_rmse", self.test_source_rmse)
+            self.log("test/source_score", self.test_source_score)
         elif dataloader_idx == 1:
-            self.test_target_mse(predictions, labels)
-            self.log("test_target_mse", self.test_target_mse)
+            self.test_target_rmse(predictions, labels)
+            self.test_target_score(predictions, labels)
+            self.log("test/target_rmse", self.test_target_rmse)
+            self.log("test/target_score", self.test_target_score)
         else:
             raise RuntimeError(f"Unexpected test data loader idx {dataloader_idx}")

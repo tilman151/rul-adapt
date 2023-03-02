@@ -47,20 +47,22 @@ def test_direction_alignment(inputs, expected):
 
 
 @pytest.mark.parametrize(
-    ["source_labels", "target_degradation_steps", "expected"],
+    ["source_degradation_steps", "target_degradation_steps", "expected"],
     [
-        ([8.0, 6.0], [[10.0, 20.0]], 0.0),  # perfect alignment
-        ([6.0, 8.0], [[10.0, 20.0]], 0.5),  # source 0.5 before and behind
-        ([8.0, 6.0], [[20.0, 10.0]], 0.5),  # target 0.5 before and behind
+        ([10.0, 20.0], [[10.0, 20.0]], 0.0),  # perfect alignment
+        ([20.0, 10.0], [[10.0, 20.0]], 0.5),  # source 0.5 before and behind
+        ([10.0, 20.0], [[20.0, 10.0]], 0.5),  # target 0.5 before and behind
     ],
 )
-def test_degradation_regularization(source_labels, target_degradation_steps, expected):
+def test_degradation_regularization(
+    source_degradation_steps, target_degradation_steps, expected
+):
     healthy = torch.ones(1, 2)
     source = torch.tensor([[1.0, 2.0], [1.0, 3.0]])
-    source_labels = torch.tensor(source_labels)
+    source_labels = torch.tensor(source_degradation_steps)
     target = torch.tensor([[1.0, 2.0], [1.0, 3.0]])
     target_degradation_steps = torch.tensor(target_degradation_steps)
-    degradation_reg = loss.DegradationLevelRegularizationLoss(max_rul=10)
+    degradation_reg = loss.DegradationLevelRegularizationLoss()
 
     reg_loss = degradation_reg(
         healthy, source, source_labels, target, target_degradation_steps
@@ -78,7 +80,7 @@ def test_degradation_regularization(source_labels, target_degradation_steps, exp
             (torch.randn(10, 5), torch.randn(10, 5)),
         ),
         (
-            loss.DegradationLevelRegularizationLoss(10),
+            loss.DegradationLevelRegularizationLoss(),
             (
                 torch.randn(10, 5),
                 torch.randn(10, 5),
