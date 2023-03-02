@@ -103,12 +103,12 @@ def test_train_step_logging(mocked_approach, inputs):
 
     approach.log.assert_has_calls(
         [
-            mock.call("loss", mock.ANY),
-            mock.call("mse", approach.train_mse),
-            mock.call("healthy_align", approach.healthy_align),
-            mock.call("direction_align", approach.direction_align),
-            mock.call("level_align", approach.level_align),
-            mock.call("fusion_align", approach.fusion_align),
+            mock.call("train/loss", mock.ANY),
+            mock.call("train/mse", approach.train_mse),
+            mock.call("train/healthy_align", approach.healthy_align),
+            mock.call("train/direction_align", approach.direction_align),
+            mock.call("train/level_align", approach.level_align),
+            mock.call("train/fusion_align", approach.fusion_align),
         ]
     )
 

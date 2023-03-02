@@ -82,12 +82,12 @@ class LatentAlignApproach(AdaptionApproach):
             + self.alpha_fusion * fusion_loss
         )
 
-        self.log("loss", loss)
-        self.log("mse", self.train_mse)
-        self.log("healthy_align", self.healthy_align)
-        self.log("direction_align", self.direction_align)
-        self.log("level_align", self.level_align)
-        self.log("fusion_align", self.fusion_align)
+        self.log("train/loss", loss)
+        self.log("train/mse", self.train_mse)
+        self.log("train/healthy_align", self.healthy_align)
+        self.log("train/direction_align", self.direction_align)
+        self.log("train/level_align", self.level_align)
+        self.log("train/fusion_align", self.fusion_align)
 
         return loss
 

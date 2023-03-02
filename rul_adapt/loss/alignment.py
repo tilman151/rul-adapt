@@ -48,7 +48,7 @@ class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
     def update(self, healthy: torch.Tensor, degraded: torch.Tensor) -> None:
         healthy_mean = healthy.mean(dim=0)
         trajectory = degraded - healthy_mean
-        trajectory = trajectory / torch.norm(trajectory, dim=1)[:, None]
+        trajectory = trajectory / torch.norm(trajectory, dim=1, keepdim=True)
         pairwise_dist = calc_pairwise_dot(trajectory, trajectory)
         loss = -pairwise_dist.mean()
 

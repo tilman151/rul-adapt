@@ -28,7 +28,7 @@ def test_healthy_state_alignment():
     [
         ([[1.0, 2.0], [4.0, 4.0]], -0.5 * (1.0 + math.cos(math.pi / 4))),  # 90°
         ([[1.0, 2.0], [4.0, 1.0]], -0.5 * (1.0 + math.cos(math.pi / 2))),  # 45°
-        ([[0.0, 0.0], [4.0, 4.0]], -0.5 * (1.0 + math.cos(math.pi))),  # 180°
+        ([[0.0, 0.0], [4.0, 4.0]], 0.0),  # 180°
     ],
 )
 def test_direction_alignment(inputs, expected):
