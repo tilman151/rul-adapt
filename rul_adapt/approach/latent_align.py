@@ -1,10 +1,128 @@
-from typing import Tuple, List
+from typing import Tuple, List, Any, Optional
 
+import numpy as np
 import torch
 import torchmetrics
+from torch import nn
 
 import rul_adapt
 from rul_adapt.approach.abstract import AdaptionApproach
+
+
+class LatentAlignFttpApproach(AdaptionApproach):
+    CHECKPOINT_MODELS = ["_generator"]
+
+    _generator: nn.Module
+
+    def __init__(self, lr: float, noise_dim: int):
+        super().__init__()
+
+        self.lr = lr
+        self.noise_dim = noise_dim
+
+        self.gan_loss = torch.nn.BCEWithLogitsLoss()
+        self.grl = rul_adapt.loss.adaption.GradientReversalLayer()
+
+        self.save_hyperparameters()
+
+    def set_model(
+        self,
+        feature_extractor: nn.Module,
+        regressor: nn.Module,
+        generator: Optional[nn.Module] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        super().set_model(feature_extractor, regressor)
+        if generator is None:
+            raise ValueError("Generator not set. This approach is unlikely to work.")
+        self._generator = generator
+
+    @property
+    def generator(self):
+        """The generator network."""
+        if hasattr(self, "_generator"):
+            return self._generator
+        else:
+            raise RuntimeError("Generator used before 'set_model' was called.")
+
+    def configure_optimizers(self) -> torch.optim.Adam:
+        return torch.optim.Adam(self.parameters(), self.lr)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.regressor(self.feature_extractor(inputs))
+
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        features, _ = batch
+        batch_size = features.shape[0]
+
+        pred_real = self.forward(features)
+        loss_real = self.gan_loss(
+            pred_real, torch.zeros(batch_size, 1, device=self.device)
+        )
+
+        noise = torch.randn(batch_size, 1, self.noise_dim, device=self.device)
+        fake_features = self.grl(self.generator(noise))
+        pred_fake = self.forward(fake_features)
+        loss_fake = self.gan_loss(
+            pred_fake, torch.ones(batch_size, 1, device=self.device)
+        )
+
+        loss = (loss_real + loss_fake) / 2
+        self.log("train/loss", loss)
+
+        return loss
+
+
+def get_first_time_to_predict(
+    fttp_model: LatentAlignFttpApproach,
+    features: np.ndarray,
+    window_size: int,
+    chunk_size: int,
+    healthy_index: int,
+    threshold_coefficient: float,
+) -> int:
+    if threshold_coefficient <= 1:
+        raise ValueError("Threshold coefficient needs to be greater than one.")
+
+    chunked = extract_chunk_windows(features, window_size, chunk_size)
+
+    health_indicator = []
+    chunks_per_window = features.shape[1] // chunk_size
+    for batch in np.split(chunked, len(chunked) // chunks_per_window):
+        preds = fttp_model(batch)
+        health_indicator.append(np.std(preds))
+
+    idx = healthy_index - window_size + 1  # windowing causes offset
+    healthy = np.mean(health_indicator[:idx])
+    over_thresh = np.argwhere(health_indicator > threshold_coefficient * healthy)
+
+    if len(over_thresh) == 0:
+        raise RuntimeError("Health indicator never passes threshold.")
+
+    fttp = over_thresh[0, 0] + window_size - 1
+
+    return fttp
+
+
+def extract_chunk_windows(
+    features: np.ndarray, window_size: int, chunk_size: int
+) -> np.ndarray:
+    old_window_size = features.shape[1]
+    window_multiplier = old_window_size // chunk_size
+    num_new_windows = (features.shape[0] - window_size + 1) * window_multiplier
+
+    chunk_idx = np.tile(np.arange(chunk_size), num_new_windows * window_size)
+    intra_offsets = np.tile(np.arange(window_size), num_new_windows) * old_window_size
+    inter_offsets = np.repeat(np.arange(num_new_windows), window_size) * chunk_size
+    offsets = np.repeat(intra_offsets + inter_offsets, chunk_size)
+    window_idx = chunk_idx + offsets
+
+    flat_features = features.reshape((-1, features.shape[2]))
+    flat_windows = flat_features[window_idx]
+    windows = flat_windows.reshape((num_new_windows, window_size * chunk_size, -1))
+
+    return windows
 
 
 class LatentAlignApproach(AdaptionApproach):
