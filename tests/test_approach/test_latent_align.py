@@ -6,6 +6,7 @@ import pytest
 import rul_datasets.reader
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 from torchmetrics import Metric
 import pytorch_lightning as pl
 
@@ -256,6 +257,29 @@ class TestLatentAlignFttpApproach:
         loss = fttp_approach.training_step(inputs)
 
         assert loss.shape == torch.Size([])
+
+    @pytest.mark.integration
+    def test_on_dummy(self):
+        dummy = rul_datasets.reader.DummyReader(1)
+        healthy, _ = rul_datasets.adaption.split_healthy(
+            *dummy.load_split("dev"), by_steps=10
+        )
+        healthy_dl = DataLoader(healthy, batch_size=128, shuffle=True)
+
+        fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
+        reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
+        gen = nn.Conv1d(1, 1, 10, padding="same")
+        fttp_approach = LatentAlignFttpApproach(0.01, 10)
+        fttp_approach.set_model(fe, reg, gen)
+
+        trainer = pl.Trainer(
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            max_epochs=10,
+        )
+        trainer.fit(fttp_approach, healthy_dl)
 
 
 @pytest.mark.parametrize(
