@@ -87,24 +87,32 @@ def get_first_time_to_predict(
     if threshold_coefficient <= 1:
         raise ValueError("Threshold coefficient needs to be greater than one.")
 
-    chunked = extract_chunk_windows(features, window_size, chunk_size)
+    health_indicator = get_health_indicator(
+        fttp_model, features, window_size, chunk_size
+    )
+    offset = len(features) - len(health_indicator)  # windowing cuts off first windows
+    healthy = np.mean(health_indicator[: healthy_index - offset])
+    over_thresh = np.argwhere(health_indicator > threshold_coefficient * healthy)
 
+    if len(over_thresh) == 0:
+        raise RuntimeError("Health indicator never passes threshold.")
+    fttp = over_thresh[0, 0] + offset
+
+    return fttp
+
+
+def get_health_indicator(
+    fttp_model: nn.Module, features: np.ndarray, window_size: int, chunk_size: int
+) -> np.ndarray:
+    chunked = extract_chunk_windows(features, window_size, chunk_size)
     health_indicator = []
     chunks_per_window = features.shape[1] // chunk_size
     for batch in np.split(chunked, len(chunked) // chunks_per_window):
         preds = fttp_model(utils.feature_to_tensor(batch, torch.float))
         health_indicator.append(np.std(preds.detach().numpy()))
+    health_indicator = np.array(health_indicator)
 
-    idx = healthy_index - window_size + 1  # windowing causes offset
-    healthy = np.mean(health_indicator[:idx])
-    over_thresh = np.argwhere(health_indicator > threshold_coefficient * healthy)
-
-    if len(over_thresh) == 0:
-        raise RuntimeError("Health indicator never passes threshold.")
-
-    fttp = over_thresh[0, 0] + window_size - 1
-
-    return fttp
+    return health_indicator
 
 
 def extract_chunk_windows(

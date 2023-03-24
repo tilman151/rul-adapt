@@ -16,6 +16,7 @@ from rul_adapt.approach.latent_align import (
     extract_chunk_windows,
     get_first_time_to_predict,
     LatentAlignFttpApproach,
+    get_health_indicator,
 )
 from tests.test_approach import utils
 
@@ -313,22 +314,42 @@ def test_extract_chunk_windows(window_size, chunk_size):
                 )
 
 
-def test_get_first_time_to_predict():
+@mock.patch("rul_adapt.approach.latent_align.get_health_indicator")
+def test_get_first_time_to_predict(mock_get_health_indicator):
     window_size = 5
     health_index = (
-        np.maximum(0, 10 * np.linspace(-5, 5, 500)) + 1 + np.random.randn(500) * 0.001
+        np.maximum(0, 10 * np.linspace(-5, 5, 100)) + 1 + np.random.randn(100) * 0.001
     )
-    data = np.random.randn(100 + window_size - 1, 10, 1)
-    fttp_model = mock.Mock(
-        side_effect=torch.from_numpy(health_index.reshape(100, -1, 1))
-    )
+    mock_get_health_indicator.return_value = health_index
+    fttp_model = mock.MagicMock(nn.Module)
+    data = np.random.randn(104, 10, 1)
+
     fttp = get_first_time_to_predict(
         fttp_model,
         data,
         window_size,
         chunk_size=2,
         healthy_index=10,
-        threshold_coefficient=10,
+        threshold_coefficient=1.5,
     )
 
-    assert fttp == (50 + window_size - 1)
+    offset = len(data) - len(health_index)
+    assert fttp == (50 + offset)  # fttp index is adjusted for window size
+    mock_get_health_indicator.assert_called_once_with(fttp_model, data, window_size, 2)
+
+
+@mock.patch("rul_adapt.approach.latent_align.extract_chunk_windows")
+def test_get_health_indicator(mock_extract_chunk_windows):
+    chunk_windows = np.random.randn(100, 1280, 1)
+    mock_extract_chunk_windows.return_value = chunk_windows
+
+    model = mock.MagicMock(nn.Module)
+    model.side_effect = torch.stack([torch.arange(0, 20, 2), torch.zeros(10)], dim=1)
+    features = np.random.randn(19, 1280, 1)
+
+    health_index = get_health_indicator(model, features, 10, 128)
+
+    assert health_index.shape == (10,)
+    npt.assert_equal(health_index, np.arange(10))  # std of model outputs is range(10)
+    mock_extract_chunk_windows.assert_called_once_with(features, 10, 128)
+    model.assert_called()
