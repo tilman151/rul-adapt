@@ -265,11 +265,11 @@ class TestLatentAlignFttpApproach:
         healthy, _ = rul_datasets.adaption.split_healthy(
             *dummy.load_split("dev"), by_steps=10
         )
-        healthy_dl = DataLoader(healthy, batch_size=128, shuffle=True)
+        healthy_dl = DataLoader(healthy, batch_size=32, shuffle=True)
 
         fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
         reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        gen = nn.Conv1d(1, 1, 10, padding="same")
+        gen = model.CnnExtractor(1, [1], 10, 3, padding=True)
         fttp_approach = LatentAlignFttpApproach(0.01, 10)
         fttp_approach.set_model(fe, reg, gen)
 
