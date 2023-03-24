@@ -63,7 +63,7 @@ class LatentAlignFttpApproach(AdaptionApproach):
         )
 
         noise = torch.randn(batch_size, 1, self.noise_dim, device=self.device)
-        fake_features = self.grl(self.generator(noise))
+        fake_features = self.grl(self.generator(noise)).reshape_as(features)
         pred_fake = self.forward(fake_features)
         loss_fake = self.gan_loss(
             pred_fake, torch.ones(batch_size, 1, device=self.device)
