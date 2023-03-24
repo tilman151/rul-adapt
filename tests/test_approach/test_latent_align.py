@@ -319,7 +319,9 @@ def test_get_first_time_to_predict():
         np.maximum(0, 10 * np.linspace(-5, 5, 500)) + 1 + np.random.randn(500) * 0.001
     )
     data = np.random.randn(100 + window_size - 1, 10, 1)
-    fttp_model = mock.Mock(side_effect=health_index.reshape(100, -1, 1))
+    fttp_model = mock.Mock(
+        side_effect=torch.from_numpy(health_index.reshape(100, -1, 1))
+    )
     fttp = get_first_time_to_predict(
         fttp_model,
         data,

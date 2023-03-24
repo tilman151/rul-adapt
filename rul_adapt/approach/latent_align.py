@@ -6,6 +6,7 @@ import torchmetrics
 from torch import nn
 
 import rul_adapt
+from rul_datasets import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 
 
@@ -74,6 +75,7 @@ class LatentAlignFttpApproach(AdaptionApproach):
         return loss
 
 
+@torch.no_grad()
 def get_first_time_to_predict(
     fttp_model: LatentAlignFttpApproach,
     features: np.ndarray,
@@ -90,8 +92,8 @@ def get_first_time_to_predict(
     health_indicator = []
     chunks_per_window = features.shape[1] // chunk_size
     for batch in np.split(chunked, len(chunked) // chunks_per_window):
-        preds = fttp_model(batch)
-        health_indicator.append(np.std(preds))
+        preds = fttp_model(utils.feature_to_tensor(batch, torch.float))
+        health_indicator.append(np.std(preds.detach().numpy()))
 
     idx = healthy_index - window_size + 1  # windowing causes offset
     healthy = np.mean(health_indicator[:idx])
