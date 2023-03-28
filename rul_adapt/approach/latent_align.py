@@ -56,18 +56,15 @@ class LatentAlignFttpApproach(AdaptionApproach):
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         features, _ = batch
         batch_size = features.shape[0]
+        device: torch.device = self.device  # type: ignore[assignment]
 
         pred_real = self.forward(features)
-        loss_real = self.gan_loss(
-            pred_real, torch.zeros(batch_size, 1, device=self.device)
-        )
+        loss_real = self.gan_loss(pred_real, torch.zeros(batch_size, 1, device=device))
 
-        noise = torch.randn(batch_size, 1, self.noise_dim, device=self.device)
+        noise = torch.randn(batch_size, 1, self.noise_dim, device=device)
         fake_features = self.grl(self.generator(noise)).reshape_as(features)
         pred_fake = self.forward(fake_features)
-        loss_fake = self.gan_loss(
-            pred_fake, torch.ones(batch_size, 1, device=self.device)
-        )
+        loss_fake = self.gan_loss(pred_fake, torch.ones(batch_size, 1, device=device))
 
         loss = (loss_real + loss_fake) / 2
         self.log("train/loss", loss)
@@ -105,12 +102,12 @@ def get_health_indicator(
     fttp_model: nn.Module, features: np.ndarray, window_size: int, chunk_size: int
 ) -> np.ndarray:
     chunked = extract_chunk_windows(features, window_size, chunk_size)
-    health_indicator = []
     chunks_per_window = features.shape[1] // chunk_size
-    for batch in np.split(chunked, len(chunked) // chunks_per_window):
+    batches = np.split(chunked, len(chunked) // chunks_per_window)
+    health_indicator = np.empty(len(batches))
+    for i, batch in enumerate(batches):
         preds = fttp_model(utils.feature_to_tensor(batch, torch.float))
-        health_indicator.append(np.std(preds.detach().numpy()))
-    health_indicator = np.array(health_indicator)
+        health_indicator[i] = np.std(preds.detach().numpy())
 
     return health_indicator
 
