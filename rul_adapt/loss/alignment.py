@@ -1,3 +1,7 @@
+"""These losses are used to create a latent space that is conductive to RUL
+estimation. They are mainly used by the [LatentAlignmentApproach]
+[rul_adapt.approach.LatentAlignApproach]."""
+
 from typing import List
 
 import torch
@@ -7,8 +11,25 @@ from rul_adapt.loss.utils import calc_pairwise_dot, weighted_mean
 
 
 class HealthyStateAlignmentLoss(torchmetrics.Metric):
-    """TODO: implement running var
-    https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance"""
+    """
+    This loss is used to align the healthy state of the data in the latent space.
+
+    It computes the mean of the variance of each latent feature which is supposed to
+    be minimized. This way a single compact cluster of healthy state data should be
+    formed.
+
+    The loss is implemented as a [torchmetrics.Metric](
+    https://torchmetrics.readthedocs.io/en/stable/pages/quickstart.html#module
+    -metrics). See their documentation for more information.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt.loss.alignment import HealthyStateAlignmentLoss
+        >>> healthy_align = HealthyStateAlignmentLoss()
+        >>> healthy_align(torch.zeros(10, 5))
+        tensor(0.)
+        ```
+    """
 
     is_differentiable: bool = True
     higher_is_better: bool = False
@@ -32,6 +53,28 @@ class HealthyStateAlignmentLoss(torchmetrics.Metric):
 
 
 class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
+    """
+    This loss is used to align the direction of the degradation data in relation to
+    the healthy state data in the latent space.
+
+    It computes the mean of the cosine of the pairwise-angle of the vectors from the
+    healthy state cluster to each degradation data point. The healthy state cluster
+    location is assumed to be the mean of the healthy state data in the latent space.
+    The loss is negated in order to maximize the cosine by minimizing the loss.
+
+    The loss is implemented as a [torchmetrics.Metric](
+    https://torchmetrics.readthedocs.io/en/stable/pages/quickstart.html#module
+    -metrics). See their documentation for more information.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt.loss.alignment import DegradationDirectionAlignmentLoss
+        >>> degradation_align = DegradationDirectionAlignmentLoss()
+        >>> degradation_align(torch.zeros(10, 5), torch.ones(10, 5))
+        tensor(-1.0000)
+        ```
+    """
+
     is_differentiable: bool = True
     higher_is_better: bool = False
     full_state_update: bool = False
@@ -60,6 +103,32 @@ class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
 
 
 class DegradationLevelRegularizationLoss(torchmetrics.Metric):
+    """
+    This loss is used to regularize the degradation level of the data in the latent
+    space in relation to the healthy state data.
+
+    It computes the mean of the difference between the normalized distance of the
+    degradation data points from the healthy state cluster and the normalized
+    degradation steps. The healthy state cluster location is assumed to be the mean
+    of the healthy state data in the latent space.
+
+    The loss is implemented as a [torchmetrics.Metric](
+    https://torchmetrics.readthedocs.io/en/stable/pages/quickstart.html#module
+    -metrics). See their documentation for more information.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt.loss.alignment import DegradationLevelRegularizationLoss
+        >>> degradation_align = DegradationLevelRegularizationLoss()
+        >>> degradation_align(torch.zeros(10, 5),
+        ...                   torch.ones(10, 5),
+        ...                   torch.ones(10),
+        ...                   torch.ones(10, 5),
+        ...                   torch.ones(10))
+        tensor(0.)
+        ```
+    """
+
     is_differentiable: bool = True
     higher_is_better: bool = False
     full_state_update: bool = False

@@ -1,3 +1,29 @@
+"""The latent space alignment approach uses several auxiliary losses to align the
+latent space of the source and target domain produced by a shared feature extractor:
+
+* **Healthy State Alignment:** Pushes the healthy data of both domains into a single
+  compact cluster
+* **Degradation Direction Alignment:** Minimizes the angle between degraded data
+  points with the healthy cluster as origin
+* **Degradation Level Alignment:** Aligns the distance of degraded data points from the
+  healthy cluster to the number of time steps in degradation
+* **Degradation Fusion:** Uses a
+  [MMD loss][rul_adapt.loss.adaption.MaximumMeanDiscrepancyLoss] to align the
+  distribution of both domains
+
+Which features are considered in the healthy state and which in degradation is either
+determined by taking the first few steps of each time series or by using a
+first-time-to-predict estimation. The first variant is used for CMAPSS, the second
+for XJTU-SY.
+
+The approach was introduced by [Zhang et al.](
+https://doi.org/10.1016/j.ress.2021.107556) in 2021. For applying the approach on raw
+vibration data, i.e. XJTU-SY, it uses a [windowing scheme]
+[rul_adapt.approach.latent_align.extract_chunk_windows] and
+[first-point-to-predict estimation]
+[rul_adapt.approach.latent_align.LatentAlignFttpApproach] introduced by [Li et al.](
+https://doi.org/10.1016/j.knosys.2020.105843) in 2020."""
+
 from typing import Tuple, List, Any, Optional
 
 import numpy as np
@@ -11,11 +37,49 @@ from rul_adapt.approach.abstract import AdaptionApproach
 
 
 class LatentAlignFttpApproach(AdaptionApproach):
+    """This first-point-to-predict estimation approach trains a GAN on healthy state
+    bearing data. The discriminator can be used afterwards to compute a health
+    indicator for each bearing.
+
+    The feature extractor and regressor models are used as the discriminator. The
+    regressor is not allowed to have an activation function on its last layer and
+    needs to use only a single output neuron because [BCEWithLogitsLoss]
+    [torch.nn.BCEWithLogitsLoss] is used. The generator receives noise with the shape
+    [batch_size, 1, noise_dim]. The generator needs an output with enough elements so
+    that it can be reshaped to the same shape as the real input data. The reshaping
+    is done internally.
+
+    Both generator and discriminator are trained at once by using a
+    [Gradient Reversal Layer][rul_adapt.loss.adaption.GradientReversalLayer]
+    between them.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt import model, approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> gen = model.CnnExtractor(1, [1], 10, padding=True)
+        >>> fttp_model = approach.LatentAlignFttpApproach(1e-4, 10)
+        >>> fttp_model.set_model(feat_ex, reg, gen)
+        >>> health_indicator = fttp_model(torch.randn(16, 1, 10)).std()
+        ```
+    """
+
     CHECKPOINT_MODELS = ["_generator"]
 
     _generator: nn.Module
 
     def __init__(self, lr: float, noise_dim: int):
+        """
+        Create a new FTTP estimation approach.
+
+        The generator is set by the `set_model` function together with the feature
+        extractor and regressor.
+
+        Args:
+            lr: The learning rate for both generator and discriminator.
+            noise_dim: The size of the last dimension of the noise tensor.
+        """
         super().__init__()
 
         self.lr = lr
@@ -34,6 +98,21 @@ class LatentAlignFttpApproach(AdaptionApproach):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """
+        Set the feature extractor, regressor (forming the discriminator) and
+        generator for this approach.
+
+        The regressor is not allowed to have an activation function on its last layer
+        and needs to use only a single output neuron. The generator receives noise
+        with the shape [batch_size, 1, noise_dim]. The generator needs an output with
+        enough elements so that it can be reshaped to the same shape as the real
+        input data. The reshaping is done internally.
+
+        Args:
+            feature_extractor: The feature extraction network.
+            regressor: The regressor functioning as the head of the discriminator.
+            generator: The generator network.
+        """
         super().set_model(feature_extractor, regressor)
         if generator is None:
             raise ValueError("Generator not set. This approach is unlikely to work.")
@@ -48,12 +127,33 @@ class LatentAlignFttpApproach(AdaptionApproach):
             raise RuntimeError("Generator used before 'set_model' was called.")
 
     def configure_optimizers(self) -> torch.optim.Adam:
+        """Configure an Adam optimizer for the generator and discriminator."""
         return torch.optim.Adam(self.parameters(), self.lr)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Predict the health indicator for the given inputs."""
         return self.regressor(self.feature_extractor(inputs))
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        """
+        Execute one training step.
+
+        The batch is a tuple of the features and the labels. The labels are ignored.
+        A noise tensor is passed to the generator to generate fake features. The
+        discriminator classifies if the features are real or fake and the binary
+        cross entropy loss is calculated. Real features receive the label zero and
+        the fake features one.
+
+        Both generator and discriminator are trained at once by using a
+        [Gradient Reversal Layer][rul_adapt.loss.adaption.GradientReversalLayer]
+        between them. At the end, the loss is logged.
+
+        Args:
+            batch: A tuple of feature and label tensors.
+
+        Returns:
+            The classification loss.
+        """
         features, _ = batch
         batch_size = features.shape[0]
         device: torch.device = self.device  # type: ignore[assignment]
@@ -72,7 +172,6 @@ class LatentAlignFttpApproach(AdaptionApproach):
         return loss
 
 
-@torch.no_grad()
 def get_first_time_to_predict(
     fttp_model: LatentAlignFttpApproach,
     features: np.ndarray,
@@ -81,6 +180,31 @@ def get_first_time_to_predict(
     healthy_index: int,
     threshold_coefficient: float,
 ) -> int:
+    """
+    Get the first time step to predict for the given features.
+
+    The features are pre-processed via the [extract_chunk_windows]
+    [rul_adapt.approach.latent_align.extract_chunk_windows] function and fed in
+    batches to the `fttp_model`. Each batch consists of the chunk windows that end in
+    the same original feature window. The health indicator for the original window is
+    calculated as the standard deviation of the predictions of the `fttp_model`.
+
+    The first-time-to-predict is the first time step where the health indicator is
+    larger than `threshold_coefficient` times the mean of the health indicator for
+    the first `healthy_index` time steps. If the threshold is never exceeded,
+    a RuntimeError is raised.
+
+    Args:
+        fttp_model: The model to use for the health indicator calculation.
+        features: The features to calculate the first-time-to-predict for.
+        window_size: The size of the chunk windows to extract.
+        chunk_size: The size of the chunks for each chunk window to extract.
+        healthy_index: The index of the last healthy time step.
+        threshold_coefficient: The threshold coefficient for the health indicator.
+
+    Returns:
+        The original window index of the first-time-to-predict.
+    """
     if threshold_coefficient <= 1:
         raise ValueError("Threshold coefficient needs to be greater than one.")
 
@@ -98,9 +222,33 @@ def get_first_time_to_predict(
     return fttp
 
 
+@torch.no_grad()
 def get_health_indicator(
     fttp_model: nn.Module, features: np.ndarray, window_size: int, chunk_size: int
 ) -> np.ndarray:
+    """
+    Get the health indicator for the given features.
+
+    The features are pre-processed via the [extract_chunk_windows]
+    [rul_adapt.approach.latent_align.extract_chunk_windows] function and fed in
+    batches to the `fttp_model`. Each batch consists of the chunk windows that end in
+    the same original feature window. The health indicator for the original window is
+    calculated as the standard deviation of the predictions of the `fttp_model`.
+
+    The length of the returned health indicator array is shorter than the `features`
+    array by `window_size - 1`, due to the chunk windowing. This means the first
+    health indicator value belongs to the original window with the index
+    `window_size - 1`.
+
+    Args:
+        fttp_model: The model to use for the health indicator calculation.
+        features: The features to calculate the health indicator for.
+        window_size: The size of the chunk windows to extract.
+        chunk_size: The size of the chunks for each chunk window to extract.
+
+    Returns:
+        The health indicator for the original windows.
+    """
     chunked = extract_chunk_windows(features, window_size, chunk_size)
     chunks_per_window = features.shape[1] // chunk_size
     batches = np.split(chunked, len(chunked) // chunks_per_window)
@@ -115,6 +263,26 @@ def get_health_indicator(
 def extract_chunk_windows(
     features: np.ndarray, window_size: int, chunk_size: int
 ) -> np.ndarray:
+    """
+    Extract chunk windows from the given features of shape `[num_org_windows,
+    org_window_size, num_features]`.
+
+    A chunk window is a window that consists of `window_size` chunks. Each original
+    window is split into chunks of size `chunk_size`. A chunk window is then formed
+    by concatenating chunks from the same position inside `window_size` consecutive
+    original windows. Therefore, each original window is represented by
+    `org_window_size // chunk_size` chunk windows. The original window size must
+    therefor be divisible by the chunk size.
+
+    Args:
+        features: The features to extract the chunk windows from.
+        window_size: The number of consecutive original windows to form a chunk window
+                     from.
+        chunk_size: The size of the chunks to extract from the original windows.
+
+    Returns:
+        Chunk windows of shape `[num_windows, window_size * chunk_size, num_features]`.
+    """
     old_window_size = features.shape[1]
     window_multiplier = old_window_size // chunk_size
     num_new_windows = (features.shape[0] - window_size + 1) * window_multiplier
@@ -133,6 +301,21 @@ def extract_chunk_windows(
 
 
 class LatentAlignApproach(AdaptionApproach):
+    """
+    The latent alignment approach introduces four latent space alignment losses to
+    align the latent space of a shared feature extractor to both source and target
+    domain.
+
+    Examples:
+        ```pycon
+        >>> from rul_adapt import model, approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> latent_align = approach.LatentAlignApproach(0.1, 0.1, 0.1, 0.1, 0.001)
+        >>> latent_align.set_model(feat_ex, reg)
+        ```
+    """
+
     def __init__(
         self,
         alpha_healthy: float,
@@ -140,7 +323,20 @@ class LatentAlignApproach(AdaptionApproach):
         alpha_level: float,
         alpha_fusion: float,
         lr: float,
-    ):
+    ) -> None:
+        """
+        Create a new latent alignment approach.
+
+        Each of the alphas control the influence of the respective loss on the
+        training. Commonly they are all set to the same value.
+
+        Args:
+            alpha_healthy: The influence of the healthy state alignment loss.
+            alpha_direction: The influence of the degradation direction alignment loss.
+            alpha_level: The influence of the degradation level regularization loss.
+            alpha_fusion: The influence of the degradation fusion (MMD) loss.
+            lr: The learning rate.
+        """
         super().__init__()
 
         self.alpha_healthy = alpha_healthy
@@ -170,17 +366,47 @@ class LatentAlignApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> torch.optim.Optimizer:
+    def configure_optimizers(self) -> torch.optim.Adam:
+        """Configute an Adam optimizer."""
         optim = torch.optim.Adam(self.parameters(), self.lr)
 
         return optim
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """Predict the RUL values for a batch of input features."""
         return self.regressor(self.feature_extractor(features))
 
     def training_step(
         self, batch: Tuple[torch.Tensor, ...], batch_idx: int
     ) -> torch.Tensor:
+        """
+        Execute one training step.
+
+        The `batch` contains the following tensors in order:
+
+        * The source domain features.
+        * The steps in degradation for the source features.
+        * The RUL labels for the source features.
+        * The target domain features.
+        * The steps in degradation for the target features.
+        * The healthy state features for both domains.
+
+        The easies way to produce such a batch is using the [LatentAlignDataModule]
+        [rul_datasets.adaption.LatentAlignDataModule].
+
+        The source, target and healthy features are passed through the feature
+        extractor. Afterwards these high-level features are used to compute the
+        alignment losses. The source domain RUL predictions are computed using the
+        regressor and used to calculate the MSE loss. The losses are then combined.
+        Each separate and the combined loss are logged.
+
+        Args:
+            batch: The batch of data.
+            batch_idx: The index of the batch.
+
+        Returns:
+            The combined loss.
+        """
         source, source_degradation_steps, source_labels, *_ = batch
         *_, target, target_degradation_steps, healthy = batch
         source_labels = source_labels[:, None]

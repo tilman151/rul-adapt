@@ -1,4 +1,4 @@
-from .latent_align import LatentAlignApproach
+from .latent_align import LatentAlignApproach, LatentAlignFttpApproach
 from .tbigru import select_features, VibrationFeatureExtractor
 from .mmd import MmdApproach
 from .adarul import AdaRulApproachPretraining, AdaRulApproach
