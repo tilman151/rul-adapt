@@ -1,0 +1,8 @@
+# @package _global_
+
+dm:
+  source:
+    _target_: rul_datasets.CmapssReader
+    window_size: 30
+  adaption_kwargs:
+    split_by_steps: 80
