@@ -300,6 +300,21 @@ def extract_chunk_windows(
     return windows
 
 
+class ChunkWindowExtractor:
+    def __init__(self, window_size: int, chunk_size: int) -> None:
+        self.window_size = window_size
+        self.chunk_size = chunk_size
+
+    def __call__(
+        self, features: np.ndarray, targets: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        chunks_per_window = features.shape[1] // self.chunk_size
+        chunked = extract_chunk_windows(features, self.window_size, self.chunk_size)
+        targets = targets[self.window_size - 1 :].repeat(chunks_per_window)
+
+        return chunked, targets
+
+
 class LatentAlignApproach(AdaptionApproach):
     """
     The latent alignment approach introduces four latent space alignment losses to

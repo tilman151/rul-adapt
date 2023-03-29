@@ -17,6 +17,7 @@ from rul_adapt.approach.latent_align import (
     get_first_time_to_predict,
     LatentAlignFttpApproach,
     get_health_indicator,
+    ChunkWindowExtractor,
 )
 from tests.test_approach import utils
 
@@ -312,6 +313,17 @@ def test_extract_chunk_windows(window_size, chunk_size):
                     chunk.squeeze(),
                     np.arange(exp_start_idx, exp_start_idx + chunk_size),
                 )
+
+
+def test_chunk_window_extractor():
+    window_size = 5
+    extractor = ChunkWindowExtractor(window_size, 2)
+    features, targets = np.arange(100).reshape((10, 10, 1)), np.arange(10)
+
+    chunked_features, chunked_targets = extractor(features, targets)
+
+    assert len(chunked_features) == len(chunked_targets)
+    assert chunked_targets[0] == window_size - 1
 
 
 @mock.patch("rul_adapt.approach.latent_align.get_health_indicator")
