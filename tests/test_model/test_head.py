@@ -2,6 +2,7 @@ import pytest
 import torch
 from torch import nn
 
+from rul_adapt import utils
 from rul_adapt.model.head import FullyConnectedHead
 
 
@@ -18,12 +19,12 @@ def test_forward(inputs, units):
 
 
 @pytest.mark.parametrize("units", [[1], [32, 1]])
-@pytest.mark.parametrize("act_func", [nn.ReLU, nn.Sigmoid])
+@pytest.mark.parametrize("act_func", [nn.Sigmoid, "torch.nn.Sigmoid"])
 def test_act_func(units, act_func):
     head = FullyConnectedHead(14, units, act_func=act_func)
 
     for m in head._layers:
-        assert isinstance(m[-1], act_func)
+        assert isinstance(m[-1], nn.Sigmoid)
 
 
 @pytest.mark.parametrize("act_func_on_last_layer", [True, False])
