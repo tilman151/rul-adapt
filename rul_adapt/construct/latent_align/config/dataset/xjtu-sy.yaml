@@ -8,6 +8,9 @@ dm:
       dev: [1, 2, 3, 4, 5]
       val: []
       test: []
+  target:
+    percent_broken: 0.5
+    truncate_degraded_only: True
   kwargs:
     feature_extractor:
       _target_: rul_adapt.approach.latent_align.ChunkWindowExtractor
