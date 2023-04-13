@@ -15,6 +15,32 @@ def get_latent_align(
     xjtu_sy_subtask: Optional[int] = None,
     **trainer_kwargs: Any,
 ) -> Tuple[rul_datasets.LatentAlignDataModule, LatentAlignApproach, pl.Trainer]:
+    """
+    Construct a Latent Alignment approach for the selected dataset with the original
+    hyperparameters.
+
+    For the XJTU-SY task only FD001 and FD002 are available. The subtask controls if
+    the bearing with the id 1 or 2 is used as the target data.
+
+    Examples:
+        ```pycon
+        >>> import rul_adapt
+        >>> dm, latent, trainer = rul_adapt.construct.get_latent_align("cmapss", 3, 1)
+        >>> trainer.fit(latent, dm)
+        >>> trainer.test(latent, dm)
+        ```
+
+    Args:
+        dataset: The dataset to use.
+        source_fd: The source FD.
+        target_fd: The target FD.
+        xjtu_sy_subtask: The subtask for the XJTU-SY (either 1 or 2).
+        trainer_kwargs: Overrides for the trainer class.
+    Returns:
+        dm: The data module for adaption of the sub-datasets.
+        dann: The Latent Alignment approach with feature extractor and regressor.
+        trainer: The trainer object.
+    """
     config = get_latent_align_config(dataset, source_fd, target_fd, xjtu_sy_subtask)
     dm, latent_align, trainer = latent_align_from_config(config, **trainer_kwargs)
 
@@ -27,6 +53,22 @@ def get_latent_align_config(
     target_fd: int,
     xjtu_sy_subtask: Optional[int] = None,
 ) -> omegaconf.DictConfig:
+    """
+    Get a configuration for the Latent Alignment approach.
+
+    For the XJTU-SY task only FD001 and FD002 are available. The subtask controls if
+    the bearing with the id 1 or 2 is used as the target data. The configuration can
+    be modified and fed to [latent_align_from_config]
+    [rul_adapt.construct.latent_align.latent_align_from_config] to create the approach.
+
+    Args:
+        dataset: The dataset to use.
+        source_fd: The source FD.
+        target_fd: The target FD.
+        xjtu_sy_subtask: The subtask for the XJTU-SY (either 1 or 2).
+    Returns:
+        The Latent Alignment configuration.
+    """
     _validate(dataset, source_fd, target_fd, xjtu_sy_subtask)
     overrides = [
         f"+dataset={dataset}",
@@ -46,6 +88,20 @@ def get_latent_align_config(
 def latent_align_from_config(
     config: omegaconf.DictConfig, **trainer_kwargs: Any
 ) -> Tuple[rul_datasets.LatentAlignDataModule, LatentAlignApproach, pl.Trainer]:
+    """
+    Construct a Latent Alignment approach from a configuration.
+
+    The configuration can be created by calling [get_latent_align_config]
+    [rul_adapt.construct.latent_align.get_latent_align_config].
+
+    Args:
+        config: The Latent Alignment configuration.
+        trainer_kwargs: Overrides for the trainer class.
+    Returns:
+        dm: The data module for adaption of the sub-datasets.
+        dann: The Latent Alignment approach with feature extractor, regressor.
+        trainer: The trainer object.
+    """
     source = hydra.utils.instantiate(config.dm.source)
     target = hydra.utils.instantiate(config.dm.target)
     kwargs = hydra.utils.instantiate(config.dm.kwargs)

@@ -1,4 +1,4 @@
-from .latent_align.functional import (
+from .latent_align import (
     get_latent_align,
     get_latent_align_config,
     latent_align_from_config,
