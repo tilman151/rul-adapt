@@ -154,8 +154,12 @@ class DegradationLevelRegularizationLoss(torchmetrics.Metric):
         source_distances = self._calc_normed_distances(healthy_mean, source)
         target_distances = self._calc_normed_distances(healthy_mean, target)
 
-        source_degradation_steps /= torch.max(source_degradation_steps)
-        target_degradation_steps /= torch.max(target_degradation_steps)
+        source_degradation_steps = source_degradation_steps / torch.max(
+            source_degradation_steps
+        )
+        target_degradation_steps = target_degradation_steps / torch.max(
+            target_degradation_steps
+        )
 
         source_loss = torch.abs(source_distances - source_degradation_steps).mean()
         target_loss = torch.abs(target_distances - target_degradation_steps).mean()
