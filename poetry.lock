@@ -2940,14 +2940,14 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "rul-datasets"
-version = "0.10.0"
+version = "0.10.2"
 description = "A collection of datasets for RUL estimation as Lightning Data Modules."
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "rul_datasets-0.10.0-py3-none-any.whl", hash = "sha256:545f98b64bdbb2443f65bb55892e7d4f712d1307d24786f948f57023f7d50b57"},
-    {file = "rul_datasets-0.10.0.tar.gz", hash = "sha256:54c1397b5f81239bbaa4d849e6d3963745097806c4270c9cd1d3107a6fc7c42b"},
+    {file = "rul_datasets-0.10.2-py3-none-any.whl", hash = "sha256:3ec8374cdf0457c906b9aab805f7bcc67894445d6aa68552bbdc74543d5df080"},
+    {file = "rul_datasets-0.10.2.tar.gz", hash = "sha256:868bc5c15bb16abf80ec25874c8f6d26ba817435d36fb3be804438a432358a35"},
 ]
 
 [package.dependencies]
@@ -3660,4 +3660,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "19af3e3b55f7e03f3555b3d7cc9705ccc30fe69b2fcd022a0aad1d6eb16b1884"
+content-hash = "45f0c14540879de592114165d5956be88ff35de4b2dece9ecac16999f00af6b4"
