@@ -42,6 +42,7 @@ tbigru:
   _target_: rul_adapt.approach.MmdApproach
   lr: 0.001
   mmd_factor: 0.1
+  rul_score_mode: phm12
 
 trainer:
   _target_: pytorch_lightning.Trainer

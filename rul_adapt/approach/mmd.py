@@ -58,6 +58,7 @@ class MmdApproach(AdaptionApproach):
         mmd_factor: float,
         num_mmd_kernels: int = 5,
         loss_type: Literal["mse", "rmse", "mae"] = "mse",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
     ) -> None:
         """
         Create a new MMD approach.
@@ -71,6 +72,8 @@ class MmdApproach(AdaptionApproach):
             mmd_factor: The strength of the influence of the MMD loss.
             num_mmd_kernels: The number of kernels for the MMD loss.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
         """
         super().__init__()
 
@@ -78,6 +81,7 @@ class MmdApproach(AdaptionApproach):
         self.mmd_factor = mmd_factor
         self.num_mmd_kernels = num_mmd_kernels
         self.loss_type = loss_type
+        self.rul_score_mode = rul_score_mode
 
         # training metrics
         self.train_source_loss = self._get_train_source_loss()
@@ -86,14 +90,14 @@ class MmdApproach(AdaptionApproach):
         # validation metrics
         self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
         self.val_target_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.val_source_score = rul_adapt.loss.RULScore()
-        self.val_target_score = rul_adapt.loss.RULScore()
+        self.val_source_score = rul_adapt.loss.RULScore(self.rul_score_mode)
+        self.val_target_score = rul_adapt.loss.RULScore(self.rul_score_mode)
 
         # testing metrics
         self.test_source_rmse = torchmetrics.MeanSquaredError(squared=False)
         self.test_target_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.test_source_score = rul_adapt.loss.RULScore()
-        self.test_target_score = rul_adapt.loss.RULScore()
+        self.test_source_score = rul_adapt.loss.RULScore(self.rul_score_mode)
+        self.test_target_score = rul_adapt.loss.RULScore(self.rul_score_mode)
 
         self.save_hyperparameters()
 
