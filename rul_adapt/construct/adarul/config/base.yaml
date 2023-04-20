@@ -7,7 +7,7 @@ dm:
     operation_condition_aware_scaling: True
   target:
     fd: ???
-    percent_broken: 0.8
+    percent_broken: 1.0
   batch_size: 10
 
 feature_extractor:
