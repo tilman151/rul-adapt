@@ -1,8 +1,0 @@
-# @package _global_
-
-dm:
-  target:
-    run_split_dist:
-      dev: []
-      val: [1]
-      test: [2]

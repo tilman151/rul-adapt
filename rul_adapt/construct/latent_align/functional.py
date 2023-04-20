@@ -76,7 +76,7 @@ def get_latent_align_config(
         f"dm.target.fd={target_fd}",
     ]
     if dataset == "xjtu-sy":
-        overrides.append(f"+subtask=SUB00{xjtu_sy_subtask}")
+        overrides.append(f"+subtask=SUB{target_fd}{xjtu_sy_subtask}")
     else:
         overrides.append(f"+split_steps=FD00{target_fd}")
     with hydra.initialize("config", version_base="1.1"):
