@@ -147,7 +147,7 @@ def _validate_cmapss(source_fd: int, target_fd: int):
         raise ValueError(f"CMAPSS has only FD001 to FD004 but no FD{target_fd:03}")
 
 
-def _validate_xjtu_sy(source_fd: int, target_fd: int, subtask: int):
+def _validate_xjtu_sy(source_fd: int, target_fd: int, subtask: Optional[int]):
     if 1 > source_fd or source_fd > 2:
         raise ValueError(
             "Only FD001 and FD002 of XJTU-SY are used in "
