@@ -8,7 +8,7 @@ dm:
   target:
     _target_: rul_datasets.FemtoReader
     fd: ???
-    percent_broken: 0.8
+    percent_broken: 1.0
     run_split_dist: ???
     first_time_to_predict: ???
     norm_rul: True
