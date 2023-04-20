@@ -351,11 +351,12 @@ def modwpt(inputs: np.ndarray, wavelet: str, level: int) -> np.ndarray:
     dec_hi = np.array(wavelet_func.dec_hi) / np.sqrt(2)
     dec_lo = np.array(wavelet_func.dec_lo) / np.sqrt(2)
 
-    input_queue = Queue(maxsize=2**level)
+    input_queue: Queue = Queue(maxsize=2**level)
     input_queue.put(inputs)
     for j in range(level):
         coeffs = _decompose_level(input_queue, dec_hi, dec_lo, j)
-        [input_queue.put(d) for d in coeffs]
+        for d in coeffs:
+            input_queue.put(d)
 
     return np.concatenate(coeffs, axis=-1)
 

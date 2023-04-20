@@ -55,7 +55,7 @@ class RULScore(torchmetrics.Metric):
 
     def compute(self) -> Any:
         if self.mean:
-            loss = [l / t for l, t in zip(self.loss, self.total)]
+            loss = [lo / t for lo, t in zip(self.loss, self.total)]
             return weighted_mean(loss, self.total)
         else:
             return sum(self.loss)
