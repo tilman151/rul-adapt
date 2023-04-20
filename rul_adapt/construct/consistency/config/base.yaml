@@ -5,7 +5,7 @@ dm:
     window_size: ???
   target:
     fd: ???
-    percent_broken: 0.8
+    percent_broken: 1.0
   kwargs:
     batch_size: 128
 
