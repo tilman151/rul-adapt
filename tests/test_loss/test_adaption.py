@@ -109,6 +109,23 @@ def test_gradient_reversal_layer(grad_weight):
 
 
 @pytest.mark.parametrize(
+    ["leader", "follower", "expected"],
+    [
+        (torch.ones(16, 2), torch.ones(16, 2) * 3, 2.0),
+        (torch.ones(16, 2), torch.ones(16, 2), 0.0),
+    ],
+)
+def test_consistency_loss(leader, follower, expected):
+    metric = loss.ConsistencyLoss()
+
+    consistency_loss = metric(leader, follower)
+
+    assert isinstance(consistency_loss, torch.Tensor)
+    assert consistency_loss.shape == torch.Size([])
+    assert consistency_loss == expected
+
+
+@pytest.mark.parametrize(
     ["metric", "inputs"],
     [
         (
@@ -122,6 +139,10 @@ def test_gradient_reversal_layer(grad_weight):
         (
             loss.JointMaximumMeanDiscrepancyLoss(),
             ([torch.randn(10, 1)], [torch.randn(10, 1)]),
+        ),
+        (
+            loss.ConsistencyLoss(),
+            (torch.randn(10, 1), torch.randn(10, 1)),
         ),
     ],
 )

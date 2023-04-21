@@ -1,0 +1,15 @@
+# @package _global_
+
+dm:
+  source:
+    _target_: rul_datasets.XjtuSyReader
+    window_size: null
+  kwargs:
+    feature_extractor:
+      _target_: rul_adapt.approach.consistency.TumblingWindowExtractor
+      channels: [0]
+      window_size: 30
+
+feature_extractor:
+  input_channels: 1
+  seq_len: ${dm.kwargs.feature_extractor.window_size}

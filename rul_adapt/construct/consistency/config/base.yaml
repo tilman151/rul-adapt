@@ -1,0 +1,49 @@
+dm:
+  source:
+    _target_: ???
+    fd: ???
+    window_size: ???
+  target:
+    fd: ???
+    percent_broken: 1.0
+  kwargs:
+    batch_size: 128
+
+feature_extractor:
+  _target_: rul_adapt.model.CnnExtractor
+  input_channels: ???
+  conv_filters: [32, 16, 1]
+  seq_len: ${dm.source.window_size}
+  fc_units: 20
+  conv_dropout: 0.5
+  fc_dropout: 0.5
+
+regressor:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: ${feature_extractor.fc_units}
+  act_func_on_last_layer: False
+  units: [10, 1]
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: ${feature_extractor.fc_units}
+  act_func_on_last_layer: False
+  units: [1]
+
+consistency_pre:
+  _target_: rul_adapt.approach.ConsistencyApproachPretraining
+  lr: 1e-4  # conversation with author: just train until converged
+
+consistency:
+  _target_: rul_adapt.approach.ConsistencyApproach
+  consistency_factor: 1.0
+  lr: 1e-5
+  max_epochs: 3000
+
+trainer_pre:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 1000
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 3000
