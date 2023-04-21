@@ -1,0 +1,48 @@
+dm:
+  source:
+    _target_: rul_datasets.CmapssReader
+    fd: ???
+  target:
+    fd: ???
+    percent_broken: 1.0
+  batch_size: 512
+
+feature_extractor:
+  _target_: rul_adapt.model.CnnExtractor
+  input_channels: 14
+  conv_filters: [10, 10, 10, 10, 1]
+  seq_len: 30
+  kernel_size: 10
+  padding: True
+  conv_act_func: torch.nn.Tanh
+
+regressor:
+  _target_: rul_adapt.model.wrapper.DropoutPrefix
+  wrapped:
+    _target_: rul_adapt.model.FullyConnectedHead
+    input_channels: 30
+    act_func_on_last_layer: False
+    act_func: torch.nn.Tanh
+    units: [100, 1]
+  dropout: 0.5
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 30
+  act_func_on_last_layer: False
+  units: [32, 1]
+  act_func: torch.nn.Tanh
+
+dann:
+  _target_: rul_adapt.approach.DannApproach
+  dann_factor: 3.0
+  lr: 0.001
+  loss_type: rmse
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 125
+  callbacks:
+    - _target_: pytorch_lightning.callbacks.EarlyStopping
+      monitor: "val/target_rmse/dataloader_idx_1"
+      patience: 20
