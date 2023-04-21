@@ -1,0 +1,4 @@
+# @package _global_
+
+trainer:
+  max_epochs: 20

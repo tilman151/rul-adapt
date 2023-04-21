@@ -1,3 +1,4 @@
+from .adarul.functional import get_adarul, get_adarul_config, adarul_from_config
 from .consistency.functional import (
     get_consistency_dann_config,
     get_consistency_dann,

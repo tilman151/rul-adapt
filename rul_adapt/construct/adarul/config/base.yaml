@@ -1,0 +1,55 @@
+dm:
+  source:
+    _target_: rul_datasets.CmapssReader
+    fd: ???
+    window_size: 30
+    max_rul: 130  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/train_eval.py#L5
+    operation_condition_aware_scaling: True
+  target:
+    fd: ???
+    percent_broken: 1.0
+  batch_size: 10
+
+feature_extractor:
+  _target_: rul_adapt.model.ActivationDropoutWrapper
+  wrapped:
+    _target_: rul_adapt.model.LstmExtractor
+    input_channels: 14
+    lstm_units: [32, 32, 32]
+    bidirectional: True
+  dropout: 0.5
+
+regressor:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 64
+  act_func_on_last_layer: False
+  units: [64, 32, 1]
+  dropout: 0.5
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: 64
+  act_func_on_last_layer: False
+  units: [64, 32, 1]
+
+adarul_pre:
+  _target_: rul_adapt.approach.AdaRulApproachPretraining
+  lr: 1e-4
+  max_rul: ${dm.source.max_rul}
+
+adarul:
+  _target_: rul_adapt.approach.AdaRulApproach
+  lr: 1e-4
+  max_rul: ${dm.source.max_rul}
+  num_disc_updates: 35  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L204
+  num_gen_updates: 1  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L204
+
+trainer_pre:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 5  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/pre_train_test_split.py#L32
+  gradient_clip_val: 1.0  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/trainer/train_eval.py#L34
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: ???  # https://github.com/mohamedr002/ADARUL/blob/f8b8a72b5fdfb9ec097781bcf2b1b387cc871fc4/Final_Adam.py#L56
+  limit_train_batches: 36
