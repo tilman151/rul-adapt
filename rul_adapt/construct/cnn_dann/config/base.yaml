@@ -38,6 +38,8 @@ dann:
   dann_factor: 3.0
   lr: 0.001
   loss_type: rmse
+  optim_type: adam
+  adam_betas: [0.5, 0.999]
 
 trainer:
   _target_: pytorch_lightning.Trainer
