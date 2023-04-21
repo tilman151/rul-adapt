@@ -38,4 +38,4 @@ latent_align:
 
 trainer:
   _target_: pytorch_lightning.Trainer
-  max_epochs: 3000
+  max_epochs: 2000
