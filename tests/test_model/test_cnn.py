@@ -83,10 +83,11 @@ def test_conv_dropout(inputs):
     _check_each_conv_layer(cnn, _check_dropout)
 
 
-def test_conv_act_func(inputs):
+@pytest.mark.parametrize("conv_act_func", [nn.LeakyReLU, "torch.nn.LeakyReLU"])
+def test_conv_act_func(inputs, conv_act_func):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(
-        input_channels, [num_filters], seq_len, conv_act_func=nn.LeakyReLU
+        input_channels, [num_filters], seq_len, conv_act_func=conv_act_func
     )
 
     def _check_act_func(module, module_name):
@@ -131,10 +132,11 @@ def test_fc_dropout(inputs):
     _check_fc_layer(cnn, _check_dropout)
 
 
-def test_fc_act_func(inputs):
+@pytest.mark.parametrize("fc_act_func", [nn.LeakyReLU, "torch.nn.LeakyReLU"])
+def test_fc_act_func(inputs, fc_act_func):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(
-        input_channels, [num_filters], seq_len, fc_units=10, fc_act_func=nn.LeakyReLU
+        input_channels, [num_filters], seq_len, fc_units=10, fc_act_func=fc_act_func
     )
 
     def _check_act_func(module):

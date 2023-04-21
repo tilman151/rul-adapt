@@ -5,6 +5,7 @@ from typing import List, Type, Optional
 import torch
 from torch import nn
 
+from rul_adapt import utils
 from rul_adapt.utils import pairwise
 
 
@@ -78,7 +79,9 @@ class FullyConnectedHead(nn.Module):
         self.input_channels = input_channels
         self.units = units
         self.dropout = dropout
-        self.act_func = act_func
+        self.act_func: Type[nn.Module] = utils.str2callable(  # type: ignore[assignment]
+            act_func, restriction="torch.nn"
+        )
         self.act_func_on_last_layer = act_func_on_last_layer
 
         if not self.units:

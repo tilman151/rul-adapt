@@ -5,6 +5,7 @@ from typing import List, Optional, Union, Type
 import torch
 from torch import nn
 
+from rul_adapt import utils
 from rul_adapt.utils import pairwise
 
 
@@ -100,8 +101,8 @@ class CnnExtractor(nn.Module):
         self.conv_dropout = conv_dropout
         self.fc_dropout = fc_dropout
         self.batch_norm = batch_norm
-        self.conv_act_func = conv_act_func
-        self.fc_act_func = fc_act_func
+        self.conv_act_func = utils.str2callable(conv_act_func, restriction="torch.nn")
+        self.fc_act_func = utils.str2callable(fc_act_func, restriction="torch.nn")
 
         self._kernel_sizes = (
             [self.kernel_size] * len(self.conv_filters)

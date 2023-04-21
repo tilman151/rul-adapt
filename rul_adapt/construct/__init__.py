@@ -1,3 +1,8 @@
+from .latent_align import (
+    get_latent_align,
+    get_latent_align_config,
+    latent_align_from_config,
+)
 from .tbigru.functional import get_tbigru, get_tbigru_config, tbigru_from_config
 from .adarul.functional import get_adarul, get_adarul_config, adarul_from_config
 from .consistency.functional import (

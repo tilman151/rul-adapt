@@ -1,0 +1,41 @@
+dm:
+  source:
+    _target_: ???
+    fd: ???
+    window_size: ???
+  target:
+    _target_: ${dm.source._target_}
+    fd: ???
+    window_size: ${dm.source.window_size}
+  kwargs:
+    batch_size: 128
+  adaption_kwargs:
+    inductive: True
+
+feature_extractor:
+  _target_: rul_adapt.model.CnnExtractor
+  input_channels: ???
+  conv_filters: [32, 16, 1]
+  seq_len: ${dm.source.window_size}
+  fc_units: 256
+  fc_dropout: 0.5
+  conv_act_func: torch.nn.LeakyReLU
+  fc_act_func: torch.nn.LeakyReLU
+
+regressor:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: ${feature_extractor.fc_units}
+  act_func_on_last_layer: False
+  units: [1]
+
+latent_align:
+  _target_: rul_adapt.approach.LatentAlignApproach
+  alpha_healthy: 1.0
+  alpha_direction: 1.0
+  alpha_level: 1.0
+  alpha_fusion: 1.0
+  lr: 5e-4
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_epochs: 2000

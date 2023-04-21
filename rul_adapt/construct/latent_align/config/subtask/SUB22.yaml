@@ -1,0 +1,11 @@
+# @package _global_
+
+dm:
+  source:
+    first_time_to_predict: [77, 71, 125, 121, 44]
+  target:
+    first_time_to_predict: [462, 91, 171, 33, 252]
+    run_split_dist:
+      dev: [2]
+      val: [1]
+      test: [2]

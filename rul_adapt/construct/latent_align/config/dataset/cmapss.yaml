@@ -1,0 +1,11 @@
+# @package _global_
+
+dm:
+  source:
+    _target_: rul_datasets.CmapssReader
+    window_size: 30
+  target:
+    percent_broken: 1.0
+
+feature_extractor:
+  input_channels: 14
