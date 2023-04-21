@@ -410,7 +410,7 @@ class LatentAlignApproach(AdaptionApproach):
         [rul_datasets.adaption.LatentAlignDataModule].
 
         The source, target and healthy features are passed through the feature
-        extractor. Afterwards these high-level features are used to compute the
+        extractor. Afterward, these high-level features are used to compute the
         alignment losses. The source domain RUL predictions are computed using the
         regressor and used to calculate the MSE loss. The losses are then combined.
         Each separate and the combined loss are logged.
@@ -424,7 +424,7 @@ class LatentAlignApproach(AdaptionApproach):
         """
         source, source_degradation_steps, source_labels, *_ = batch
         *_, target, target_degradation_steps, healthy = batch
-        source_labels = source_labels[:, None]
+        source_labels = self._to_percentage(source_labels)
 
         healthy = self.feature_extractor(healthy)
         source = self.feature_extractor(source)
@@ -457,6 +457,10 @@ class LatentAlignApproach(AdaptionApproach):
 
         return loss
 
+    def _to_percentage(self, source_labels):
+        """Convert RUL labels to percentages assuming they are normed between [0, 1]."""
+        return source_labels[:, None] * 100
+
     def validation_step(
         self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
     ) -> None:
@@ -476,7 +480,7 @@ class LatentAlignApproach(AdaptionApproach):
             dataloader_idx: The index of the current dataloader (0: source, 1: target).
         """
         features, labels = batch
-        labels = labels[:, None]
+        labels = self._to_percentage(labels)
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.val_source_rmse(predictions, labels)
@@ -510,7 +514,7 @@ class LatentAlignApproach(AdaptionApproach):
             dataloader_idx: The index of the current dataloader (0: source, 1: target).
         """
         features, labels = batch
-        labels = labels[:, None]
+        labels = self._to_percentage(labels)
         predictions = self.forward(features)
         if dataloader_idx == 0:
             self.test_source_rmse(predictions, labels)
