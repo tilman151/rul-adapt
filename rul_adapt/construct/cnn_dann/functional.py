@@ -99,6 +99,7 @@ def cnn_dann_from_config(
 
 
 def _validate(source_fd: int, target_fd: int) -> None:
+    task = (source_fd, target_fd)
     if source_fd == target_fd:
         raise ValueError(
             f"No configuration for adapting from FD{source_fd:03} to itself."
@@ -107,3 +108,7 @@ def _validate(source_fd: int, target_fd: int) -> None:
         raise ValueError(f"CMAPSS has only FD001 to FD004 but no FD{source_fd:03}")
     elif 1 > target_fd or target_fd > 4:
         raise ValueError(f"CMAPSS has only FD001 to FD004 but no FD{target_fd:03}")
+    elif task == (1, 4) or task == (2, 3) or task == (3, 2) or task == (4, 1):
+        raise ValueError(
+            f"No configuration for adapting from FD{source_fd:03} to FD{target_fd:03}."
+        )
