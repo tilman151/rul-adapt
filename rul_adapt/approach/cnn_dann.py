@@ -8,6 +8,17 @@ from rul_adapt.model.wrapper import DropoutPrefix
 
 
 def init_weights(feature_extractor: CnnExtractor, regressor: DropoutPrefix) -> None:
+    """
+    Initialize the weights of the feature extractor and regressor in-place.
+
+    For the weight matrices the Xavier uniform initialization is used. The biases are
+    initialized to zero. This function works only for the networks returned by a call to
+    [rul_adapt.construct.get_cnn_dann][].
+
+    Args:
+        feature_extractor: The feature extractor network to be initialized.
+        regressor: The regressor network to be initialized.
+    """
     feature_extractor.apply(_weight_init_fe)
     layer_count = 0
     for m in regressor.modules():

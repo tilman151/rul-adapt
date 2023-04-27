@@ -15,6 +15,9 @@ def get_cnn_dann(
     """
     Construct an CNN-DANN approach for CMAPSS with the original hyperparameters.
 
+    The adaption tasks 1-->4, 2-->3, 3-->2 and 4-->1 are missing because they were not
+    investigated in the paper.
+
     Examples:
         ```pycon
         >>> import rul_adapt
@@ -42,8 +45,10 @@ def get_cnn_dann_config(source_fd: int, target_fd: int) -> omegaconf.DictConfig:
     """
     Get a configuration for the CNN-DANN approach.
 
-    The configuration can be modified and fed to [cnn_dann_from_config]
-    [rul_adapt.construct.cnn_dann.cnn_dann_from_config] to create the approach.
+    The adaption tasks 1-->4, 2-->3, 3-->2 and 4-->1 are missing because they were
+    not investigated in the paper. The configuration can be modified and fed to
+    [cnn_dann_from_config][rul_adapt.construct.cnn_dann.cnn_dann_from_config] to
+    create the approach.
 
     Args:
         source_fd: The source FD of CMAPSS.
