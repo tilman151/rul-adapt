@@ -1,4 +1,5 @@
 from functools import partial
+from typing import cast
 
 from torch import nn
 
@@ -10,7 +11,7 @@ def init_weights(feature_extractor: CnnExtractor, regressor: DropoutPrefix) -> N
     feature_extractor.apply(_weight_init_fe)
     layer_count = 0
     for m in regressor.modules():
-        if layer_count < len(regressor.wrapped.units) - 1:
+        if layer_count < len(cast(list, regressor.wrapped.units)) - 1:
             m.apply(_weight_init_fc_tanh)
             layer_count += 1
         else:

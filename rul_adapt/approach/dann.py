@@ -200,6 +200,7 @@ class DannApproach(AdaptionApproach):
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an SGD optimizer with optional weight and learning rate decay."""
+        optim: torch.optim.Optimizer
         if self.optim_type == "adam":
             optim = Adam(
                 self.parameters(),
