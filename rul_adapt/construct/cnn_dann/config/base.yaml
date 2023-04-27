@@ -45,6 +45,7 @@ trainer:
   _target_: pytorch_lightning.Trainer
   max_epochs: 125
   callbacks:
-    - _target_: pytorch_lightning.callbacks.EarlyStopping
+    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+      save_top_k: 1
       monitor: "val/target_rmse/dataloader_idx_1"
-      patience: 20
+      mode: min
