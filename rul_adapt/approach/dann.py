@@ -25,12 +25,12 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import Any, Optional, Dict, Literal, List
+from typing import Any, Optional, Dict, Literal, List, Tuple
 
 import torch
 import torchmetrics
 from torch import nn
-from torch.optim import SGD
+from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import StepLR
 
 import rul_adapt.loss
@@ -73,6 +73,8 @@ class DannApproach(AdaptionApproach):
         lr_decay_factor: Optional[float] = None,
         lr_decay_epochs: Optional[int] = None,
         loss_type: Literal["mae", "mse", "rmse"] = "mae",
+        optim_type: Literal["sgd", "adam"] = "sgd",
+        adam_betas: Optional[Tuple[float, float]] = None,
     ):
         """
         Create a new DANN approach.
@@ -103,12 +105,17 @@ class DannApproach(AdaptionApproach):
                 "need to be specified or neither of them."
             )
 
+        if not optim_type == "adam" and adam_betas is not None:
+            raise ValueError("adam_betas can only be specified if optim_type is adam.")
+
         self.dann_factor = dann_factor
         self.weight_decay = weight_decay
         self.lr = lr
         self.lr_decay_factor = lr_decay_factor
         self.lr_decay_epochs = lr_decay_epochs
         self.loss_type = loss_type
+        self.optim_type = optim_type
+        self.adam_betas = adam_betas
 
         # training metrics
         self.train_source_loss = self._get_train_source_loss()
@@ -193,7 +200,16 @@ class DannApproach(AdaptionApproach):
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an SGD optimizer with optional weight and learning rate decay."""
-        optim = SGD(self.parameters(), self.lr, weight_decay=self.weight_decay)
+        optim: torch.optim.Optimizer
+        if self.optim_type == "adam":
+            optim = Adam(
+                self.parameters(),
+                self.lr,
+                weight_decay=self.weight_decay,
+                betas=self.adam_betas or (0.9, 0.999),
+            )
+        else:
+            optim = SGD(self.parameters(), self.lr, weight_decay=self.weight_decay)
         result: Dict[str, Any] = {"optimizer": optim}
 
         if (self.lr_decay_factor is not None) and (self.lr_decay_epochs is not None):

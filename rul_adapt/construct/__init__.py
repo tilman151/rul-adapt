@@ -1,3 +1,4 @@
+from .cnn_dann import get_cnn_dann, get_cnn_dann_config, cnn_dann_from_config
 from .latent_align import (
     get_latent_align,
     get_latent_align_config,
