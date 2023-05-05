@@ -56,7 +56,7 @@ class ConsistencyApproach(AdaptionApproach):
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> pre = approach.ConsistencyApproachPretraining(0.01)
+        >>> pre = approach.SupervisedApproach(0.01)
         >>> pre.set_model(feat_ex, reg, disc)
         >>> main = approach.ConsistencyApproach(1.0, 0.01)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)

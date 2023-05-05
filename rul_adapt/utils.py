@@ -29,15 +29,16 @@ def str2callable(cls: Union[str, Callable], restriction: str = "") -> Callable:
 
 
 def get_loss(loss_type: str) -> torchmetrics.Metric:
+    loss: torchmetrics.Metric
     if loss_type == "mae":
-        train_source_loss = torchmetrics.MeanAbsoluteError()
+        loss = torchmetrics.MeanAbsoluteError()
     elif loss_type == "mse":
-        train_source_loss = torchmetrics.MeanSquaredError()
+        loss = torchmetrics.MeanSquaredError()
     elif loss_type == "rmse":
-        train_source_loss = torchmetrics.MeanSquaredError(squared=False)
+        loss = torchmetrics.MeanSquaredError(squared=False)
     else:
         raise ValueError(
             f"Unknown loss type '{loss_type}'. " "Use either 'mae', 'mse' or 'rmse'."
         )
 
-    return train_source_loss
+    return loss

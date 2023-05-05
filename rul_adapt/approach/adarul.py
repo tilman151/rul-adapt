@@ -23,24 +23,24 @@ from rul_adapt.model import FullyConnectedHead
 
 class AdaRulApproach(AdaptionApproach):
     """The ADARUL approach uses a GAN setup to adapt a feature extractor. This
-        approach should only be used with a pre-trained feature extractor.
+    approach should only be used with a pre-trained feature extractor.
 
-        The regressor and domain discriminator need the same number of input units as the
-        feature extractor has output units. The discriminator is not allowed to have an
-        activation function on its last layer for it to work with its loss.
+    The regressor and domain discriminator need the same number of input units as the
+    feature extractor has output units. The discriminator is not allowed to have an
+    activation function on its last layer for it to work with its loss.
 
-        Examples:
-            ```pycon
-    import rul_adapt.approach.supervised        >>> from rul_adapt import model
-            >>> from rul_adapt import approach
-            >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
-            >>> reg = model.FullyConnectedHead(16, [1])
-            >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-            >>> pre = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
-            >>> pre.set_model(feat_ex, reg)
-            >>> main = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
-            >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
-            ```
+    Examples:
+        ```pycon
+        >>> from rul_adapt import model
+        >>> from rul_adapt import approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
+        >>> pre = approach.SupervisedApproach(0.01, "mse", "adam", 125)
+        >>> pre.set_model(feat_ex, reg)
+        >>> main = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
+        >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
+        ```
     """
 
     CHECKPOINT_MODELS = ["_domain_disc", "frozen_feature_extractor"]
