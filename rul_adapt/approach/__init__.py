@@ -5,5 +5,5 @@ from .tbigru import select_features, VibrationFeatureExtractor
 from .mmd import MmdApproach
 from .adarul import AdaRulApproach
 from .supervised import SupervisedApproach
-from .consistency import ConsistencyApproachPretraining, ConsistencyApproach
+from .consistency import ConsistencyApproach
 from .dann import DannApproach

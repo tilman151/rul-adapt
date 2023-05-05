@@ -10,60 +10,33 @@ from torch import nn
 from torchmetrics import Metric
 
 from rul_adapt import model
-from rul_adapt.approach import ConsistencyApproachPretraining, ConsistencyApproach
+from rul_adapt.approach import ConsistencyApproach, SupervisedApproach
 from rul_adapt.approach.consistency import StdExtractor, TumblingWindowExtractor
 from tests.test_approach import utils
 
 
 @pytest.fixture()
-def pretraining_inputs():
-    return torch.randn(10, 14, 20), torch.arange(10, dtype=torch.float)
+def inputs():
+    return (
+        torch.randn(10, 14, 20),
+        torch.arange(10, dtype=torch.float),
+        torch.randn(10, 14, 20),
+    )
 
 
 @pytest.fixture()
-def inputs(pretraining_inputs):
-    return *pretraining_inputs, torch.randn(10, 14, 20)
-
-
-@pytest.fixture()
-def pretraining_models():
+def models():
     fe = model.CnnExtractor(14, [10, 5], 20, fc_units=20)
     reg = model.FullyConnectedHead(20, [10, 1], act_func_on_last_layer=False)
-
-    return fe, reg
-
-
-@pytest.fixture()
-def models(pretraining_models):
     disc = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    return *pretraining_models, disc
-
-
-@pytest.fixture()
-def pretraining_approach(pretraining_models):
-    approach = ConsistencyApproachPretraining(lr=0.001)
-    approach.set_model(*pretraining_models)
-    approach.log = mock.MagicMock()
-
-    return approach
+    return fe, reg, disc
 
 
 @pytest.fixture()
 def approach(models):
     approach = ConsistencyApproach(0.1, 0.001, 3000)
     approach.set_model(*models)
-    approach.log = mock.MagicMock()
-
-    return approach
-
-
-@pytest.fixture()
-def mocked_pretraining_approach():
-    feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 20))
-    regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = ConsistencyApproachPretraining(0.001)
-    approach.set_model(feature_extractor, regressor)
     approach.log = mock.MagicMock()
 
     return approach
@@ -81,71 +54,13 @@ def mocked_approach():
     return approach
 
 
-class TestConsistencyPretraining:
-    def test_forward(self, pretraining_inputs, pretraining_approach):
-        features, _ = pretraining_inputs
-
-        outputs = pretraining_approach(features)
-
-        assert outputs.shape == torch.Size([10, 1])
-
-    def test_train_step(self, pretraining_inputs, pretraining_approach):
-        outputs = pretraining_approach.training_step(pretraining_inputs, batch_idx=0)
-
-        assert outputs.shape == torch.Size([])
-
-    def test_train_step_backward(self, pretraining_inputs, pretraining_approach):
-        outputs = pretraining_approach.training_step(pretraining_inputs, batch_idx=0)
-        outputs.backward()
-
-        extractor_parameter = next(pretraining_approach.feature_extractor.parameters())
-        assert extractor_parameter.grad is not None
-
-    def test_val_step(self, pretraining_inputs, pretraining_approach):
-        pretraining_approach.validation_step(pretraining_inputs, batch_idx=0)
-
-    @torch.no_grad()
-    def test_train_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
-        approach = mocked_pretraining_approach
-        approach.train_loss = mock.MagicMock(Metric)
-
-        approach.training_step(pretraining_inputs, batch_idx=0)
-
-        approach.train_loss.assert_called_once()
-        approach.log.assert_called_with("train/loss", approach.train_loss)
-
-    @torch.no_grad()
-    def test_val_step_logging(self, pretraining_inputs, mocked_pretraining_approach):
-        approach = mocked_pretraining_approach
-        approach.val_loss = mock.MagicMock(Metric)
-
-        approach.validation_step(pretraining_inputs, batch_idx=0)
-
-        approach.val_loss.assert_called_once()
-        approach.log.assert_called_with("val/loss", approach.val_loss)
-
-    def test_checkpointing(self, tmp_path):
-        ckpt_path = tmp_path / "checkpoint.ckpt"
-        fe = model.CnnExtractor(1, [16], 10, fc_units=16)
-        reg = model.FullyConnectedHead(16, [1])
-        approach = ConsistencyApproachPretraining(0.01)
-        approach.set_model(fe, reg)
-
-        utils.checkpoint(approach, ckpt_path)
-        ConsistencyApproachPretraining.load_from_checkpoint(ckpt_path)
-
-
 class TestConsistencyApproach:
-    def test_set_model(self, pretraining_approach, approach, models):
-        _, _, domain_disc = models
-        approach.set_model(
-            pretraining_approach.feature_extractor,
-            pretraining_approach.regressor,
-            domain_disc,
-        )
+    def test_set_model(self, approach, models):
+        feature_extractor, regressor, domain_disc = models
+        approach.set_model(feature_extractor, regressor, domain_disc)
 
-        assert approach.feature_extractor is pretraining_approach.feature_extractor
-        assert approach.regressor is pretraining_approach.regressor
+        assert approach.feature_extractor is feature_extractor
+        assert approach.regressor is regressor
         assert hasattr(approach, "dann_loss")  # dann loss was created
         assert approach.dann_loss.domain_disc is domain_disc  # disc was assigned
         assert approach.domain_disc is domain_disc  # domain_disc property works
@@ -310,7 +225,7 @@ class TestConsistencyApproach:
         approach.set_model(fe, reg, disc)
 
         utils.checkpoint(approach, ckpt_path)
-        ConsistencyApproachPretraining.load_from_checkpoint(ckpt_path)
+        ConsistencyApproach.load_from_checkpoint(ckpt_path)
 
 
 def test_std_extractor():
@@ -350,7 +265,7 @@ def test_on_dummy():
     feature_extractor = model.CnnExtractor(1, [16], 10, fc_units=10)
     regressor = model.FullyConnectedHead(10, [1], act_func_on_last_layer=False)
 
-    pre_approach = ConsistencyApproachPretraining(0.001)
+    pre_approach = SupervisedApproach(0.001, "mse", "sgd")
     pre_approach.set_model(feature_extractor, regressor)
 
     trainer = pl.Trainer(

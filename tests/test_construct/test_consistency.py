@@ -5,13 +5,13 @@ import rul_adapt.construct
 
 @pytest.mark.parametrize("source_fd", [0, 1, 2, 3, 4, 5])
 @pytest.mark.parametrize("target_fd", [0, 1, 2, 3, 4, 5])
-def test_get_lstm_dann_cmapss(source_fd, target_fd):
+def test_get_consistency_dann_cmapss(source_fd, target_fd):
     _check_config("cmapss", source_fd, target_fd, lower=1, upper=4)
 
 
 @pytest.mark.parametrize("source_fd", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("target_fd", [0, 1, 2, 3, 4])
-def test_get_lstm_dann_xjtu_sy(source_fd, target_fd):
+def test_get_consistency_dann_xjtu_sy(source_fd, target_fd):
     _check_config("xjtu-sy", source_fd, target_fd, lower=1, upper=3)
 
 
@@ -28,7 +28,7 @@ def _check_config(dataset, source_fd, target_fd, lower, upper):
         rul_adapt.construct.get_consistency_dann(dataset, source_fd, target_fd)
 
 
-def test_get_lstm_dann_trainer_override():
+def test_get_consistency_dann_trainer_override():
     (_, _, pre_trainer), (_, _, _, trainer) = rul_adapt.construct.get_consistency_dann(
         "cmapss",
         1,
