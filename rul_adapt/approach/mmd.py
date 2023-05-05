@@ -31,6 +31,7 @@ import torch
 import torchmetrics
 
 import rul_adapt
+from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 
 
@@ -84,7 +85,7 @@ class MmdApproach(AdaptionApproach):
         self.rul_score_mode = rul_score_mode
 
         # training metrics
-        self.train_source_loss = self._get_train_source_loss()
+        self.train_source_loss = utils.get_loss(self.loss_type)
         self.mmd_loss = rul_adapt.loss.MaximumMeanDiscrepancyLoss(self.num_mmd_kernels)
 
         # validation metrics
@@ -100,21 +101,6 @@ class MmdApproach(AdaptionApproach):
         self.test_target_score = rul_adapt.loss.RULScore(self.rul_score_mode)
 
         self.save_hyperparameters()
-
-    def _get_train_source_loss(self):
-        if self.loss_type == "mae":
-            train_source_loss = torchmetrics.MeanAbsoluteError()
-        elif self.loss_type == "mse":
-            train_source_loss = torchmetrics.MeanSquaredError()
-        elif self.loss_type == "rmse":
-            train_source_loss = torchmetrics.MeanSquaredError(squared=False)
-        else:
-            raise ValueError(
-                f"Unknown loss type '{self.loss_type}'. "
-                "Use either 'mae', 'mse' or 'rmse'."
-            )
-
-        return train_source_loss
 
     def configure_optimizers(self) -> torch.optim.Adam:
         """Configure an Adam optimizer."""

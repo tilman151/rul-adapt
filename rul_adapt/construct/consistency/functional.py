@@ -6,7 +6,7 @@ import rul_datasets
 import pytorch_lightning as pl
 from torch import nn
 
-from rul_adapt.approach import ConsistencyApproachPretraining, ConsistencyApproach
+from rul_adapt.approach import ConsistencyApproach, SupervisedApproach
 
 
 def get_consistency_dann(
@@ -16,7 +16,7 @@ def get_consistency_dann(
     pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
     trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
-    Tuple[rul_datasets.RulDataModule, ConsistencyApproachPretraining, pl.Trainer],
+    Tuple[rul_datasets.RulDataModule, SupervisedApproach, pl.Trainer],
     Tuple[
         rul_datasets.DomainAdaptionDataModule,
         nn.Module,
@@ -90,7 +90,7 @@ def consistency_dann_from_config(
     pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
     trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
-    Tuple[rul_datasets.RulDataModule, ConsistencyApproachPretraining, pl.Trainer],
+    Tuple[rul_datasets.RulDataModule, SupervisedApproach, pl.Trainer],
     Tuple[
         rul_datasets.DomainAdaptionDataModule,
         nn.Module,

@@ -31,8 +31,10 @@ domain_disc:
   units: [1]
 
 consistency_pre:
-  _target_: rul_adapt.approach.ConsistencyApproachPretraining
+  _target_: rul_adapt.approach.SupervisedApproach
   lr: 1e-4  # conversation with author: just train until converged
+  loss_type: rmse
+  optim_type: sgd
 
 consistency:
   _target_: rul_adapt.approach.ConsistencyApproach
