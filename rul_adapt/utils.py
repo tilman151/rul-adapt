@@ -29,6 +29,7 @@ def str2callable(cls: Union[str, Callable], restriction: str = "") -> Callable:
 
 
 def get_loss(loss_type: str) -> torchmetrics.Metric:
+    """Get a loss instance by specifying a string."""
     loss: torchmetrics.Metric
     if loss_type == "mae":
         loss = torchmetrics.MeanAbsoluteError()

@@ -1,3 +1,11 @@
+"""The supervised approach trains solely on the labeled source domain. It can be used
+for pre-training or as a baseline to compare adaption approaches against.
+
+```python
+Source --> PreFeatEx --> Source Feats --> Regressor  --> RUL Prediction
+```
+"""
+
 from typing import Tuple, Literal
 
 import torch
@@ -40,8 +48,8 @@ class SupervisedApproach(AdaptionApproach):
         """
         Create a supervised approach.
 
-        The regressor is supposed to output a value between [0, 1] which is then
-        scaled by `rul_scale`. By default, the RUL values are not scaled.
+        The regressor output can be scaled with `rul_scale` to control its
+        magnitude. By default, the RUL values are not scaled.
 
         Args:
             lr: Learning rate.
