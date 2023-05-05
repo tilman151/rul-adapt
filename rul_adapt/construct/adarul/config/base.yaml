@@ -33,9 +33,11 @@ domain_disc:
   units: [64, 32, 1]
 
 adarul_pre:
-  _target_: rul_adapt.approach.AdaRulApproachPretraining
+  _target_: rul_adapt.approach.SupervisedApproach
   lr: 1e-4
-  max_rul: ${dm.source.max_rul}
+  loss_type: mse
+  optim_type: adam
+  rul_scale: ${dm.source.max_rul}
 
 adarul:
   _target_: rul_adapt.approach.AdaRulApproach

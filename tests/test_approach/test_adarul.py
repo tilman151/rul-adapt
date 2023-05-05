@@ -8,41 +8,26 @@ from torch import nn
 from torchmetrics import Metric
 
 from rul_adapt import model
-from rul_adapt.approach import AdaRulApproachPretraining, AdaRulApproach
+from rul_adapt.approach import SupervisedApproach, AdaRulApproach
 from tests.test_approach import utils
 
 
 @pytest.fixture()
-def pretraining_inputs():
-    return torch.randn(10, 14, 20), torch.arange(10, dtype=torch.float)
+def inputs():
+    return (
+        torch.randn(10, 14, 20),
+        torch.arange(10, dtype=torch.float),
+        torch.randn(10, 14, 20),
+    )
 
 
 @pytest.fixture()
-def inputs(pretraining_inputs):
-    return *pretraining_inputs, torch.randn(10, 14, 20)
-
-
-@pytest.fixture()
-def pretraining_models():
+def models():
     fe = model.LstmExtractor(14, [32, 32, 32], bidirectional=True)
     reg = model.FullyConnectedHead(64, [32, 1], act_func_on_last_layer=False)
-
-    return fe, reg
-
-
-@pytest.fixture()
-def models(pretraining_models):
     disc = model.FullyConnectedHead(64, [32, 1], act_func_on_last_layer=False)
 
-    return *pretraining_models, disc
-
-
-@pytest.fixture()
-def pretraining_approach(pretraining_models):
-    approach = AdaRulApproachPretraining(lr=0.001, max_rul=130)
-    approach.set_model(*pretraining_models)
-
-    return approach
+    return fe, reg, disc
 
 
 @pytest.fixture()
@@ -63,65 +48,13 @@ def approach(models):
     return approach
 
 
-class TestAdaRulPretraining:
-    def test_forward(self, pretraining_inputs, pretraining_approach):
-        features, _ = pretraining_inputs
-
-        outputs = pretraining_approach(features)
-
-        assert outputs.shape == torch.Size([10, 1])
-
-    def test_train_step(self, pretraining_inputs, pretraining_approach):
-        outputs = pretraining_approach.training_step(pretraining_inputs, batch_idx=0)
-
-        assert outputs.shape == torch.Size([])
-
-    def test_train_step_backward(self, pretraining_inputs, pretraining_approach):
-        outputs = pretraining_approach.training_step(pretraining_inputs, batch_idx=0)
-        outputs.backward()
-
-        extractor_parameter = next(pretraining_approach.feature_extractor.parameters())
-        assert extractor_parameter.grad is not None
-
-    def test_val_step(self, pretraining_inputs, pretraining_approach):
-        pretraining_approach.validation_step(pretraining_inputs, batch_idx=0)
-
-    @torch.no_grad()
-    def test_train_step_logging(self, pretraining_inputs, pretraining_approach):
-        approach = pretraining_approach
-
-        approach.train_loss = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
-
-        approach.training_step(pretraining_inputs, batch_idx=0)
-
-        approach.train_loss.assert_called_once()
-        approach.log.assert_called_with("train/loss", approach.train_loss)
-
-    @torch.no_grad()
-    def test_val_step_logging(self, pretraining_inputs, pretraining_approach):
-        approach = pretraining_approach
-
-        approach.val_loss = mock.MagicMock(Metric)
-        approach.log = mock.MagicMock()
-
-        approach.validation_step(pretraining_inputs, batch_idx=0)
-
-        approach.val_loss.assert_called_once()
-        approach.log.assert_called_with("val/loss", approach.val_loss)
-
-
 class TestAdaRulApproach:
-    def test_set_model(self, pretraining_approach, approach, models):
-        _, _, domain_disc = models
-        approach.set_model(
-            pretraining_approach.feature_extractor,
-            pretraining_approach.regressor,
-            domain_disc,
-        )
+    def test_set_model(self, approach, models):
+        feature_extractor, regressor, domain_disc = models
+        approach.set_model(feature_extractor, regressor, domain_disc)
 
-        assert approach.feature_extractor is pretraining_approach.feature_extractor
-        assert approach.regressor is pretraining_approach.regressor
+        assert approach.feature_extractor is feature_extractor
+        assert approach.regressor is regressor
         assert hasattr(approach, "_domain_disc")  # domain_disc was assigned
         assert approach.domain_disc is domain_disc  # domain_disc property works
 
@@ -339,7 +272,7 @@ def test_on_dummy():
     feature_extractor = model.LstmExtractor(1, [10], bidirectional=True)
     regressor = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    pre_approach = AdaRulApproachPretraining(0.0001, 130)
+    pre_approach = SupervisedApproach(0.0001, "mse", "adam", 130)
     pre_approach.set_model(feature_extractor, regressor)
 
     trainer = pl.Trainer(

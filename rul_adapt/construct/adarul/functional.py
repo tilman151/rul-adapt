@@ -6,7 +6,7 @@ import rul_datasets
 import pytorch_lightning as pl
 from torch import nn
 
-from rul_adapt.approach import AdaRulApproachPretraining, AdaRulApproach
+from rul_adapt.approach import SupervisedApproach, AdaRulApproach
 
 
 def get_adarul(
@@ -15,7 +15,7 @@ def get_adarul(
     pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
     trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
-    Tuple[rul_datasets.RulDataModule, AdaRulApproachPretraining, pl.Trainer],
+    Tuple[rul_datasets.RulDataModule, SupervisedApproach, pl.Trainer],
     Tuple[
         rul_datasets.DomainAdaptionDataModule,
         nn.Module,
@@ -83,7 +83,7 @@ def adarul_from_config(
     pre_trainer_kwargs: Optional[Dict[str, Any]] = None,
     trainer_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Tuple[
-    Tuple[rul_datasets.RulDataModule, AdaRulApproachPretraining, pl.Trainer],
+    Tuple[rul_datasets.RulDataModule, SupervisedApproach, pl.Trainer],
     Tuple[
         rul_datasets.DomainAdaptionDataModule,
         nn.Module,
