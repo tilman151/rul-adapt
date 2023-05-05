@@ -36,6 +36,7 @@ from torch.optim.lr_scheduler import StepLR
 import rul_adapt.loss
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.model import FullyConnectedHead
+from rul_adapt import utils
 
 
 class DannApproach(AdaptionApproach):
@@ -118,7 +119,7 @@ class DannApproach(AdaptionApproach):
         self.adam_betas = adam_betas
 
         # training metrics
-        self.train_source_loss = self._get_train_source_loss()
+        self.train_source_loss = utils.get_loss(self.loss_type)
 
         # validation metrics
         self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
@@ -133,21 +134,6 @@ class DannApproach(AdaptionApproach):
         self.test_target_score = rul_adapt.loss.RULScore()
 
         self.save_hyperparameters()
-
-    def _get_train_source_loss(self):
-        if self.loss_type == "mae":
-            train_source_loss = torchmetrics.MeanAbsoluteError()
-        elif self.loss_type == "mse":
-            train_source_loss = torchmetrics.MeanSquaredError()
-        elif self.loss_type == "rmse":
-            train_source_loss = torchmetrics.MeanSquaredError(squared=False)
-        else:
-            raise ValueError(
-                f"Unknown loss type '{self.loss_type}'. "
-                "Use either 'mae', 'mse' or 'rmse'."
-            )
-
-        return train_source_loss
 
     def set_model(
         self,
