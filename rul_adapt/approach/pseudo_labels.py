@@ -158,7 +158,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         else:
             return [
                 self.first_time_to_predict[i - 1]
-                for i in self._reader._preparator.run_split_dist["dev"]
+                for i in self._reader._preparator.run_split_dist["dev"]  # type: ignore
             ]
 
     @property
@@ -200,7 +200,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
                 f"({len(self._pseudo_labels)}) do not match."
             )
 
-        if self.first_time_to_predict is None:
+        if self._dev_fttp is None:
             targets = [
                 self._expand_pseudo_label(f, pl)
                 for f, pl in zip(features, self._pseudo_labels)
