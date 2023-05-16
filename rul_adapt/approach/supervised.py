@@ -2,7 +2,7 @@
 for pre-training or as a baseline to compare adaption approaches against.
 
 ```python
-Source --> PreFeatEx --> Source Feats --> Regressor  --> RUL Prediction
+Data --> FeatureExtractor --> Features --> Regressor  --> RUL Prediction
 ```
 """
 
