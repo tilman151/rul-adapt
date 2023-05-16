@@ -4,6 +4,7 @@ from unittest import mock
 import numpy.testing as npt
 import pytest
 import torch
+from torch import nn
 
 from rul_adapt import loss
 
@@ -77,6 +78,19 @@ def test_dann_perfect_disc():
     dann_loss = dann(source, target)
 
     npt.assert_almost_equal(dann_loss.item(), 0.0, decimal=3)
+
+
+def test_dann_backward():
+    source = torch.randn(50, 10)
+    target = torch.randn(50, 10)
+    dummy_disc = nn.Linear(10, 1)
+    dann = loss.DomainAdversarialLoss(dummy_disc)
+
+    dann_loss = dann(source, target)
+    dann_loss.backward()
+
+    assert dummy_disc.weight.grad is not None
+    assert dummy_disc.bias.grad is not None
 
 
 @mock.patch("rul_adapt.loss.adaption.GradientReversalLayer.forward")
