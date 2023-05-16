@@ -12,8 +12,8 @@ class RULScore(torchmetrics.Metric):
     higher_is_better = None
     full_state_update = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(
         self, mode: Literal["phm08", "phm12"] = "phm08", mean: Optional[bool] = None
@@ -37,28 +37,25 @@ class RULScore(torchmetrics.Metric):
         if mean is not None:
             self.mean = mean
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(self, inputs: torch.Tensor, targets: torch.Tensor) -> None:
-        self.loss.append(
-            rul_score(
-                inputs,
-                targets,
-                self.pos_factor,
-                self.neg_factor,
-                self.offset,
-                self.as_percentage,
-            )
+        self.loss = self.loss + rul_score(
+            inputs,
+            targets,
+            self.pos_factor,
+            self.neg_factor,
+            self.offset,
+            self.as_percentage,
         )
-        self.total.append(torch.tensor(inputs.shape[0], device=self.device))
+        self.total = self.total + inputs.shape[0]
 
     def compute(self) -> Any:
         if self.mean:
-            loss = [lo / t for lo, t in zip(self.loss, self.total)]
-            return weighted_mean(loss, self.total)
+            return self.loss / self.total
         else:
-            return sum(self.loss)
+            return self.loss
 
 
 def rul_score(

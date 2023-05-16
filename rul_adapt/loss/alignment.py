@@ -79,27 +79,27 @@ class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
     higher_is_better: bool = False
     full_state_update: bool = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(self):
         super().__init__()
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(self, healthy: torch.Tensor, degraded: torch.Tensor) -> None:
         healthy_mean = healthy.mean(dim=0)
         trajectory = degraded - healthy_mean
         trajectory = trajectory / torch.norm(trajectory, dim=1, keepdim=True)
         pairwise_dist = calc_pairwise_dot(trajectory, trajectory)
-        loss = -pairwise_dist.mean()
+        loss = -pairwise_dist.sum()
 
-        self.loss.append(loss)
-        self.total.append(torch.tensor(degraded.shape[0], device=self.device))
+        self.loss = self.loss + loss
+        self.total = self.total + (degraded.shape[0] ** 2)
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total)
+        return self.loss / self.total
 
 
 class DegradationLevelRegularizationLoss(torchmetrics.Metric):
@@ -133,14 +133,14 @@ class DegradationLevelRegularizationLoss(torchmetrics.Metric):
     higher_is_better: bool = False
     full_state_update: bool = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(self) -> None:
         super().__init__()
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(
         self,
@@ -161,15 +161,15 @@ class DegradationLevelRegularizationLoss(torchmetrics.Metric):
             target_degradation_steps
         )
 
-        source_loss = torch.abs(source_distances - source_degradation_steps).mean()
-        target_loss = torch.abs(target_distances - target_degradation_steps).mean()
+        source_loss = torch.abs(source_distances - source_degradation_steps).sum()
+        target_loss = torch.abs(target_distances - target_degradation_steps).sum()
         loss = source_loss + target_loss
 
-        self.loss.append(loss)
-        self.total.append(torch.tensor(source.shape[0], device=self.device))
+        self.loss = self.loss + loss
+        self.total = self.total + source.shape[0]
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total)
+        return self.loss / self.total
 
     def _calc_normed_distances(
         self, healthy_mean: torch.Tensor, source: torch.Tensor

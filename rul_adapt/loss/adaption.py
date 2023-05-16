@@ -42,8 +42,8 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     higher_is_better = False
     full_state_update = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(self, num_kernels: int) -> None:
         """
@@ -58,8 +58,8 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
 
         self.num_kernels = num_kernels
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(
         self, source_features: torch.Tensor, target_features: torch.Tensor
@@ -83,11 +83,11 @@ class MaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         batch_size = source_features.shape[0]
         disc = _calc_discrepancy(distances, batch_size)
 
-        self.loss.append(disc)
-        self.total.append(torch.tensor(batch_size, device=self.device))
+        self.loss = self.loss + disc
+        self.total = self.total + batch_size**2
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total)
+        return self.loss / self.total
 
 
 class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
@@ -110,8 +110,8 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
     higher_is_better = False
     full_state_update = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(self) -> None:
         """
@@ -122,8 +122,8 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         """
         super().__init__()
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(
         self, source_features: List[torch.Tensor], target_features: List[torch.Tensor]
@@ -151,11 +151,11 @@ class JointMaximumMeanDiscrepancyLoss(torchmetrics.Metric):
         merged_distances = torch.stack(distances, dim=0).prod(dim=0)
         disc = _calc_discrepancy(merged_distances, batch_size)
 
-        self.loss.append(disc)
-        self.total.append(torch.tensor(batch_size, device=self.device))
+        self.loss = self.loss + disc
+        self.total = self.total + batch_size**2
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total)
+        return self.loss / self.total
 
 
 class DomainAdversarialLoss(torchmetrics.Metric):
@@ -175,8 +175,8 @@ class DomainAdversarialLoss(torchmetrics.Metric):
     higher_is_better = False
     full_state_update = False
 
-    loss: List[torch.Tensor]
-    total: List[torch.Tensor]
+    loss: torch.Tensor
+    total: torch.Tensor
 
     def __init__(self, domain_disc: nn.Module) -> None:
         """
@@ -190,8 +190,8 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         self.domain_disc = domain_disc
         self.grl = GradientReversalLayer()
 
-        self.add_state("loss", [], dist_reduce_fx="cat")
-        self.add_state("total", [], dist_reduce_fx="cat")
+        self.add_state("loss", torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", torch.tensor(0.0), dist_reduce_fx="sum")
 
     def update(self, source: torch.Tensor, target: torch.Tensor) -> None:
         """
@@ -213,13 +213,15 @@ class DomainAdversarialLoss(torchmetrics.Metric):
         labels[:source_batch_size] *= 0.0
 
         predictions = self.domain_disc(self.grl(inputs))
-        loss = nn.functional.binary_cross_entropy_with_logits(predictions, labels)
+        loss = nn.functional.binary_cross_entropy_with_logits(
+            predictions, labels, reduction="sum"
+        )
 
-        self.loss.append(loss)
-        self.total.append(torch.tensor(combined_batch_size, device=self.device))
+        self.loss = self.loss + loss
+        self.total = self.total + combined_batch_size
 
     def compute(self) -> torch.Tensor:
-        return weighted_mean(self.loss, self.total)
+        return self.loss / self.total
 
 
 class GradientReversalLayer(nn.Module):
@@ -279,10 +281,11 @@ class _GradientReverse(torch.autograd.Function):
 
 
 def _calc_discrepancy(distances: torch.Tensor, batch_size: int) -> torch.Tensor:
+    """Needs to be divided by batch_size**2 to get the actual discrepancy."""
     s2s = distances[:batch_size, :batch_size]
     t2t = distances[batch_size:, batch_size:]
     s2t = distances[:batch_size, batch_size:]
-    disc = torch.mean(s2s + t2t - 2 * s2t)
+    disc = torch.sum(s2s + t2t - 2 * s2t)
 
     return disc
 
