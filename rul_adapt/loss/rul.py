@@ -1,10 +1,8 @@
 import math
-from typing import Any, Literal, List, Optional
+from typing import Any, Literal, Optional
 
 import torch
 import torchmetrics
-
-from rul_adapt.loss.utils import weighted_mean
 
 
 class RULScore(torchmetrics.Metric):

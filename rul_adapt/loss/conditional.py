@@ -1,6 +1,6 @@
 """A module for conditional unsupervised domain adaption losses."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Sequence
 
 import torch
 import torchmetrics
@@ -24,7 +24,7 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
 
     def __init__(
         self,
-        adaption_losses: List[torchmetrics.Metric],
+        adaption_losses: Sequence[torchmetrics.Metric],
         fuzzy_sets: List[Tuple[float, float]],
         mean_over_sets: bool = True,
     ) -> None:
