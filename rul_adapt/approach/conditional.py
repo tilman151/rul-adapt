@@ -1,3 +1,13 @@
+"""The Conditional Adaption approaches are derived from the [MMD] [
+rul_adapt.approach.mmd] and [DANN][rul_adapt.approach.dann] approaches. They apply
+their respective adaption loss not only to the whole data but also separately to
+subsets of the data with a [ConditionalAdaptionLoss]
+[rul_adapt.loss.conditional.ConditionalAdaptionLoss]. Fuzzy sets with rectangular
+membership functions define these subsets.
+
+Both variants were introduced by
+[Cheng et al.](https://doi.org/10.1007/s10845-021-01814-y) in 2021."""
+
 from copy import deepcopy
 from typing import List, Tuple, Literal, Optional, Any
 
@@ -242,7 +252,7 @@ class ConditionalDannApproach(AdaptionApproach):
             feature_extractor: The feature extraction network.
             regressor: The RUL regression network.
             domain_disc: The domain discriminator network.
-            Copied for each fuzzy set.
+                         Copied for each fuzzy set.
         """
         domain_disc = self._check_domain_disc(domain_disc)
         super().set_model(feature_extractor, regressor, *args, **kwargs)
