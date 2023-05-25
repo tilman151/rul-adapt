@@ -37,7 +37,7 @@ class UncheckpointableModel(nn.Module):
     def __init__(self, a):
         super().__init__()
 
-        self.b = a  # init arg is not saved under same name as a member var
+        self.b = a  # init arg is not saved under the same name as a member var
         self.layer = nn.Linear(self.b, 1)
 
     def forward(self, inputs):
@@ -46,8 +46,8 @@ class UncheckpointableModel(nn.Module):
 
 class NestedModel(nn.Module):
     """This model takes another model as an init arg. The argument should not be
-    pickled but treated like the top-level model. It's class and init args should be
-    saved so that it's weights can later be set via the state dict."""
+    pickled but treated like the top-level model. Its class and init args should be
+    saved so that its weights can later be set via the state dict."""
 
     def __init__(self, another_model):
         super().__init__()
@@ -148,6 +148,7 @@ def test_error_on_uncheckpointable_model(tmp_path):
         model.LstmExtractor(14, [16], 16),
         model.FullyConnectedHead(16, [1]),
         NestedModel(model.FullyConnectedHead(16, [1])),
+        nn.Sequential(nn.Linear(1, 1)),
         pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail()),
     ],
 )
@@ -160,6 +161,6 @@ def test_get_hydra_config(network):
 
 @pytest.mark.integration
 def test_dummy_integration():
-    """This is a dummy test so that the integration workflow does not report missing
+    """This is a stub test so that the integration workflow does not report missing
     test cases when no approach has integration tests yet."""
     pass

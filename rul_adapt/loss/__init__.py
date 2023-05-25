@@ -10,3 +10,4 @@ from .alignment import (
     DegradationLevelRegularizationLoss,
 )
 from .rul import rul_score, RULScore
+from .conditional import ConditionalAdaptionLoss

@@ -55,6 +55,7 @@ def test_rul_score_modular(inputs, targets, mode):
     targets = torch.tensor([targets] * 52)
     score_module = loss.RULScore(mode)
 
+    # split into batches of 10 with a last batch of 2 to test proper averaging
     for batch in zip(torch.split(inputs, 10), torch.split(targets, 10)):
         module_score = score_module(*batch)
         functional_score = loss.rul_score(

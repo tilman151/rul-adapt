@@ -11,7 +11,7 @@ Source --> FeatEx --> Source Feats -----------> Regressor  --> RUL Prediction
 Target --         --> Target Feats -->  GRL --> DomainDisc --> Domain Prediction
 ```
 
-It was orginally introduced by [Ganin et al.](http://jmlr.org/papers/v17/15-239.html)
+It was originally introduced by [Ganin et al.](http://jmlr.org/papers/v17/15-239.html)
 for image classification.
 
 Used In:
@@ -42,7 +42,7 @@ from rul_adapt import utils
 class DannApproach(AdaptionApproach):
     """The DANN approach introduces a domain discriminator that is trained on
     distinguishing source and target features as a binary classification problem. The
-    features are produced by a shared feature extractor. The loss for the domain
+    features are produced by a shared feature extractor. The loss in the domain
     discriminator is binary cross-entropy.
 
     The regressor and domain discriminator need the same number of input units as the
@@ -80,14 +80,14 @@ class DannApproach(AdaptionApproach):
         """
         Create a new DANN approach.
 
-        The strength of the influence of the domain discriminator on the feature
-        extractor is controlled by the `dann_factor`. The higher it is the stronger
+        The strength of the domain discriminator's influence on the feature
+        extractor is controlled by the `dann_factor`. The higher it is, the stronger
         the influence.
 
         Possible options for the regression loss are `mae`, `mse` and `rmse`.
 
         The domain discriminator is set by the `set_model` function together with the
-        feature extractor and regressor. For more information see the [approach]
+        feature extractor and regressor. For more information, see the [approach]
         [rul_adapt.approach] module page.
 
         Args:
@@ -144,7 +144,8 @@ class DannApproach(AdaptionApproach):
         **kwargs: Any,
     ) -> None:
         """
-        Set the feature extractor, regressor and domain discriminator for this approach.
+        Set the feature extractor, regressor, and domain discriminator for this
+        approach.
 
         The discriminator is not allowed to have an activation function on its last
         layer and needs to use only a single output neuron. It is wrapped by a

@@ -8,6 +8,8 @@ import hydra.utils
 import pytorch_lightning as pl
 from torch import nn
 
+EXCLUDED_ARGS = ["self", "device", "dtype"]  # init args ignored when checkpointing
+
 
 class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     """
@@ -21,7 +23,7 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     `feature_extractor` and `regressor` should explicitly not be arguments of the
     constructor and should be set by calling [set_model]
     [rul_adapt.approach.abstract.AdaptionApproach.set_model]. This way, the approach can
-    be initialized with all hyperparameters first and afterwards supplied with the
+    be initialized with all hyperparameters first and afterward supplied with the
     networks. This is useful for initializing the networks with pre-trained weights.
 
     Because models are constructed outside the approach, the default checkpointing
@@ -101,10 +103,17 @@ def _get_hydra_config(model: nn.Module) -> Dict[str, Any]:
 
 
 def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
-    signature = inspect.signature(type(obj).__init__)
-    init_args = dict()
-    for arg_name in signature.parameters:
-        if not arg_name == "self":
+    if isinstance(obj, nn.ModuleList):
+        # workaround because ModuleList's init arg is shadowed by a property
+        init_args = {"modules": [_get_hydra_config(m) for m in obj]}
+    elif isinstance(obj, nn.Sequential):
+        # workaround because Sequential expects positional args only
+        init_args = {"_args_": [_get_hydra_config(m) for m in obj]}
+    else:
+        signature = inspect.signature(type(obj).__init__)
+        init_args = dict()
+        arg_names = filter(lambda a: a not in EXCLUDED_ARGS, signature.parameters)
+        for arg_name in arg_names:
             _check_has_attr(obj, arg_name)
             arg = getattr(obj, arg_name)
             if isinstance(arg, nn.Module):
@@ -117,7 +126,8 @@ def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
 def _check_has_attr(obj: Any, param: str) -> None:
     if not hasattr(obj, param):
         raise RuntimeError(
-            f"The object of type '{type(obj)}' has an initialization parameter "
+            "Error while writing a checkpoint. "
+            f"The nn.Module of type '{type(obj)}' has an initialization parameter "
             f"named '{param}' which is not saved as a member variable, i.e. "
             f"'self.{param}'. Therefore, we cannot retrieve the value of "
             f"'{param}' the object was initialized with."
