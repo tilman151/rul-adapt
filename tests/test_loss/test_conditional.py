@@ -45,8 +45,10 @@ def cmmd():
 @mock.patch("rul_adapt.loss.conditional._membership")
 def test_update(mock_membership, conditional_adaption_loss, fuzzy_sets):
     source = mock.MagicMock(torch.Tensor)
+    source.__getitem__().shape = torch.Size([10, 1])  # set shape of selected samples
     source_preds = mock.MagicMock(torch.Tensor)
     target = mock.MagicMock(torch.Tensor)
+    target.__getitem__().shape = torch.Size([10, 1])  # set shape of selected samples
     target_preds = mock.MagicMock(torch.Tensor)
 
     conditional_adaption_loss.update(source, source_preds, target, target_preds)
@@ -81,7 +83,8 @@ def test_forward(conditional_adaption_loss):
 
     assert isinstance(loss, torch.Tensor)
     assert loss.shape == torch.Size([])
-    assert loss == torch.tensor(1.0)
+    # all samples fall in first set --> (1 + 0 + 0) / 3
+    assert loss == torch.tensor(1 / 3)
 
 
 def test__membership():

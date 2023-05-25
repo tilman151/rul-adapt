@@ -66,7 +66,8 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
         for fuzzy_set, adaption_loss in zip(self.fuzzy_sets, self.adaption_losses):
             selected_source = source[_membership(source_preds, fuzzy_set)]
             selected_target = target[_membership(target_preds, fuzzy_set)]
-            self.loss = self.loss + adaption_loss(selected_source, selected_target)
+            if selected_source.shape[0] > 0 and selected_target.shape[0] > 0:
+                self.loss = self.loss + adaption_loss(selected_source, selected_target)
 
     def compute(self) -> torch.Tensor:
         """
