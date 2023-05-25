@@ -24,9 +24,11 @@ def test_mmd_same_dist():
     npt.assert_almost_equal(mmd_loss.item(), 0.0, decimal=3)
 
 
-def test_mmd_diff_dist():
-    source = torch.randn(100, 10)
-    target = torch.randn(100, 10)
+@pytest.mark.parametrize("source_batch_size", [100, 500])
+@pytest.mark.parametrize("target_batch_size", [100, 500])
+def test_mmd_diff_dist(source_batch_size, target_batch_size):
+    source = torch.randn(source_batch_size, 10)
+    target = torch.randn(target_batch_size, 10)
     mmd = loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
 
     mmd_loss_1 = mmd(source * 2, target)
@@ -57,10 +59,12 @@ def test_jmmd_same_dist():
     npt.assert_almost_equal(jmmd_loss.item(), 0.0, decimal=3)
 
 
-def test_jmmd_diff_dist():
-    source1 = [2 * torch.randn(1000, 1) for _ in range(2)]
-    source2 = [(2 * torch.randn(1000, 1)) + 1 for _ in range(2)]
-    target = [torch.randn(1000, 1) for _ in range(2)]
+@pytest.mark.parametrize("source_batch_size", [100, 500])
+@pytest.mark.parametrize("target_batch_size", [100, 500])
+def test_jmmd_diff_dist(source_batch_size, target_batch_size):
+    source1 = [2 * torch.randn(source_batch_size, 1) for _ in range(2)]
+    source2 = [(2 * torch.randn(source_batch_size, 1)) + 1 for _ in range(2)]
+    target = [torch.randn(target_batch_size, 1) for _ in range(2)]
     jmmd = loss.JointMaximumMeanDiscrepancyLoss()
 
     mmd_loss_1 = jmmd(source1, target)
