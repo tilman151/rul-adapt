@@ -28,13 +28,13 @@ Used In:
 from typing import Any, Optional, Dict, Literal, List, Tuple
 
 import torch
-import torchmetrics
 from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import StepLR
 
 import rul_adapt.loss
 from rul_adapt.approach.abstract import AdaptionApproach
+from rul_adapt.approach.evaluation import AdaptionEvaluator
 from rul_adapt.model import FullyConnectedHead
 from rul_adapt import utils
 
@@ -118,20 +118,8 @@ class DannApproach(AdaptionApproach):
         self.optim_type = optim_type
         self.adam_betas = adam_betas
 
-        # training metrics
         self.train_source_loss = utils.get_loss(self.loss_type)
-
-        # validation metrics
-        self.val_source_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.val_target_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.val_source_score = rul_adapt.loss.RULScore()
-        self.val_target_score = rul_adapt.loss.RULScore()
-
-        # testing metrics
-        self.test_source_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.test_target_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.test_source_score = rul_adapt.loss.RULScore()
-        self.test_target_score = rul_adapt.loss.RULScore()
+        self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
 
@@ -262,21 +250,8 @@ class DannApproach(AdaptionApproach):
             batch_idx: The index of the current batch.
             dataloader_idx: The index of the current dataloader (0: source, 1: target).
         """
-        features, labels = batch
-        labels = labels[:, None]
-        predictions = self.forward(features)
-        if dataloader_idx == 0:
-            self.val_source_rmse(predictions, labels)
-            self.val_source_score(predictions, labels)
-            self.log("val/source_rmse", self.val_source_rmse)
-            self.log("val/source_score", self.val_source_score)
-        elif dataloader_idx == 1:
-            self.val_target_rmse(predictions, labels)
-            self.val_target_score(predictions, labels)
-            self.log("val/target_rmse", self.val_target_rmse)
-            self.log("val/target_score", self.val_target_score)
-        else:
-            raise RuntimeError(f"Unexpected val data loader idx {dataloader_idx}")
+        domain = utils.dataloader2domain(dataloader_idx)
+        self.evaluator.validation(batch, domain)
 
     def test_step(
         self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
@@ -296,18 +271,5 @@ class DannApproach(AdaptionApproach):
             batch_idx: The index of the current batch.
             dataloader_idx: The index of the current dataloader (0: source, 1: target).
         """
-        features, labels = batch
-        labels = labels[:, None]
-        predictions = self.forward(features)
-        if dataloader_idx == 0:
-            self.test_source_rmse(predictions, labels)
-            self.test_source_score(predictions, labels)
-            self.log("test/source_rmse", self.test_source_rmse)
-            self.log("test/source_score", self.test_source_score)
-        elif dataloader_idx == 1:
-            self.test_target_rmse(predictions, labels)
-            self.test_target_score(predictions, labels)
-            self.log("test/target_rmse", self.test_target_rmse)
-            self.log("test/target_score", self.test_target_score)
-        else:
-            raise RuntimeError(f"Unexpected test data loader idx {dataloader_idx}")
+        domain = utils.dataloader2domain(dataloader_idx)
+        self.evaluator.test(batch, domain)
