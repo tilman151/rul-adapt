@@ -13,10 +13,8 @@ import copy
 from typing import Optional, Any, List
 
 import torch
-import torchmetrics
 from torch import nn
 
-import rul_adapt
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator

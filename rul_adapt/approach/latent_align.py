@@ -33,7 +33,6 @@ from rul_datasets.utils import feature_to_tensor
 from torch import nn
 
 import rul_adapt
-import rul_datasets
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator

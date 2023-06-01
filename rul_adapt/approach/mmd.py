@@ -28,7 +28,6 @@ Used In:
 from typing import List, Literal
 
 import torch
-import torchmetrics
 
 import rul_adapt
 from rul_adapt import utils

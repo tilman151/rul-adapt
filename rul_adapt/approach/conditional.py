@@ -12,7 +12,6 @@ from copy import deepcopy
 from typing import List, Tuple, Literal, Optional, Any
 
 import torch
-import torchmetrics
 from torch import nn
 
 import rul_adapt
