@@ -33,18 +33,6 @@ def approach(models):
 
 
 @pytest.fixture()
-def mocked_approach(mocker):
-    feature_extractor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 8))
-    regressor = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    domain_disc = mock.MagicMock(nn.Module, return_value=torch.zeros(10, 1))
-    approach = DannApproach(1.0, 0.001)
-    approach.set_model(feature_extractor, regressor, domain_disc)
-    mocker.patch.object(approach, "evaluator", autospec=True)
-
-    return approach
-
-
-@pytest.fixture()
 def inputs():
     return (
         torch.randn(10, 14, 30),  # source
@@ -178,8 +166,7 @@ def test_test_step(approach, inputs):
 
 
 @torch.no_grad()
-def test_train_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
+def test_train_step_logging(approach, inputs):
     approach.train_source_loss = mock.MagicMock(Metric)
     approach.dann_loss = mock.MagicMock(rul_adapt.loss.DomainAdversarialLoss)
     approach.log = mock.MagicMock()
@@ -199,35 +186,13 @@ def test_train_step_logging(mocked_approach, inputs):
 
 
 @torch.no_grad()
-def test_val_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
-    features, labels = mock.MagicMock(), mock.MagicMock()
-
-    # check source data loader call
-    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
-    approach.evaluator.validation.assert_called_with([features, labels], "source")
-
-    approach.evaluator.reset_mock()
-
-    # check target data loader call
-    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
-    approach.evaluator.validation.assert_called_with([features, labels], "target")
+def test_val_step_logging(approach, mocker):
+    utils.check_val_logging(approach, mocker)
 
 
 @torch.no_grad()
-def test_test_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
-    features, labels = mock.MagicMock(), mock.MagicMock()
-
-    # check source data loader call
-    approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
-    approach.evaluator.test.assert_called_with([features, labels], "source")
-
-    approach.evaluator.reset_mock()
-
-    # check target data loader call
-    approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
-    approach.evaluator.test.assert_called_with([features, labels], "target")
+def test_test_step_logging(approach, mocker):
+    utils.check_test_logging(approach, mocker)
 
 
 def test_checkpointing(tmp_path):

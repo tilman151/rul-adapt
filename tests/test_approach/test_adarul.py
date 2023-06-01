@@ -5,7 +5,6 @@ import pytorch_lightning as pl
 import rul_datasets
 import torch
 from torch import nn
-from torchmetrics import Metric
 
 from rul_adapt import model
 from rul_adapt.approach import SupervisedApproach, AdaRulApproach
@@ -44,7 +43,6 @@ def approach(models, mocker):
             mock.MagicMock(name="gen_optim"),
         ),
     )
-    mocker.patch.object(approach, "evaluator", autospec=True)
 
     return approach
 
@@ -176,32 +174,12 @@ class TestAdaRulApproach:
         approach.log.assert_called_with("train/gen_loss", approach.gan_loss())
 
     @torch.no_grad()
-    def test_val_step_logging(self, approach, inputs):
-        features, labels, _ = inputs
-
-        # check source data loader call
-        approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
-        approach.evaluator.validation.assert_called_with([features, labels], "source")
-
-        approach.evaluator.reset_mock()
-
-        # check target data loader call
-        approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
-        approach.evaluator.validation.assert_called_with([features, labels], "target")
+    def test_val_step_logging(self, approach, mocker):
+        utils.check_val_logging(approach, mocker)
 
     @torch.no_grad()
-    def test_test_step_logging(self, approach, inputs):
-        features, labels, _ = inputs
-
-        # check source data loader call
-        approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
-        approach.evaluator.test.assert_called_with([features, labels], "source")
-
-        approach.evaluator.reset_mock()
-
-        # check target data loader call
-        approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
-        approach.evaluator.test.assert_called_with([features, labels], "target")
+    def test_test_step_logging(self, approach, mocker):
+        utils.check_test_logging(approach, mocker)
 
     def test_checkpointing(self, tmp_path):
         ckpt_path = tmp_path / "checkpoint.ckpt"
