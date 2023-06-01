@@ -31,7 +31,7 @@ def models():
 
 
 @pytest.fixture()
-def approach(models):
+def approach(models, mocker):
     approach = AdaRulApproach(0.001, 130, 35, 1)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
@@ -44,6 +44,7 @@ def approach(models):
             mock.MagicMock(name="gen_optim"),
         ),
     )
+    mocker.patch.object(approach, "evaluator", autospec=True)
 
     return approach
 
@@ -177,76 +178,30 @@ class TestAdaRulApproach:
     @torch.no_grad()
     def test_val_step_logging(self, approach, inputs):
         features, labels, _ = inputs
-        approach.val_source_rmse = mock.MagicMock(Metric)
-        approach.val_source_score = mock.MagicMock(Metric)
-        approach.val_target_rmse = mock.MagicMock(Metric)
-        approach.val_target_score = mock.MagicMock(Metric)
 
         # check source data loader call
         approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
-        approach.val_source_rmse.assert_called_once()
-        approach.val_source_score.assert_called_once()
-        approach.val_target_rmse.assert_not_called()
-        approach.val_target_score.assert_not_called()
-        approach.log.assert_has_calls(
-            [
-                mock.call("val/source_rmse", approach.val_source_rmse),
-                mock.call("val/source_score", approach.val_source_score),
-            ]
-        )
+        approach.evaluator.validation.assert_called_with([features, labels], "source")
 
-        approach.val_source_rmse.reset_mock()
-        approach.val_source_score.reset_mock()
+        approach.evaluator.reset_mock()
 
         # check target data loader call
         approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
-        approach.val_source_rmse.assert_not_called()
-        approach.val_source_score.assert_not_called()
-        approach.val_target_rmse.assert_called_once()
-        approach.val_target_score.assert_called_once()
-        approach.log.assert_has_calls(
-            [
-                mock.call("val/target_rmse", approach.val_target_rmse),
-                mock.call("val/target_score", approach.val_target_score),
-            ]
-        )
+        approach.evaluator.validation.assert_called_with([features, labels], "target")
 
     @torch.no_grad()
     def test_test_step_logging(self, approach, inputs):
         features, labels, _ = inputs
-        approach.test_source_rmse = mock.MagicMock(Metric)
-        approach.test_source_score = mock.MagicMock(Metric)
-        approach.test_target_rmse = mock.MagicMock(Metric)
-        approach.test_target_score = mock.MagicMock(Metric)
 
         # check source data loader call
         approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
-        approach.test_source_rmse.assert_called_once()
-        approach.test_source_score.assert_called_once()
-        approach.test_target_rmse.assert_not_called()
-        approach.test_target_score.assert_not_called()
-        approach.log.assert_has_calls(
-            [
-                mock.call("test/source_rmse", approach.test_source_rmse),
-                mock.call("test/source_score", approach.test_source_score),
-            ]
-        )
+        approach.evaluator.test.assert_called_with([features, labels], "source")
 
-        approach.test_source_rmse.reset_mock()
-        approach.test_source_score.reset_mock()
+        approach.evaluator.reset_mock()
 
         # check target data loader call
         approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
-        approach.test_source_rmse.assert_not_called()
-        approach.test_source_score.assert_not_called()
-        approach.test_target_rmse.assert_called_once()
-        approach.test_target_score.assert_called_once()
-        approach.log.assert_has_calls(
-            [
-                mock.call("test/target_rmse", approach.test_target_rmse),
-                mock.call("test/target_score", approach.test_target_score),
-            ]
-        )
+        approach.evaluator.test.assert_called_with([features, labels], "target")
 
     def test_checkpointing(self, tmp_path):
         ckpt_path = tmp_path / "checkpoint.ckpt"
