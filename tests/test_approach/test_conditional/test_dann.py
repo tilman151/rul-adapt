@@ -32,19 +32,6 @@ def approach(models):
 
 
 @pytest.fixture()
-def mocked_approach():
-    feature_extractor = mock.MagicMock(
-        nn.Module, wraps=lambda x: torch.zeros(x.shape[0], 8)
-    )
-    regressor = mock.MagicMock(nn.Module, wraps=lambda x: torch.zeros(x.shape[0], 1))
-    domain_disc = mock.MagicMock(nn.Module, wraps=lambda x: torch.zeros(x.shape[0], 1))
-    approach = ConditionalDannApproach(0.001, 0.1, 0.5, [(0.0, 1.0)])
-    approach.set_model(feature_extractor, regressor, domain_disc)
-
-    return approach
-
-
-@pytest.fixture()
 def inputs():
     return (
         torch.randn(10, 14, 30),  # source
@@ -76,10 +63,6 @@ def test_loss_type(loss_type, expected):
 
     assert approach.loss_type == loss_type
     assert approach.train_source_loss == expected
-    assert not approach.val_source_rmse.squared  # val and test always use rmse
-    assert not approach.val_target_rmse.squared
-    assert not approach.test_source_rmse.squared
-    assert not approach.test_target_rmse.squared
 
 
 @torch.no_grad()
@@ -129,8 +112,7 @@ def test_test_step(approach, inputs):
 
 
 @torch.no_grad()
-def test_train_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
+def test_train_step_logging(approach, inputs):
     approach.train_source_loss = mock.MagicMock(Metric)
     approach.dann_loss = mock.MagicMock(loss.MaximumMeanDiscrepancyLoss)
     approach.conditional_dann_loss = mock.MagicMock(loss.ConditionalAdaptionLoss)
@@ -152,83 +134,13 @@ def test_train_step_logging(mocked_approach, inputs):
 
 
 @torch.no_grad()
-def test_val_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
-    features, labels, _ = inputs
-    approach.val_source_rmse = mock.MagicMock(Metric)
-    approach.val_source_score = mock.MagicMock(Metric)
-    approach.val_target_rmse = mock.MagicMock(Metric)
-    approach.val_target_score = mock.MagicMock(Metric)
-    approach.log = mock.MagicMock()
-
-    # check source data loader call
-    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=0)
-    approach.val_source_rmse.assert_called_once()
-    approach.val_source_score.assert_called_once()
-    approach.val_target_rmse.assert_not_called()
-    approach.val_target_score.assert_not_called()
-    approach.log.assert_has_calls(
-        [
-            mock.call("val/source_rmse", approach.val_source_rmse),
-            mock.call("val/source_score", approach.val_source_score),
-        ]
-    )
-
-    approach.val_source_rmse.reset_mock()
-    approach.val_source_score.reset_mock()
-
-    # check target data loader call
-    approach.validation_step([features, labels], batch_idx=0, dataloader_idx=1)
-    approach.val_source_rmse.assert_not_called()
-    approach.val_source_score.assert_not_called()
-    approach.val_target_rmse.assert_called_once()
-    approach.val_target_score.assert_called_once()
-    approach.log.assert_has_calls(
-        [
-            mock.call("val/target_rmse", approach.val_target_rmse),
-            mock.call("val/target_score", approach.val_target_score),
-        ]
-    )
+def test_val_step_logging(approach, mocker):
+    utils.check_val_logging(approach, mocker)
 
 
 @torch.no_grad()
-def test_test_step_logging(mocked_approach, inputs):
-    approach = mocked_approach
-    features, labels, _ = inputs
-    approach.test_source_rmse = mock.MagicMock(Metric)
-    approach.test_source_score = mock.MagicMock(Metric)
-    approach.test_target_rmse = mock.MagicMock(Metric)
-    approach.test_target_score = mock.MagicMock(Metric)
-    approach.log = mock.MagicMock()
-
-    # check source data loader call
-    approach.test_step([features, labels], batch_idx=0, dataloader_idx=0)
-    approach.test_source_rmse.assert_called_once()
-    approach.test_source_score.assert_called_once()
-    approach.test_target_rmse.assert_not_called()
-    approach.test_target_score.assert_not_called()
-    approach.log.assert_has_calls(
-        [
-            mock.call("test/source_rmse", approach.test_source_rmse),
-            mock.call("test/source_score", approach.test_source_score),
-        ]
-    )
-
-    approach.test_source_rmse.reset_mock()
-    approach.test_source_score.reset_mock()
-
-    # check target data loader call
-    approach.test_step([features, labels], batch_idx=0, dataloader_idx=1)
-    approach.test_source_rmse.assert_not_called()
-    approach.test_source_score.assert_not_called()
-    approach.test_target_rmse.assert_called_once()
-    approach.test_target_score.assert_called_once()
-    approach.log.assert_has_calls(
-        [
-            mock.call("test/target_rmse", approach.test_target_rmse),
-            mock.call("test/target_score", approach.test_target_score),
-        ]
-    )
+def test_test_step_logging(approach, mocker):
+    utils.check_test_logging(approach, mocker)
 
 
 def test_checkpointing(tmp_path, approach):

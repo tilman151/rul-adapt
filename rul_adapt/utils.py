@@ -1,5 +1,5 @@
 from itertools import tee
-from typing import Union, Callable
+from typing import Union, Callable, Literal
 
 import torchmetrics
 
@@ -43,3 +43,14 @@ def get_loss(loss_type: str) -> torchmetrics.Metric:
         )
 
     return loss
+
+
+def dataloader2domain(dataloader_idx: int) -> Literal["source", "target"]:
+    if dataloader_idx == 0:
+        return "source"
+    elif dataloader_idx == 1:
+        return "target"
+    else:
+        raise RuntimeError(
+            f"Expected dataloader_idx to be 0 or 1 but got {dataloader_idx}."
+        )
