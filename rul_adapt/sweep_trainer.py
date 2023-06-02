@@ -32,6 +32,8 @@ import rul_adapt
 import pytorch_lightning as pl
 import omegaconf
 
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning import Trainer
 
 
 
@@ -80,17 +82,58 @@ class Trainer(AbstractTrainer):
         columns = ["scenario", "run", "src_risk", "few_shot_risk", "trg_risk"]
         table_risks = wandb.Table(columns=columns, allow_mixed_types=True)
 
-        
-        # construct model 
-        pre_training, main_training = rul_adapt.construct.get_adarul(3, 1, {"max_epochs": 1}, {"max_epochs": 1})
+        # To be known:
+            # where to put # wandb_logger = WandbLogger()
+            # How to log the outputs of the model to output frame
+            # How to have generic construct that get the method and returns the construction
+            # How to get the configs to enable model sweeping through 
 
-        # pretraining step
-        pre_dm, pre_approach, pre_trainer = pre_training
-        pre_trainer.fit(pre_approach, pre_dm)
 
-        # adaptation step
-        dm, approach, domain_disc, trainer = main_training
-        approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, domain_disc)
+        # Steps:
+        # Data Loading step
+        source = rul_datasets.CmapssReader(3)
+        target = source.get_compatible(1, percent_broken=0.8)
+        pre_dm = rul_datasets.RulDataModule(source, batch_size=32)
+        dm = rul_datasets.DomainAdaptionDataModule( pre_dm, rul_datasets.RulDataModule(target, batch_size=32))
+
+        # Backbone Construction step
+        feature_extractor = rul_adapt.model.CnnExtractor(
+            input_channels=14,
+            conv_filters=[16, 16, 16],
+            seq_len=30,
+            fc_units=8, )
+        regressor = rul_adapt.model.FullyConnectedHead(
+            input_channels=8,
+            units=[8, 1],
+            act_func_on_last_layer=False,
+        )
+        domain_disc = rul_adapt.model.FullyConnectedHead(
+            input_channels=8,
+            units=[8, 1],
+            act_func_on_last_layer=False,
+        )
+
+        # Logging 
+        wandb_logger = WandbLogger(project = "<project_name>",)
+        # Pretraining step 
+        pre_approach = rul_adapt.approach.SupervisedApproach(
+            lr=0.001, loss_type="mse", optim_type="adam", rul_scale=source.max_rul
+        )
+        pre_approach.set_model(feature_extractor, regressor)
+        pre_trainer = pl.Trainer(max_epochs=1)
+        pre_trainer.fit(pre_approach, pre_dm) # fixed this issue
+
+        # Adaptation step
+        approach = rul_adapt.approach.AdaRulApproach(
+            lr=0.001,
+            max_rul=source.max_rul,
+            num_disc_updates=35,
+            num_gen_updates=1,
+        )
+        approach.set_model(
+            pre_approach.feature_extractor, pre_approach.regressor, domain_disc
+        )
+        trainer = pl.Trainer(max_epochs=1, logger = wandb_logger)
         trainer.fit(approach, dm)
         trainer.test(approach, dm)
 
