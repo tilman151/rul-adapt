@@ -12,6 +12,7 @@ import rul_adapt
 LR = 1e-3
 BATCH_SIZE = 128
 
+
 COMMON_SEARCH_SPACE = {
     "fc_units": tune.choice([16, 32, 64, 128]),
     "feature_channels": tune.choice([16, 32, 64]),
@@ -115,7 +116,9 @@ def run_training(config, source_config, fds, backbone):
         approach.set_model(backbone, regressor)
 
         # TODO: add wandb logger
-        logger = pl.loggers.TensorBoardLogger("logs/", name=f"tune-supervised")
+        logger =  pl.loggers.WandbLogger(project="rul_adapt")
+
+        # logger = pl.loggers.TensorBoardLogger("logs/", name=f"tune-supervised")
         callbacks = [
             pl.callbacks.EarlyStopping(monitor="val/loss", patience=20),
             pl.callbacks.ModelCheckpoint(monitor="val/loss", save_top_k=1),
