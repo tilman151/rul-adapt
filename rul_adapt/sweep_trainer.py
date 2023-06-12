@@ -26,6 +26,11 @@ warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWar
 parser = argparse.ArgumentParser()
 pl.seed_everything(42, workers=True)  # makes is reproducible
 
+from trainers.train import Trainer
+
+import argparse
+parser = argparse.ArgumentParser()
+
 
 import rul_datasets
 import rul_adapt
@@ -75,13 +80,6 @@ class Trainer(AbstractTrainer):
         run = wandb.init(config=self.hparams)
         self.hparams= wandb.config
         
-        
-        # create tables for results and risks
-        columns = ["scenario", "run", "acc", "f1_score", "auroc"]
-        table_results = wandb.Table(columns=columns, allow_mixed_types=True)
-        columns = ["scenario", "run", "src_risk", "few_shot_risk", "trg_risk"]
-        table_risks = wandb.Table(columns=columns, allow_mixed_types=True)
-
         # To be known:
             # where to put # wandb_logger = WandbLogger()
             # How to log the outputs of the model to output frame
@@ -138,40 +136,76 @@ class Trainer(AbstractTrainer):
         trainer.test(approach, dm)
 
 
-        for src_id, trg_id in self.dataset_configs.scenarios:
-            for run_id in range(self.num_runs):
-                # set random seed and create logger
-                fix_randomness(run_id)
-                self.logger, self.scenario_log_dir = starting_logs( self.dataset, self.da_method, self.exp_log_dir, src_id, trg_id, run_id  )
+        # for src_id, trg_id in self.dataset_configs.scenarios:
+        #     for run_id in range(self.num_runs):
+        #         # set random seed and create logger
+        #         fix_randomness(run_id)
+        #         self.logger, self.scenario_log_dir = starting_logs( self.dataset, self.da_method, self.exp_log_dir, src_id, trg_id, run_id  )
 
-                # average meters
-                self.loss_avg_meters = collections.defaultdict(lambda: AverageMeter())
+        #         # average meters
+        #         self.loss_avg_meters = collections.defaultdict(lambda: AverageMeter())
 
-                # load data and train model
-                self.load_data(src_id, trg_id)
+        #         # load data and train model
+        #         self.load_data(src_id, trg_id)
 
-                # initiate the domain adaptation algorithm
-                self.initialize_algorithm()
+        #         # initiate the domain adaptation algorithm
+        #         self.initialize_algorithm()
 
-                # Train the domain adaptation algorithm
-                self.last_model, self.best_model = self.algorithm.update(self.src_train_dl, self.trg_train_dl, self.loss_avg_meters, self.logger)
+        #         # Train the domain adaptation algorithm
+        #         self.last_model, self.best_model = self.algorithm.update(self.src_train_dl, self.trg_train_dl, self.loss_avg_meters, self.logger)
 
-                # calculate metrics and risks
-                metrics = self.calculate_metrics()
-                risks = self.calculate_risks()
+        #         # calculate metrics and risks
+        #         metrics = self.calculate_metrics()
+        #         risks = self.calculate_risks()
 
-                # append results to tables
-                scenario = f"{src_id}_to_{trg_id}"
-                table_results.add_data(scenario, run_id, *metrics)
-                table_risks.add_data(scenario, run_id, *risks)
+        #         # append results to tables
+        #         scenario = f"{src_id}_to_{trg_id}"
+        #         table_results.add_data(scenario, run_id, *metrics)
+        #         table_risks.add_data(scenario, run_id, *risks)
 
-        # calculate overall metrics and risks
-        total_results, summary_metrics = self.calculate_avg_std_wandb_table(table_results)
-        total_risks, summary_risks = self.calculate_avg_std_wandb_table(table_risks)
+        # # calculate overall metrics and risks
+        # total_results, summary_metrics = self.calculate_avg_std_wandb_table(table_results)
+        # total_risks, summary_risks = self.calculate_avg_std_wandb_table(table_risks)
 
-        # log results to WandB
-        self.wandb_logging(total_results, total_risks, summary_metrics, summary_risks)
+        # # log results to WandB
+        # self.wandb_logging(total_results, total_risks, summary_metrics, summary_risks)
 
-        # finish the run
-        run.finish()
+        # # finish the run
+        # run.finish()
 
+
+
+if __name__ == "__main__":
+
+    # ========  Experiments Phase ================
+    parser.add_argument('--phase',               default='test',         type=str, help='train, test')
+
+    # ========  Experiments Name ================
+    parser.add_argument('--save_dir',               default='experiments_logs',         type=str, help='Directory containing all experiments')
+    parser.add_argument('--exp_name',               default='DDC_test',         type=str, help='experiment name')
+
+    # ========= Select the DA methods ============
+    parser.add_argument('--da_method',              default='DDC',               type=str, help='NO_ADAPT, Deep_Coral, MMDA, DANN, CDAN, DIRT, DSAN, HoMM, CoDATS, AdvSKM, SASA, CoTMix, TARGET_ONLY')
+
+    # ========= Select the DATASET ==============
+    parser.add_argument('--data_path',              default=r'../TS_Data',                  type=str, help='Path containing datase2t')
+    parser.add_argument('--dataset',                default='HAR',                      type=str, help='Dataset of choice: (WISDM - EEG - HAR - HHAR_SA)')
+
+    # ========= Select the BACKBONE ==============
+    parser.add_argument('--backbone',               default='CNN',                      type=str, help='Backbone of choice: (CNN - RESNET18 - TCN)')
+
+    # ========= Experiment settings ===============
+    parser.add_argument('--num_runs',               default=5,                          type=int, help='Number of consecutive run with different seeds')
+    parser.add_argument('--device',                 default= "cuda",                   type=str, help='cpu or cuda')
+
+    # arguments
+    args = parser.parse_args()
+
+    # create trainier object
+    trainer = Trainer(args)
+
+    # train and test
+    if args.phase == 'train':
+        trainer.fit()
+    elif args.phase == 'test':
+        trainer.test()
