@@ -73,6 +73,7 @@ class ConsistencyApproach(AdaptionApproach):
         consistency_factor: float,
         max_epochs: int,
         loss_type: Literal["mse", "mae", "rmse"] = "rmse",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -94,6 +95,8 @@ class ConsistencyApproach(AdaptionApproach):
             max_epochs: The number of epochs after which the DANN loss' influence is
                         maximal.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -101,12 +104,13 @@ class ConsistencyApproach(AdaptionApproach):
         self.consistency_factor = consistency_factor
         self.max_epochs = max_epochs
         self.loss_type = loss_type
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(loss_type)
         self.consistency_loss = rul_adapt.loss.ConsistencyLoss()
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 
