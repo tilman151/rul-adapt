@@ -24,7 +24,7 @@ vibration data, i.e. XJTU-SY, it uses a [windowing scheme]
 [rul_adapt.approach.latent_align.LatentAlignFttpApproach] introduced by [Li et al.](
 https://doi.org/10.1016/j.knosys.2020.105843) in 2020."""
 
-from typing import Tuple, List, Any, Optional
+from typing import Tuple, List, Any, Optional, Literal, Dict
 
 import numpy as np
 import torch
@@ -40,7 +40,7 @@ from rul_adapt.approach.evaluation import AdaptionEvaluator
 
 class LatentAlignFttpApproach(AdaptionApproach):
     """This first-point-to-predict estimation approach trains a GAN on healthy state
-    bearing data. The discriminator can be used afterwards to compute a health
+    bearing data. The discriminator can be used afterward to compute a health
     indicator for each bearing.
 
     The feature extractor and regressor models are used as the discriminator. The
@@ -56,7 +56,6 @@ class LatentAlignFttpApproach(AdaptionApproach):
     between them.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model, approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
@@ -64,14 +63,18 @@ class LatentAlignFttpApproach(AdaptionApproach):
         >>> fttp_model = approach.LatentAlignFttpApproach(1e-4, 10)
         >>> fttp_model.set_model(feat_ex, reg, gen)
         >>> health_indicator = fttp_model(torch.randn(16, 1, 10)).std()
-        ```
+
     """
 
     CHECKPOINT_MODELS = ["_generator"]
 
     _generator: nn.Module
 
-    def __init__(self, lr: float, noise_dim: int):
+    def __init__(
+        self,
+        noise_dim: int,
+        **optim_kwargs: Any,
+    ):
         """
         Create a new FTTP estimation approach.
 
@@ -79,16 +82,16 @@ class LatentAlignFttpApproach(AdaptionApproach):
         extractor and regressor.
 
         Args:
-            lr: The learning rate for both generator and discriminator.
             noise_dim: The size of the last dimension of the noise tensor.
         """
         super().__init__()
 
-        self.lr = lr
         self.noise_dim = noise_dim
+        self.optim_kwargs = optim_kwargs
 
         self.gan_loss = torch.nn.BCEWithLogitsLoss()
         self.grl = rul_adapt.loss.adaption.GradientReversalLayer()
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.save_hyperparameters()
 
@@ -128,9 +131,9 @@ class LatentAlignFttpApproach(AdaptionApproach):
         else:
             raise RuntimeError("Generator used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> torch.optim.Adam:
-        """Configure an Adam optimizer for the generator and discriminator."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+    def configure_optimizers(self) -> Dict[str, Any]:
+        """Configure an optimizer for the generator and discriminator."""
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the health indicator for the given inputs."""
@@ -324,13 +327,11 @@ class LatentAlignApproach(AdaptionApproach):
     domain.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model, approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> latent_align = approach.LatentAlignApproach(0.1, 0.1, 0.1, 0.1, 0.001)
         >>> latent_align.set_model(feat_ex, reg)
-        ```
     """
 
     def __init__(
@@ -339,12 +340,13 @@ class LatentAlignApproach(AdaptionApproach):
         alpha_direction: float,
         alpha_level: float,
         alpha_fusion: float,
-        lr: float,
+        loss_type: Literal["mse", "mae", "rmse"] = "mse",
+        **optim_kwargs: Any,
     ) -> None:
         """
         Create a new latent alignment approach.
 
-        Each of the alphas control the influence of the respective loss on the
+        Each of the alphas controls the influence of the respective loss on the
         training. Commonly they are all set to the same value.
 
         Args:
@@ -352,7 +354,7 @@ class LatentAlignApproach(AdaptionApproach):
             alpha_direction: The influence of the degradation direction alignment loss.
             alpha_level: The influence of the degradation level regularization loss.
             alpha_fusion: The influence of the degradation fusion (MMD) loss.
-            lr: The learning rate.
+            loss_type: The type of regression loss to use.
         """
         super().__init__()
 
@@ -360,22 +362,24 @@ class LatentAlignApproach(AdaptionApproach):
         self.alpha_direction = alpha_direction
         self.alpha_level = alpha_level
         self.alpha_fusion = alpha_fusion
-        self.lr = lr
+        self.loss_type = loss_type
+        self.optim_kwargs = optim_kwargs
 
         # training metrics
-        self.train_mse = torchmetrics.MeanSquaredError()
+        self.train_mse = utils.get_loss(self.loss_type)
         self.healthy_align = rul_adapt.loss.HealthyStateAlignmentLoss()
         self.direction_align = rul_adapt.loss.DegradationDirectionAlignmentLoss()
         self.level_align = rul_adapt.loss.DegradationLevelRegularizationLoss()
         self.fusion_align = rul_adapt.loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> torch.optim.Adam:
-        """Configute an Adam optimizer."""
-        optim = torch.optim.Adam(self.parameters(), self.lr)
+    def configure_optimizers(self) -> Dict[str, Any]:
+        """Configure an optimizer."""
+        optim = self._get_optimizer(self.parameters())
 
         return optim
 

@@ -33,7 +33,7 @@ def models():
 @pytest.fixture()
 def approach(models):
     feature_extractor, regressor = models
-    approach = LatentAlignApproach(1.0, 1.0, 1.0, 1.0, 0.001)
+    approach = LatentAlignApproach(1.0, 1.0, 1.0, 1.0, lr=0.001)
     approach.set_model(feature_extractor, regressor)
 
     return approach
@@ -52,6 +52,15 @@ def inputs():
 
 
 class TestLatentAlignApproach:
+    def test_optimizer_configured_with_factory(self, models, mocker):
+        mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+        kwargs = {"optim_type": "sgd", "lr": 0.001, "optim_weight_decay": 0.001}
+        approach = LatentAlignApproach(1.0, 1.0, 1.0, 1.0, **kwargs)
+        approach.configure_optimizers()
+
+        mock_factory.assert_called_once_with(**kwargs)
+        mock_factory().assert_called_once()
+
     def test_forward(self, approach, inputs):
         features, *_ = inputs
 
@@ -120,7 +129,7 @@ class TestLatentAlignApproach:
         ckpt_path = tmp_path / "checkpoint.ckpt"
         fe = model.CnnExtractor(1, [16], 10, fc_units=16)
         reg = model.FullyConnectedHead(16, [1])
-        approach = LatentAlignApproach(0.1, 0.1, 0.1, 0.1, 0.001)
+        approach = LatentAlignApproach(0.1, 0.1, 0.1, 0.1, lr=0.001)
         approach.set_model(fe, reg)
 
         utils.checkpoint(approach, ckpt_path)
@@ -138,7 +147,7 @@ class TestLatentAlignApproach:
 
         fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
         reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = LatentAlignApproach(0.1, 0.1, 0.1, 0.1, 0.001)
+        approach = LatentAlignApproach(0.1, 0.1, 0.1, 0.1, lr=0.001)
         approach.set_model(fe, reg)
 
         trainer = pl.Trainer(
@@ -162,7 +171,7 @@ class TestLatentAlignFttpApproach:
     )
     def test_set_model(self, models, gen):
         fe, reg = models
-        fttp_approach = LatentAlignFttpApproach(0.01, 128)
+        fttp_approach = LatentAlignFttpApproach(128, lr=0.001)
 
         fttp_approach.set_model(fe, reg, gen)
 
@@ -171,7 +180,7 @@ class TestLatentAlignFttpApproach:
     def test_training_step(self, models):
         fe, reg = models
         gen = nn.Conv1d(1, 14, 10, padding="same")
-        fttp_approach = LatentAlignFttpApproach(0.01, 30)
+        fttp_approach = LatentAlignFttpApproach(30, lr=0.001)
         fttp_approach.set_model(fe, reg, gen)
 
         inputs = (torch.randn(10, 14, 30), torch.zeros(10))
@@ -190,7 +199,7 @@ class TestLatentAlignFttpApproach:
         fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
         reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
         gen = model.CnnExtractor(1, [1], 10, 3, padding=True)
-        fttp_approach = LatentAlignFttpApproach(0.01, 10)
+        fttp_approach = LatentAlignFttpApproach(10, lr=0.001)
         fttp_approach.set_model(fe, reg, gen)
 
         trainer = pl.Trainer(
