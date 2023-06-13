@@ -49,15 +49,13 @@ class DannApproach(AdaptionApproach):
     neuron because [BCEWithLogitsLoss][torch.nn.BCEWithLogitsLoss] is used.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> dann = approach.DannApproach(1.0, 0.01)
+        >>> dann = approach.DannApproach(1.0)
         >>> dann.set_model(feat_ex, reg, disc)
-        ```
     """
 
     CHECKPOINT_MODELS = ["dann_loss"]
@@ -89,7 +87,7 @@ class DannApproach(AdaptionApproach):
         Args:
             dann_factor: Strength of the domain DANN loss.
             loss_type: Type of regression loss.
-            optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 

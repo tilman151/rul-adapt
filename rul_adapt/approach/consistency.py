@@ -57,9 +57,9 @@ class ConsistencyApproach(AdaptionApproach):
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> pre = approach.SupervisedApproach(0.01)
+        >>> pre = approach.SupervisedApproach("rmse")
         >>> pre.set_model(feat_ex, reg, disc)
-        >>> main = approach.ConsistencyApproach(1.0, 0.01)
+        >>> main = approach.ConsistencyApproach(1.0, 100)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
 
     """
@@ -75,7 +75,28 @@ class ConsistencyApproach(AdaptionApproach):
         max_epochs: int,
         loss_type: Literal["mse", "mae", "rmse"] = "rmse",
         **optim_kwargs: Any,
-    ):
+    ) -> None:
+        """
+        Create a new consistency DANN approach.
+
+        The consistency factor is the strength of the consistency loss' influence.
+        The influence of the DANN loss is increased during the training process. It
+        starts at zero and reaches one at `max_epochs`.
+
+        The domain discriminator is set by the `set_model` function together with the
+        feature extractor and regressor. For more information, see the [approach]
+        [rul_adapt.approach] module page.
+
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
+        Args:
+            consistency_factor: The strength of the consistency loss' influence.
+            max_epochs: The number of epochs after which the DANN loss' influence is
+                        maximal.
+            loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
+        """
         super().__init__()
 
         self.consistency_factor = consistency_factor

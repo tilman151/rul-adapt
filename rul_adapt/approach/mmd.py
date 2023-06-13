@@ -47,8 +47,8 @@ class MmdApproach(AdaptionApproach):
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
-        >>> tbigru = approach.MmdApproach(0.01, 0.1)
-        >>> tbigru.set_model(feat_ex, reg)
+        >>> mmd = approach.MmdApproach(0.01)
+        >>> mmd.set_model(feat_ex, reg)
     """
 
     def __init__(
@@ -63,16 +63,19 @@ class MmdApproach(AdaptionApproach):
         Create a new MMD approach.
 
         The strength of the influence of the MMD loss on the feature
-        extractor is controlled by the `mmd_factor`. The higher it is the stronger
+        extractor is controlled by the `mmd_factor`. The higher it is, the stronger
         the influence.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
-            lr: The learning rate.
             mmd_factor: The strength of the MMD loss' influence.
             num_mmd_kernels: The number of kernels for the MMD loss.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
                             or 'phm12'.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 

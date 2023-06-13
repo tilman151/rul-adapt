@@ -30,7 +30,6 @@ class AdaRulApproach(AdaptionApproach):
     activation function on its last layer for it to work with its loss.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
@@ -40,7 +39,6 @@ class AdaRulApproach(AdaptionApproach):
         >>> pre.set_model(feat_ex, reg)
         >>> main = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
-        ```
     """
 
     CHECKPOINT_MODELS = ["_domain_disc", "frozen_feature_extractor"]
@@ -65,11 +63,14 @@ class AdaRulApproach(AdaptionApproach):
         The regressor is supposed to output a value between [0, 1] which is then
         scaled by `max_rul`.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
-            lr: Learning rate.
             max_rul: Maximum RUL value of the training data.
             num_disc_updates: Number of batches to update discriminator with.
             num_gen_updates: Number of batches to update generator with.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 

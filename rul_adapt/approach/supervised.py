@@ -30,7 +30,7 @@ class SupervisedApproach(AdaptionApproach):
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> main = approach.SupervisedApproach("mse", lr=0.01)
+        >>> main = approach.SupervisedApproach("mse")
         >>> main.set_model(feat_ex, reg, disc)
     """
 
@@ -46,10 +46,13 @@ class SupervisedApproach(AdaptionApproach):
         The regressor output can be scaled with `rul_scale` to control its
         magnitude. By default, the RUL values are not scaled.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
-            rul_scale: Scalar to multiply the RUL prediction with.
             loss_type: Training loss function to use. Either 'mse', 'mae' or 'rmse'.
-            **optim_kwargs:
+            rul_scale: Scalar to multiply the RUL prediction with.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 

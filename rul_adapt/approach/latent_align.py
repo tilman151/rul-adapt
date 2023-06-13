@@ -81,8 +81,12 @@ class LatentAlignFttpApproach(AdaptionApproach):
         The generator is set by the `set_model` function together with the feature
         extractor and regressor.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
             noise_dim: The size of the last dimension of the noise tensor.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 
@@ -349,12 +353,16 @@ class LatentAlignApproach(AdaptionApproach):
         Each of the alphas controls the influence of the respective loss on the
         training. Commonly they are all set to the same value.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
             alpha_healthy: The influence of the healthy state alignment loss.
             alpha_direction: The influence of the degradation direction alignment loss.
             alpha_level: The influence of the degradation level regularization loss.
             alpha_fusion: The influence of the degradation fusion (MMD) loss.
             loss_type: The type of regression loss to use.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 
