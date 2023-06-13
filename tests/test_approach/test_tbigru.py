@@ -255,7 +255,7 @@ def test_on_dummy():
 
     fe = model.CnnExtractor(15, [16, 16], 20, fc_units=16)
     reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = mmd.MmdApproach(0.001, 0.1)
+    approach = mmd.MmdApproach(0.1, lr=0.001)
     approach.set_model(fe, reg)
 
     # workaround because test split has only one window by default

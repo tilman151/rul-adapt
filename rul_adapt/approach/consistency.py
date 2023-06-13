@@ -27,11 +27,10 @@ This version of DANN was introduced by
 import copy
 import math
 from itertools import chain
-from typing import Optional, Any, List, Tuple
+from typing import Optional, Any, List, Tuple, Dict, Literal
 
 import numpy as np
 import torch
-import torchmetrics
 from torch import nn
 
 import rul_adapt.loss
@@ -43,26 +42,25 @@ from rul_adapt.model import FullyConnectedHead
 
 class ConsistencyApproach(AdaptionApproach):
     """The Consistency DANN approach introduces a consistency loss that keeps the
-    weights of the feature extractor close to the ones of a pre-trained version of
-    itself. This approach should only be used with a pre-trained feature extractor.
-    Otherwise, the consistency loss would serve no purpose.
+    weights of the feature extractor close to the ones of a pre-trained version. This
+    approach should only be used with a pre-trained feature extractor. Otherwise,
+    the consistency loss would serve no purpose.
 
     The regressor and domain discriminator need the same number of input units as the
     feature extractor has output units. The discriminator is not allowed to have an
     activation function on its last layer for it to work with the DANN loss.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> pre = approach.SupervisedApproach(0.01)
+        >>> pre = approach.SupervisedApproach("rmse")
         >>> pre.set_model(feat_ex, reg, disc)
-        >>> main = approach.ConsistencyApproach(1.0, 0.01)
+        >>> main = approach.ConsistencyApproach(1.0, 100)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
-        ```
+
     """
 
     CHECKPOINT_MODELS = ["dann_loss", "frozen_feature_extractor"]
@@ -70,15 +68,44 @@ class ConsistencyApproach(AdaptionApproach):
     dann_loss: rul_adapt.loss.DomainAdversarialLoss
     frozen_feature_extractor: nn.Module
 
-    def __init__(self, consistency_factor: float, lr: float, max_epochs: int):
+    def __init__(
+        self,
+        consistency_factor: float,
+        max_epochs: int,
+        loss_type: Literal["mse", "mae", "rmse"] = "rmse",
+        **optim_kwargs: Any,
+    ) -> None:
+        """
+        Create a new consistency DANN approach.
+
+        The consistency factor is the strength of the consistency loss' influence.
+        The influence of the DANN loss is increased during the training process. It
+        starts at zero and reaches one at `max_epochs`.
+
+        The domain discriminator is set by the `set_model` function together with the
+        feature extractor and regressor. For more information, see the [approach]
+        [rul_adapt.approach] module page.
+
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
+        Args:
+            consistency_factor: The strength of the consistency loss' influence.
+            max_epochs: The number of epochs after which the DANN loss' influence is
+                        maximal.
+            loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
+        """
         super().__init__()
 
         self.consistency_factor = consistency_factor
-        self.lr = lr
         self.max_epochs = max_epochs
+        self.loss_type = loss_type
+        self.optim_kwargs = optim_kwargs
 
-        self.train_source_loss = torchmetrics.MeanSquaredError(squared=False)
+        self.train_source_loss = utils.get_loss(loss_type)
         self.consistency_loss = rul_adapt.loss.ConsistencyLoss()
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
@@ -145,15 +172,15 @@ class ConsistencyApproach(AdaptionApproach):
         """
         return 2 / (1 + math.exp(-10 * self.current_epoch / self.max_epochs)) - 1
 
-    def configure_optimizers(self) -> torch.optim.SGD:
-        """Configure an SGD optimizer to train the feature extractor, regressor and
+    def configure_optimizers(self) -> Dict[str, Any]:
+        """Configure an optimizer to train the feature extractor, regressor and
         domain discriminator."""
         parameters = chain(
             self.feature_extractor.parameters(),
             self.regressor.parameters(),
             self.dann_loss.parameters(),
         )  # excludes frozen_feature_extractor from optimization
-        optim = torch.optim.SGD(parameters, lr=self.lr)
+        optim = self._get_optimizer(parameters)
 
         return optim
 

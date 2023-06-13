@@ -25,18 +25,16 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import Any, Optional, Dict, Literal, List, Tuple
+from typing import Any, Optional, Dict, Literal, List
 
 import torch
 from torch import nn
-from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import StepLR
 
 import rul_adapt.loss
+from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator
 from rul_adapt.model import FullyConnectedHead
-from rul_adapt import utils
 
 
 class DannApproach(AdaptionApproach):
@@ -51,15 +49,13 @@ class DannApproach(AdaptionApproach):
     neuron because [BCEWithLogitsLoss][torch.nn.BCEWithLogitsLoss] is used.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> dann = approach.DannApproach(1.0, 0.01)
+        >>> dann = approach.DannApproach(1.0)
         >>> dann.set_model(feat_ex, reg, disc)
-        ```
     """
 
     CHECKPOINT_MODELS = ["dann_loss"]
@@ -69,13 +65,8 @@ class DannApproach(AdaptionApproach):
     def __init__(
         self,
         dann_factor: float,
-        lr: float,
-        weight_decay: float = 0.0,
-        lr_decay_factor: Optional[float] = None,
-        lr_decay_epochs: Optional[int] = None,
         loss_type: Literal["mae", "mse", "rmse"] = "mae",
-        optim_type: Literal["sgd", "adam"] = "sgd",
-        adam_betas: Optional[Tuple[float, float]] = None,
+        **optim_kwargs: Any,
     ):
         """
         Create a new DANN approach.
@@ -90,33 +81,21 @@ class DannApproach(AdaptionApproach):
         feature extractor and regressor. For more information, see the [approach]
         [rul_adapt.approach] module page.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
             dann_factor: Strength of the domain DANN loss.
-            lr: Learning rate.
-            weight_decay: Strength of the weight decay.
-            lr_decay_factor: Factor to decay the learning rate with.
-            lr_decay_epochs: Number of epochs after which to decay the learning rate.
             loss_type: Type of regression loss.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 
-        if not ((lr_decay_factor is None) == (lr_decay_epochs is None)):
-            raise ValueError(
-                "Either both lr_decay_factor and lr_decay_epoch "
-                "need to be specified or neither of them."
-            )
-
-        if not optim_type == "adam" and adam_betas is not None:
-            raise ValueError("adam_betas can only be specified if optim_type is adam.")
-
         self.dann_factor = dann_factor
-        self.weight_decay = weight_decay
-        self.lr = lr
-        self.lr_decay_factor = lr_decay_factor
-        self.lr_decay_epochs = lr_decay_epochs
         self.loss_type = loss_type
-        self.optim_type = optim_type
-        self.adam_betas = adam_betas
+        self.optim_kwargs = optim_kwargs
+
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.train_source_loss = utils.get_loss(self.loss_type)
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
@@ -174,24 +153,8 @@ class DannApproach(AdaptionApproach):
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
     def configure_optimizers(self) -> Dict[str, Any]:
-        """Configure an SGD optimizer with optional weight and learning rate decay."""
-        optim: torch.optim.Optimizer
-        if self.optim_type == "adam":
-            optim = Adam(
-                self.parameters(),
-                self.lr,
-                weight_decay=self.weight_decay,
-                betas=self.adam_betas or (0.9, 0.999),
-            )
-        else:
-            optim = SGD(self.parameters(), self.lr, weight_decay=self.weight_decay)
-        result: Dict[str, Any] = {"optimizer": optim}
-
-        if (self.lr_decay_factor is not None) and (self.lr_decay_epochs is not None):
-            scheduler = StepLR(optim, self.lr_decay_epochs, self.lr_decay_factor)
-            result["lr_scheduler"] = {"scheduler": scheduler}
-
-        return result
+        """Configure an optimizer for the whole model."""
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""

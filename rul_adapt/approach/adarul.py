@@ -10,7 +10,7 @@ The approach was first introduced by [Ragab et al.](
 https://doi.org/10.1109/ICPHM49022.2020.9187053) and evaluated on the CMAPSS dataset."""
 
 import copy
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict
 
 import torch
 from torch import nn
@@ -30,7 +30,6 @@ class AdaRulApproach(AdaptionApproach):
     activation function on its last layer for it to work with its loss.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
@@ -40,7 +39,6 @@ class AdaRulApproach(AdaptionApproach):
         >>> pre.set_model(feat_ex, reg)
         >>> main = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
-        ```
     """
 
     CHECKPOINT_MODELS = ["_domain_disc", "frozen_feature_extractor"]
@@ -49,34 +47,42 @@ class AdaRulApproach(AdaptionApproach):
     frozen_feature_extractor: nn.Module
 
     def __init__(
-        self, lr: float, max_rul: int, num_disc_updates: int, num_gen_updates: int
+        self,
+        max_rul: int,
+        num_disc_updates: int,
+        num_gen_updates: int,
+        **optim_kwargs: Any,
     ) -> None:
         """
         Create a new ADARUL approach.
 
         The discriminator is first trained for `num_disc_updates` batches.
-        Afterwards, the feature extractor (generator) is trained for
+        Afterward, the feature extractor (generator) is trained for
         `num_gen_updates`. This cycle repeats until the epoch ends.
 
         The regressor is supposed to output a value between [0, 1] which is then
         scaled by `max_rul`.
 
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
         Args:
-            lr: Learning rate.
             max_rul: Maximum RUL value of the training data.
             num_disc_updates: Number of batches to update discriminator with.
             num_gen_updates: Number of batches to update generator with.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 
         self.automatic_optimization = False  # use manual optimization loop
 
-        self.lr = lr
         self.max_rul = max_rul
         self.num_disc_updates = num_disc_updates
         self.num_gen_updates = num_gen_updates
+        self.optim_kwargs = optim_kwargs
 
         self._disc_counter, self._gen_counter = 0, 0
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.gan_loss = nn.BCEWithLogitsLoss()
 
@@ -137,16 +143,12 @@ class AdaRulApproach(AdaptionApproach):
         else:
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> List[torch.optim.Adam]:
+    def configure_optimizers(self) -> List[Dict[str, Any]]:
         """Configure an optimizer for the generator and discriminator respectively."""
-        lr = self.lr
-        betas = (0.5, 0.5)
-        optims = [
-            torch.optim.Adam(self.domain_disc.parameters(), lr, betas),
-            torch.optim.Adam(self.feature_extractor.parameters(), lr, betas),
+        return [
+            self._get_optimizer(self.domain_disc.parameters()),
+            self._get_optimizer(self.feature_extractor.parameters()),
         ]
-
-        return optims
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""

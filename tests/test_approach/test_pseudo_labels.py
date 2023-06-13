@@ -17,7 +17,7 @@ from rul_adapt.approach.pseudo_labels import (
 def test_generate_pseudo_labels():
     fe = model.CnnExtractor(1, [3], 10, fc_units=16)
     reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = SupervisedApproach(0.1, "mse", "adam")
+    approach = SupervisedApproach("mse")
     approach.set_model(fe, reg)
     dm = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(1), 32)
 

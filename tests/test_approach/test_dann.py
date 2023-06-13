@@ -5,7 +5,6 @@ import rul_datasets.reader
 import torch
 import torchmetrics
 import pytorch_lightning as pl
-from torch import nn
 from torchmetrics import Metric
 
 import rul_adapt.loss
@@ -26,7 +25,7 @@ def models():
 @pytest.fixture()
 def approach(models):
     feature_extractor, regressor, domain_disc = models
-    approach = DannApproach(1.0, 0.001)
+    approach = DannApproach(1.0, lr=0.001)
     approach.set_model(feature_extractor, regressor, domain_disc)
 
     return approach
@@ -43,7 +42,7 @@ def inputs():
 
 def test_set_model(models):
     feature_extractor, regressor, domain_disc = models
-    approach = DannApproach(1.0, 0.001)
+    approach = DannApproach(1.0, lr=0.001)
     approach.set_model(feature_extractor, regressor, domain_disc)
 
     assert approach.feature_extractor is feature_extractor
@@ -56,26 +55,13 @@ def test_set_model(models):
 def test_domain_disc_check(models):
     feature_extractor, regressor, _ = models
     faulty_domain_disc = model.FullyConnectedHead(4, [1], act_func_on_last_layer=True)
-    approach = DannApproach(1.0, 0.001)
+    approach = DannApproach(1.0, lr=0.001)
 
     with pytest.raises(ValueError):
         approach.set_model(feature_extractor, regressor)
 
     with pytest.raises(ValueError):
         approach.set_model(feature_extractor, regressor, faulty_domain_disc)
-
-
-@pytest.mark.parametrize("weight_decay", [0.0, 0.1])
-def test_configure_optimizer(models, weight_decay):
-    approach = DannApproach(1.0, 0.001, weight_decay)
-    approach.set_model(*models)
-
-    optim_conf = approach.configure_optimizers()
-
-    assert isinstance(optim_conf, dict)
-    assert isinstance(optim_conf["optimizer"], torch.optim.SGD)
-    assert optim_conf["optimizer"].defaults["weight_decay"] == weight_decay
-    assert "lr_scheduler" not in optim_conf
 
 
 @pytest.mark.parametrize(
@@ -87,36 +73,20 @@ def test_configure_optimizer(models, weight_decay):
     ],
 )
 def test_loss_type(loss_type, expected):
-    approach = DannApproach(1.0, 0.001, loss_type=loss_type)
+    approach = DannApproach(1.0, lr=0.001, loss_type=loss_type)
 
     assert approach.loss_type == loss_type
     assert approach.train_source_loss == expected
 
 
-def test_configure_optimizer_lr_decay(models):
-    lr_decay_factor = 0.1
-    lr_decay_epochs = 100
-    approach = DannApproach(1.0, 0.001, 0.1, lr_decay_factor, lr_decay_epochs)
-    approach.set_model(*models)
+def test_optimizer_configured_with_factory(models, mocker):
+    mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+    kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
+    approach = DannApproach(1.0, **kwargs)
+    approach.configure_optimizers()
 
-    optim_conf = approach.configure_optimizers()
-
-    assert isinstance(optim_conf, dict)
-    assert "lr_scheduler" in optim_conf
-    assert isinstance(optim_conf["lr_scheduler"], dict)
-    assert isinstance(
-        optim_conf["lr_scheduler"]["scheduler"], torch.optim.lr_scheduler.StepLR
-    )
-    assert optim_conf["lr_scheduler"]["scheduler"].gamma == lr_decay_factor
-    assert optim_conf["lr_scheduler"]["scheduler"].step_size == lr_decay_epochs
-
-
-@pytest.mark.parametrize(
-    ["lr_decay_factor", "lr_decay_epochs"], [(None, 100), (0.1, None)]
-)
-def test_lr_decay_validation(lr_decay_factor, lr_decay_epochs):
-    with pytest.raises(ValueError):
-        DannApproach(1.0, 0.001, 0.1, lr_decay_factor, lr_decay_epochs)
+    mock_factory.assert_called_once_with(**kwargs)
+    mock_factory().assert_called_once()
 
 
 @torch.no_grad()
@@ -200,7 +170,7 @@ def test_checkpointing(tmp_path):
     fe = model.CnnExtractor(1, [16], 10, fc_units=16)
     reg = model.FullyConnectedHead(16, [1])
     disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = DannApproach(1.0, 0.01)
+    approach = DannApproach(1.0, lr=0.01)
     approach.set_model(fe, reg, disc)
 
     utils.checkpoint(approach, ckpt_path)
@@ -223,9 +193,7 @@ def test_on_dummy():
         8, [8, 8, 1], act_func_on_last_layer=False
     )
 
-    approach = rul_adapt.approach.DannApproach(
-        4.0, 0.01, 0.0001, 0.1, 100, loss_type="mae"
-    )
+    approach = rul_adapt.approach.DannApproach(4.0, lr=0.01, loss_type="mae")
     approach.set_model(feature_extractor, regressor, disc)
 
     trainer = pl.Trainer(

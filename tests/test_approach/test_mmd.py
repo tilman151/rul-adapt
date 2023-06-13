@@ -23,7 +23,7 @@ def models():
 @pytest.fixture()
 def approach(models):
     feature_extractor, regressor = models
-    approach = MmdApproach(0.001, 0.1)
+    approach = MmdApproach(0.1, lr=0.001)
     approach.set_model(feature_extractor, regressor)
 
     return approach
@@ -38,15 +38,14 @@ def inputs():
     )
 
 
-def test_configure_optimizer(models):
-    approach = MmdApproach(0.001, 0.1)
-    approach.set_model(*models)
+def test_optimizer_configured_with_factory(models, mocker):
+    mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+    kwargs = {"optim_type": "sgd", "lr": 0.001, "optim_weight_decay": 0.001}
+    approach = MmdApproach(0.01, **kwargs)
+    approach.configure_optimizers()
 
-    optim = approach.configure_optimizers()
-
-    assert isinstance(optim, torch.optim.Adam)
-    assert optim.defaults["lr"] == 0.001
-    assert list(approach.parameters()) == optim.param_groups[0]["params"]
+    mock_factory.assert_called_once_with(**kwargs)
+    mock_factory().assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -58,14 +57,14 @@ def test_configure_optimizer(models):
     ],
 )
 def test_loss_type(loss_type, expected):
-    approach = MmdApproach(1.0, 0.001, loss_type=loss_type)
+    approach = MmdApproach(0.001, loss_type=loss_type, lr=0.001)
 
     assert approach.loss_type == loss_type
     assert approach.train_source_loss == expected
 
 
 def test_num_mmd_kernels():
-    approach = MmdApproach(0.01, 0.1, num_mmd_kernels=3)
+    approach = MmdApproach(0.1, num_mmd_kernels=3, lr=0.001)
 
     assert approach.mmd_loss.num_kernels == 3
 
@@ -150,7 +149,7 @@ def test_checkpointing(tmp_path):
     ckpt_path = tmp_path / "checkpoint.ckpt"
     fe = model.CnnExtractor(1, [16], 10, fc_units=16)
     reg = model.FullyConnectedHead(16, [1])
-    approach = MmdApproach(0.001, 0.1)
+    approach = MmdApproach(0.1, lr=0.001)
     approach.set_model(fe, reg)
 
     utils.checkpoint(approach, ckpt_path)

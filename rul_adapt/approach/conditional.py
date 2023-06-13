@@ -9,7 +9,7 @@ Both variants were introduced by
 [Cheng et al.](https://doi.org/10.1007/s10845-021-01814-y) in 2021."""
 
 from copy import deepcopy
-from typing import List, Tuple, Literal, Optional, Any
+from typing import List, Tuple, Literal, Optional, Any, Dict
 
 import torch
 from torch import nn
@@ -22,22 +22,58 @@ from rul_adapt.model import FullyConnectedHead
 
 
 class ConditionalMmdApproach(AdaptionApproach):
+    """The conditional MMD uses a combination of a marginal and conditional MML loss
+    to adapt a feature extractor to be used with the source regressor.
+
+    The regressor needs the same number of input units as the feature extractor has
+    output units.
+
+    Examples:
+        >>> from rul_adapt import model
+        >>> from rul_adapt import approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> cond_mmd = approach.ConditionalMmdApproach(0.01, 5, 0.5)
+        >>> cond_mmd.set_model(feat_ex, reg)
+    """
+
     def __init__(
         self,
-        lr: float,
         mmd_factor: float,
         num_mmd_kernels: int,
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        **optim_kwargs: Any,
     ) -> None:
+        """
+        Create a new conditional MMD approach.
+
+        The strength of the influence of the MMD loss on the feature extractor is
+        controlled by the `mmd_factor`. The higher it is, the stronger the influence.
+        The dynamic adaptive factor controls the balance between the marginal MMD and
+        conditional MMD losses.
+
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
+        Args:
+            mmd_factor: The strength of the MMD loss' influence.
+            num_mmd_kernels: The number of kernels for the MMD loss.
+            dynamic_adaptive_factor: The balance between marginal and conditional MMD.
+            fuzzy_sets: The fuzzy sets for the conditional MMD loss.
+            loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
+        """
         super().__init__()
 
-        self.lr = lr
         self.mmd_factor = mmd_factor
         self.num_mmd_kernels = num_mmd_kernels
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
+        self.optim_kwargs = optim_kwargs
+
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         # training metrics
         self.train_source_loss = utils.get_loss(self.loss_type)
@@ -58,9 +94,9 @@ class ConditionalMmdApproach(AdaptionApproach):
     def fuzzy_sets(self) -> List[Tuple[float, float]]:
         return self.conditional_mmd_loss.fuzzy_sets
 
-    def configure_optimizers(self) -> torch.optim.Adam:
+    def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an Adam optimizer."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
@@ -150,6 +186,25 @@ class ConditionalMmdApproach(AdaptionApproach):
 
 
 class ConditionalDannApproach(AdaptionApproach):
+    """The conditional DANN approach uses a marginal and several conditional domain
+    discriminators. The features are produced by a shared feature extractor. The loss
+    in the domain discriminators is binary cross-entropy.
+
+    The regressor and domain discriminators need the same number of input units as the
+    feature extractor has output units. The discriminators are not allowed to have an
+    activation function on their last layer and need to use only a single output
+    neuron because [BCEWithLogitsLoss][torch.nn.BCEWithLogitsLoss] is used.
+
+    Examples:
+        >>> from rul_adapt import model
+        >>> from rul_adapt import approach
+        >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
+        >>> reg = model.FullyConnectedHead(16, [1])
+        >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
+        >>> cond_dann = approach.ConditionalDannApproach(1.0, 0.5)
+        >>> cond_dann.set_model(feat_ex, reg, disc)
+    """
+
     CHECKPOINT_MODELS = ["dann_loss", "conditional_dann_loss"]
 
     dann_loss: rul_adapt.loss.DomainAdversarialLoss
@@ -157,21 +212,45 @@ class ConditionalDannApproach(AdaptionApproach):
 
     def __init__(
         self,
-        lr: float,
         dann_factor: float,
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        **optim_kwargs: Any,
     ) -> None:
+        """
+        Create a new conditional DANN approach.
+
+        The strength of the domain discriminator's influence on the feature extractor
+        is controlled by the `dann_factor`. The higher it is, the stronger the
+        influence. The `dynamic_adaptive_factor` controls the balance between the
+        marginal and conditional DANN loss.
+
+        The domain discriminator is set by the `set_model` function together with the
+        feature extractor and regressor. For more information, see the [approach]
+        [rul_adapt.approach] module page.
+
+        For more information about the possible optimizer keyword arguments,
+        see [here][rul_adapt.utils.OptimizerFactory].
+
+        Args:
+            dann_factor: Strength of the domain DANN loss.
+            dynamic_adaptive_factor: Balance between the marginal and conditional DANN
+                                     loss.
+            fuzzy_sets: Fuzzy sets for the conditional DANN loss.
+            loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
+        """
         super().__init__()
 
-        self.lr = lr
         self.dann_factor = dann_factor
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
         self._fuzzy_sets = fuzzy_sets
+        self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(self.loss_type)
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
@@ -231,9 +310,9 @@ class ConditionalDannApproach(AdaptionApproach):
 
         return domain_disc
 
-    def configure_optimizers(self) -> torch.optim.Adam:
+    def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an Adam optimizer."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
