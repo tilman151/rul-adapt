@@ -344,6 +344,7 @@ class LatentAlignApproach(AdaptionApproach):
         alpha_level: float,
         alpha_fusion: float,
         loss_type: Literal["mse", "mae", "rmse"] = "mse",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -361,6 +362,8 @@ class LatentAlignApproach(AdaptionApproach):
             alpha_level: The influence of the degradation level regularization loss.
             alpha_fusion: The influence of the degradation fusion (MMD) loss.
             loss_type: The type of regression loss to use.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -370,6 +373,7 @@ class LatentAlignApproach(AdaptionApproach):
         self.alpha_level = alpha_level
         self.alpha_fusion = alpha_fusion
         self.loss_type = loss_type
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         # training metrics
@@ -380,7 +384,7 @@ class LatentAlignApproach(AdaptionApproach):
         self.fusion_align = rul_adapt.loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 

@@ -10,7 +10,7 @@ The approach was first introduced by [Ragab et al.](
 https://doi.org/10.1109/ICPHM49022.2020.9187053) and evaluated on the CMAPSS dataset."""
 
 import copy
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any, List, Dict, Literal
 
 import torch
 from torch import nn
@@ -51,6 +51,7 @@ class AdaRulApproach(AdaptionApproach):
         max_rul: int,
         num_disc_updates: int,
         num_gen_updates: int,
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -70,6 +71,8 @@ class AdaRulApproach(AdaptionApproach):
             max_rul: Maximum RUL value of the training data.
             num_disc_updates: Number of batches to update discriminator with.
             num_gen_updates: Number of batches to update generator with.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -79,6 +82,7 @@ class AdaRulApproach(AdaptionApproach):
         self.max_rul = max_rul
         self.num_disc_updates = num_disc_updates
         self.num_gen_updates = num_gen_updates
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         self._disc_counter, self._gen_counter = 0, 0
@@ -86,7 +90,7 @@ class AdaRulApproach(AdaptionApproach):
 
         self.gan_loss = nn.BCEWithLogitsLoss()
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 

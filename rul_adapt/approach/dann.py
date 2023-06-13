@@ -66,6 +66,7 @@ class DannApproach(AdaptionApproach):
         self,
         dann_factor: float,
         loss_type: Literal["mae", "mse", "rmse"] = "mae",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ):
         """
@@ -87,18 +88,21 @@ class DannApproach(AdaptionApproach):
         Args:
             dann_factor: Strength of the domain DANN loss.
             loss_type: Type of regression loss.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
 
         self.dann_factor = dann_factor
         self.loss_type = loss_type
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.train_source_loss = utils.get_loss(self.loss_type)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 

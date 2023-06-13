@@ -44,6 +44,7 @@ class ConditionalMmdApproach(AdaptionApproach):
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -63,6 +64,8 @@ class ConditionalMmdApproach(AdaptionApproach):
             dynamic_adaptive_factor: The balance between marginal and conditional MMD.
             fuzzy_sets: The fuzzy sets for the conditional MMD loss.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -71,6 +74,7 @@ class ConditionalMmdApproach(AdaptionApproach):
         self.num_mmd_kernels = num_mmd_kernels
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
@@ -86,7 +90,7 @@ class ConditionalMmdApproach(AdaptionApproach):
             conditional_mmd_losses, fuzzy_sets, mean_over_sets=True
         )
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 
@@ -216,6 +220,7 @@ class ConditionalDannApproach(AdaptionApproach):
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -239,6 +244,8 @@ class ConditionalDannApproach(AdaptionApproach):
                                      loss.
             fuzzy_sets: Fuzzy sets for the conditional DANN loss.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
+            rul_score_mode: The mode for the val and test RUL score, either 'phm08'
+                            or 'phm12'.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -247,11 +254,12 @@ class ConditionalDannApproach(AdaptionApproach):
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
         self._fuzzy_sets = fuzzy_sets
+        self.rul_score_mode = rul_score_mode
         self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(self.loss_type)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
 
         self.save_hyperparameters()
 
