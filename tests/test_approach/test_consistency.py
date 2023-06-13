@@ -6,7 +6,6 @@ import pytest
 import pytorch_lightning as pl
 import rul_datasets
 import torch
-from torch import nn
 from torchmetrics import Metric
 
 from rul_adapt import model
@@ -35,7 +34,7 @@ def models():
 
 @pytest.fixture()
 def approach(models):
-    approach = ConsistencyApproach(0.1, 0.001, 3000)
+    approach = ConsistencyApproach(0.1, 3000, lr=0.001)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
 
@@ -67,13 +66,23 @@ class TestConsistencyApproach:
         faulty_domain_disc = model.FullyConnectedHead(
             20, [1], act_func_on_last_layer=True
         )
-        approach = ConsistencyApproach(1.0, 0.001, 3000)
+        approach = ConsistencyApproach(1.0, 3000, lr=0.001)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor, faulty_domain_disc)
+
+    def test_optimizer_configured_with_factory(self, models, mocker):
+        mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+        kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
+        approach = ConsistencyApproach(1.0, 3000, **kwargs)
+        approach.set_model(*models)
+        approach.configure_optimizers()
+
+        mock_factory.assert_called_once_with(**kwargs)
+        mock_factory().assert_called_once()
 
     def test_forward(self, inputs, approach):
         features, *_ = inputs
@@ -139,7 +148,7 @@ class TestConsistencyApproach:
         fe = model.CnnExtractor(1, [16], 10, fc_units=16)
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = ConsistencyApproach(1.0, 0.01, 1)
+        approach = ConsistencyApproach(1.0, 1, lr=0.001)
         approach.set_model(fe, reg, disc)
 
         utils.checkpoint(approach, ckpt_path)
@@ -202,7 +211,7 @@ def test_on_dummy():
 
     disc = model.FullyConnectedHead(10, [1], act_func_on_last_layer=False)
 
-    approach = ConsistencyApproach(1.0, 0.001, 10)
+    approach = ConsistencyApproach(1.0, 10, lr=0.001)
     approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, disc)
 
     trainer = pl.Trainer(

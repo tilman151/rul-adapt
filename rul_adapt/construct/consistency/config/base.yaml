@@ -39,8 +39,9 @@ consistency_pre:
 consistency:
   _target_: rul_adapt.approach.ConsistencyApproach
   consistency_factor: 1.0
-  lr: 1e-5
   max_epochs: 3000
+  lr: 1e-5
+  optim_type: sgd
 
 trainer_pre:
   _target_: pytorch_lightning.Trainer
