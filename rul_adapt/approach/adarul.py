@@ -10,7 +10,7 @@ The approach was first introduced by [Ragab et al.](
 https://doi.org/10.1109/ICPHM49022.2020.9187053) and evaluated on the CMAPSS dataset."""
 
 import copy
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict
 
 import torch
 from torch import nn
@@ -49,13 +49,17 @@ class AdaRulApproach(AdaptionApproach):
     frozen_feature_extractor: nn.Module
 
     def __init__(
-        self, lr: float, max_rul: int, num_disc_updates: int, num_gen_updates: int
+        self,
+        max_rul: int,
+        num_disc_updates: int,
+        num_gen_updates: int,
+        **optim_kwargs: Any,
     ) -> None:
         """
         Create a new ADARUL approach.
 
         The discriminator is first trained for `num_disc_updates` batches.
-        Afterwards, the feature extractor (generator) is trained for
+        Afterward, the feature extractor (generator) is trained for
         `num_gen_updates`. This cycle repeats until the epoch ends.
 
         The regressor is supposed to output a value between [0, 1] which is then
@@ -71,12 +75,13 @@ class AdaRulApproach(AdaptionApproach):
 
         self.automatic_optimization = False  # use manual optimization loop
 
-        self.lr = lr
         self.max_rul = max_rul
         self.num_disc_updates = num_disc_updates
         self.num_gen_updates = num_gen_updates
+        self.optim_kwargs = optim_kwargs
 
         self._disc_counter, self._gen_counter = 0, 0
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.gan_loss = nn.BCEWithLogitsLoss()
 
@@ -137,16 +142,12 @@ class AdaRulApproach(AdaptionApproach):
         else:
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> List[torch.optim.Adam]:
+    def configure_optimizers(self) -> List[Dict[str, Any]]:
         """Configure an optimizer for the generator and discriminator respectively."""
-        lr = self.lr
-        betas = (0.5, 0.5)
-        optims = [
-            torch.optim.Adam(self.domain_disc.parameters(), lr, betas),
-            torch.optim.Adam(self.feature_extractor.parameters(), lr, betas),
+        return [
+            self._get_optimizer(self.domain_disc.parameters()),
+            self._get_optimizer(self.feature_extractor.parameters()),
         ]
-
-        return optims
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""

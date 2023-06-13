@@ -31,7 +31,7 @@ def models():
 
 @pytest.fixture()
 def approach(models, mocker):
-    approach = AdaRulApproach(0.001, 130, 35, 1)
+    approach = AdaRulApproach(130, 35, 1, lr=0.01)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
 
@@ -71,7 +71,7 @@ class TestAdaRulApproach:
         faulty_domain_disc = model.FullyConnectedHead(
             20, [1], act_func_on_last_layer=True
         )
-        approach = AdaRulApproach(0.01, 130, 35, 1)
+        approach = AdaRulApproach(130, 35, 1, lr=0.01)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor)
@@ -111,18 +111,15 @@ class TestAdaRulApproach:
                 mock_disc_loss.reset_mock()
                 mock_gen_loss.reset_mock()
 
-    def test_configure_optimizer(self, approach):
-        disc_optim, gen_optim = approach.configure_optimizers()
+    def test_optimizer_configured_with_factory(self, mocker, models):
+        mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+        kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
+        approach = AdaRulApproach(125, 10, 10, **kwargs)
+        approach.set_model(*models)
+        approach.configure_optimizers()
 
-        assert isinstance(disc_optim, torch.optim.Adam)
-        assert disc_optim.param_groups[0]["params"] == list(
-            approach.domain_disc.parameters()
-        )
-
-        assert isinstance(gen_optim, torch.optim.Adam)
-        assert gen_optim.param_groups[0]["params"] == list(
-            approach.feature_extractor.parameters()
-        )
+        mock_factory.assert_called_once_with(**kwargs)
+        mock_factory().assert_called()
 
     def test_train_step_backward_disc(self, inputs, approach):
         """Feature extractor should have no gradients in disc step. Disc should have
@@ -135,7 +132,7 @@ class TestAdaRulApproach:
 
     def test_train_step_backward_gen(self, inputs, approach):
         """Feature extractor should have gradients in gen step. Disc will necessarily
-        have gradients but this is unimportant here."""
+        have gradients, but this is unimportant here."""
         approach._disc_counter = approach.num_disc_updates
         approach.training_step(inputs, batch_idx=0)
 
@@ -188,7 +185,7 @@ class TestAdaRulApproach:
         )
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = AdaRulApproach(0.01, 130, 35, 1)
+        approach = AdaRulApproach(130, 35, 1, lr=0.01)
         approach.set_model(fe, reg, disc)
 
         utils.checkpoint(approach, ckpt_path, max_rul=130)
@@ -224,7 +221,7 @@ def test_on_dummy():
 
     disc = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    approach = AdaRulApproach(0.0001, 130, 35, 1)
+    approach = AdaRulApproach(130, 35, 1, lr=0.0001)
     approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, disc)
 
     trainer = pl.Trainer(
