@@ -28,7 +28,6 @@ from typing import Tuple, List, Any, Optional, Literal, Dict
 
 import numpy as np
 import torch
-import torchmetrics
 from rul_datasets.utils import feature_to_tensor
 from torch import nn
 

@@ -31,7 +31,6 @@ from typing import Optional, Any, List, Tuple, Dict, Literal
 
 import numpy as np
 import torch
-import torchmetrics
 from torch import nn
 
 import rul_adapt.loss
