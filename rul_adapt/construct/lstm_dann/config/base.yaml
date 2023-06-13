@@ -32,11 +32,12 @@ domain_disc:
 
 dann:
   _target_: rul_adapt.approach.DannApproach
-  lr_decay_factor: 0.1
-  lr_decay_epochs: 100
+  scheduler_type: step
+  scheduler_gamma: 0.1
+  scheduler_step_size: 100
   dann_factor: ???
   lr: ???
-  weight_decay: ???
+  optim_weight_decay: ???
 
 trainer:
   _target_: pytorch_lightning.Trainer

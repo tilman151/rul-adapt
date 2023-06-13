@@ -3,7 +3,7 @@
 dann:
   dann_factor: 2.0
   lr: 0.1
-  weight_decay: 0.01
+  optim_weight_decay: 0.01
 
 dm:
   batch_size: 256
