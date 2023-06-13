@@ -5,7 +5,6 @@ import pytorch_lightning as pl
 import rul_datasets.reader
 import torch
 import torchmetrics
-from torch import nn
 from torchmetrics import Metric
 
 from rul_adapt import model, loss
@@ -25,7 +24,7 @@ def models():
 @pytest.fixture()
 def approach(models):
     feature_extractor, regressor, domain_disc = models
-    approach = ConditionalDannApproach(0.001, 0.1, 0.5, [(0.0, 1.0)])
+    approach = ConditionalDannApproach(0.1, 0.5, [(0.0, 1.0)], lr=0.001)
     approach.set_model(feature_extractor, regressor, domain_disc)
 
     return approach
@@ -40,12 +39,15 @@ def inputs():
     )
 
 
-def test_configure_optimizer(approach, models):
-    optim = approach.configure_optimizers()
+def test_optimizer_configured_with_factory(models, mocker):
+    mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+    kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
+    approach = ConditionalDannApproach(0.1, 0.5, [(0.0, 1.0)], **kwargs)
+    approach.set_model(*models)
+    approach.configure_optimizers()
 
-    assert isinstance(optim, torch.optim.Adam)
-    assert optim.defaults["lr"] == approach.lr
-    assert list(approach.parameters()) == optim.param_groups[0]["params"]
+    mock_factory.assert_called_once_with(**kwargs)
+    mock_factory().assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -58,7 +60,7 @@ def test_configure_optimizer(approach, models):
 )
 def test_loss_type(loss_type, expected):
     approach = ConditionalDannApproach(
-        1.0, 0.001, 0.5, [(0.0, 1.0)], loss_type=loss_type
+        0.001, 0.5, [(0.0, 1.0)], loss_type=loss_type, lr=0.001
     )
 
     assert approach.loss_type == loss_type
@@ -161,7 +163,9 @@ def test_on_dummy():
     fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
     reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
     domain_disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-    approach = ConditionalDannApproach(0.01, 1.0, 0.5, [(50, 30), (40, 20), (30, 0)])
+    approach = ConditionalDannApproach(
+        1.0, 0.5, [(50, 30), (40, 20), (30, 0)], lr=0.001
+    )
     approach.set_model(fe, reg, domain_disc)
 
     trainer = pl.Trainer(

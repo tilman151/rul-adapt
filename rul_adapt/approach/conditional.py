@@ -9,7 +9,7 @@ Both variants were introduced by
 [Cheng et al.](https://doi.org/10.1007/s10845-021-01814-y) in 2021."""
 
 from copy import deepcopy
-from typing import List, Tuple, Literal, Optional, Any
+from typing import List, Tuple, Literal, Optional, Any, Dict
 
 import torch
 from torch import nn
@@ -24,20 +24,22 @@ from rul_adapt.model import FullyConnectedHead
 class ConditionalMmdApproach(AdaptionApproach):
     def __init__(
         self,
-        lr: float,
         mmd_factor: float,
         num_mmd_kernels: int,
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        **optim_kwargs: Any,
     ) -> None:
         super().__init__()
 
-        self.lr = lr
         self.mmd_factor = mmd_factor
         self.num_mmd_kernels = num_mmd_kernels
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
+        self.optim_kwargs = optim_kwargs
+
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         # training metrics
         self.train_source_loss = utils.get_loss(self.loss_type)
@@ -58,9 +60,9 @@ class ConditionalMmdApproach(AdaptionApproach):
     def fuzzy_sets(self) -> List[Tuple[float, float]]:
         return self.conditional_mmd_loss.fuzzy_sets
 
-    def configure_optimizers(self) -> torch.optim.Adam:
+    def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an Adam optimizer."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
@@ -157,21 +159,22 @@ class ConditionalDannApproach(AdaptionApproach):
 
     def __init__(
         self,
-        lr: float,
         dann_factor: float,
         dynamic_adaptive_factor: float,
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
+        **optim_kwargs: Any,
     ) -> None:
         super().__init__()
 
-        self.lr = lr
         self.dann_factor = dann_factor
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
         self._fuzzy_sets = fuzzy_sets
+        self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(self.loss_type)
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
@@ -231,9 +234,9 @@ class ConditionalDannApproach(AdaptionApproach):
 
         return domain_disc
 
-    def configure_optimizers(self) -> torch.optim.Adam:
+    def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an Adam optimizer."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
