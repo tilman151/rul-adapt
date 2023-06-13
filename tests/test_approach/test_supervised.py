@@ -24,9 +24,7 @@ def models():
 
 @pytest.fixture()
 def approach(models):
-    approach = SupervisedApproach(
-        lr=0.001, loss_type="mse", optim_type="adam", rul_scale=130
-    )
+    approach = SupervisedApproach(loss_type="mse", rul_scale=130)
     approach.set_model(*models)
 
     return approach
@@ -42,23 +40,20 @@ class TestSupervisedApproach:
         ],
     )
     def test_loss_selection(self, loss_type, exp_loss, squared):
-        supervised = SupervisedApproach(0.1, loss_type, "adam")
+        supervised = SupervisedApproach(loss_type)
 
         assert isinstance(supervised.train_loss, exp_loss)
         if squared is not None:
             assert supervised.train_loss.squared == squared
 
-    @pytest.mark.parametrize(
-        ["optim_type", "exp_optim"],
-        [("adam", torch.optim.Adam), ("sgd", torch.optim.SGD)],
-    )
-    def test_configure_optimizers(self, models, optim_type, exp_optim):
-        supervised = SupervisedApproach(0.1, "mse", optim_type)
-        supervised.set_model(*models)
-        optim = supervised.configure_optimizers()
+    def test_optimizer_configured_with_factory(self, models, mocker):
+        mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
+        kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
+        approach = SupervisedApproach("mse", **kwargs)
+        approach.configure_optimizers()
 
-        assert isinstance(optim, exp_optim)
-        assert optim.param_groups[0]["params"] == list(supervised.parameters())
+        mock_factory.assert_called_once_with(**kwargs)
+        mock_factory().assert_called_once()
 
     def test_forward(self, inputs, approach):
         features, _ = inputs

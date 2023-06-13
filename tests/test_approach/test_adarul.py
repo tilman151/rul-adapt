@@ -202,7 +202,7 @@ def test_on_dummy():
     feature_extractor = model.LstmExtractor(1, [10], bidirectional=True)
     regressor = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    pre_approach = SupervisedApproach(0.0001, "mse", "adam", 130)
+    pre_approach = SupervisedApproach("mse", 130)
     pre_approach.set_model(feature_extractor, regressor)
 
     trainer = pl.Trainer(

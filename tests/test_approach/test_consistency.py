@@ -192,7 +192,7 @@ def test_on_dummy():
     feature_extractor = model.CnnExtractor(1, [16], 10, fc_units=10)
     regressor = model.FullyConnectedHead(10, [1], act_func_on_last_layer=False)
 
-    pre_approach = SupervisedApproach(0.001, "mse", "sgd")
+    pre_approach = SupervisedApproach("mse")
     pre_approach.set_model(feature_extractor, regressor)
 
     trainer = pl.Trainer(

@@ -6,7 +6,7 @@ Data --> FeatureExtractor --> Features --> Regressor  --> RUL Prediction
 ```
 """
 
-from typing import Tuple, Literal
+from typing import Tuple, Literal, Any, Dict
 
 import torch
 import torchmetrics
@@ -25,25 +25,20 @@ class SupervisedApproach(AdaptionApproach):
     output units.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> pre = approach.SupervisedApproach(0.01, "mse", 125)
-        >>> pre.set_model(feat_ex, reg)
-        >>> main = approach.SupervisedApproach(0.01,,125
-        >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
-        ```
+        >>> main = approach.SupervisedApproach("mse", lr=0.01)
+        >>> main.set_model(feat_ex, reg, disc)
     """
 
     def __init__(
         self,
-        lr: float,
         loss_type: Literal["mse", "mae", "rmse"],
-        optim_type: Literal["adam", "sgd"],
         rul_scale: int = 1,
+        **optim_kwargs: Any,
     ) -> None:
         """
         Create a supervised approach.
@@ -52,33 +47,22 @@ class SupervisedApproach(AdaptionApproach):
         magnitude. By default, the RUL values are not scaled.
 
         Args:
-            lr: Learning rate.
             rul_scale: Scalar to multiply the RUL prediction with.
-            optim_type: Optimizer to use. Either 'adam' or 'sgd'.
             loss_type: Training loss function to use. Either 'mse', 'mae' or 'rmse'.
+            **optim_kwargs:
         """
         super().__init__()
 
-        self.lr = lr
         self.loss_type = loss_type
-        self.optim_type = optim_type
         self.rul_scale = rul_scale
+        self.optim_kwargs = optim_kwargs
 
         self.train_loss = utils.get_loss(loss_type)
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.val_loss = torchmetrics.MeanSquaredError(squared=False)
 
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        optim: torch.optim.Optimizer
-        if self.optim_type == "adam":
-            optim = torch.optim.Adam(self.parameters(), lr=self.lr)
-        elif self.optim_type == "sgd":
-            optim = torch.optim.SGD(self.parameters(), lr=self.lr)
-        else:
-            raise ValueError(
-                f"Unknown optimizer '{self.optim_type}'. " "Use either 'adam' or 'sgd'."
-            )
-
-        return optim
+    def configure_optimizers(self) -> Dict[str, Any]:
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.regressor(self.feature_extractor(inputs)) * self.rul_scale
