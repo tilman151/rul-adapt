@@ -45,9 +45,9 @@ trainer:
   gradient_clip_val: 1.0
   callbacks:
     - _target_: pytorch_lightning.callbacks.EarlyStopping
-      monitor: "val/target_rmse/dataloader_idx_1"
+      monitor: "val/target/rmse/dataloader_idx_1"
       patience: 20
     - _target_: pytorch_lightning.callbacks.ModelCheckpoint
       save_top_k: 1
-      monitor: "val/target_rmse/dataloader_idx_1"
+      monitor: "val/target/rmse/dataloader_idx_1"
       mode: min

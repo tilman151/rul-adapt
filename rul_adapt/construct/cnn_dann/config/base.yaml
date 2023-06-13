@@ -48,5 +48,5 @@ trainer:
   callbacks:
     - _target_: pytorch_lightning.callbacks.ModelCheckpoint
       save_top_k: 1
-      monitor: "val/target_rmse/dataloader_idx_1"
+      monitor: "val/target/rmse/dataloader_idx_1"
       mode: min
