@@ -25,18 +25,16 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import Any, Optional, Dict, Literal, List, Tuple
+from typing import Any, Optional, Dict, Literal, List
 
 import torch
 from torch import nn
-from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import StepLR
 
 import rul_adapt.loss
+from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator
 from rul_adapt.model import FullyConnectedHead
-from rul_adapt import utils
 
 
 class DannApproach(AdaptionApproach):

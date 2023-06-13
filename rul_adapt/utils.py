@@ -68,7 +68,7 @@ class OptimizerFactory:
     def __init__(
         self,
         optim_type: str = "adam",
-        lr: int = 1e-3,
+        lr: float = 1e-3,
         scheduler_type: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
