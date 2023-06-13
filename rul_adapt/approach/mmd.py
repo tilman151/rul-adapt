@@ -25,7 +25,7 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import List, Literal
+from typing import List, Literal, Any, Dict
 
 import torch
 
@@ -43,23 +43,21 @@ class MmdApproach(AdaptionApproach):
     output units.
 
     Examples:
-        ```pycon
         >>> from rul_adapt import model
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> tbigru = approach.MmdApproach(0.01, 0.1)
         >>> tbigru.set_model(feat_ex, reg)
-        ```
     """
 
     def __init__(
         self,
-        lr: float,
         mmd_factor: float,
         num_mmd_kernels: int = 5,
         loss_type: Literal["mse", "rmse", "mae"] = "mse",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        **optim_kwargs: Any,
     ) -> None:
         """
         Create a new MMD approach.
@@ -70,7 +68,7 @@ class MmdApproach(AdaptionApproach):
 
         Args:
             lr: The learning rate.
-            mmd_factor: The strength of the influence of the MMD loss.
+            mmd_factor: The strength of the MMD loss' influence.
             num_mmd_kernels: The number of kernels for the MMD loss.
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
@@ -78,22 +76,23 @@ class MmdApproach(AdaptionApproach):
         """
         super().__init__()
 
-        self.lr = lr
         self.mmd_factor = mmd_factor
         self.num_mmd_kernels = num_mmd_kernels
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.optim_kwargs = optim_kwargs
 
         # training metrics
         self.train_source_loss = utils.get_loss(self.loss_type)
         self.mmd_loss = rul_adapt.loss.MaximumMeanDiscrepancyLoss(self.num_mmd_kernels)
+        self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.evaluator = AdaptionEvaluator(self.forward, self.log)
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> torch.optim.Adam:
-        """Configure an Adam optimizer."""
-        return torch.optim.Adam(self.parameters(), self.lr)
+    def configure_optimizers(self) -> Dict[str, Any]:
+        """Configure an optimizer."""
+        return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
