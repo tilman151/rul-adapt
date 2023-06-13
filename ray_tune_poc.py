@@ -116,7 +116,7 @@ def run_training(config, source_config, fds, backbone):
         approach.set_model(backbone, regressor)
 
         # TODO: add wandb logger
-        logger =  pl.loggers.WandbLogger(project="rul_adapt")
+        logger =  pl.loggers.WandbLogger(project="test_supervised", entity = "adapt-rul")
 
         # logger = pl.loggers.TensorBoardLogger("logs/", name=f"tune-supervised")
         callbacks = [
