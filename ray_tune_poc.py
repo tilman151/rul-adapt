@@ -5,6 +5,7 @@ import hydra.utils
 import pytorch_lightning as pl
 import ray
 import rul_datasets
+import wandb
 from ray import tune
 
 import rul_adapt
@@ -130,7 +131,7 @@ def run_training(config, source_config, fds, backbone):
 
         trainer.fit(approach, dm)
         results.append(trainer.checkpoint_callback.best_model_score.item())
-        logger.finish()
+        wandb.finish()
 
     # report average RMSE and RMSE for each FD
     tune.report(
