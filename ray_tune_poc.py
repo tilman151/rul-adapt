@@ -9,6 +9,7 @@ from ray import tune
 
 import rul_adapt
 
+FIXED_HPARAMS = ["_target_", "input_channels", "seq_len"]
 LR = 1e-3
 BATCH_SIZE = 128
 
@@ -58,8 +59,11 @@ def tune_backbone(dataset: str, backbone: str):
 
     metric_columns = ["avg_rmse"] + [f"rmse_{i}" for i in fds]
     scheduler = tune.schedulers.FIFOScheduler()  # runs trials sequentially
+    parameter_cols = [k for k in search_space.keys() if k not in FIXED_HPARAMS]
     reporter = tune.CLIReporter(  # prints progress to console
-        parameter_columns=list(search_space.keys()), metric_columns=metric_columns
+        parameter_columns=parameter_cols,
+        metric_columns=metric_columns,
+        max_column_length=15,
     )
 
     # set arguments constant for all trials and run tuning
