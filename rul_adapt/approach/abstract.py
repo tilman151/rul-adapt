@@ -2,7 +2,7 @@
 import inspect
 import warnings
 from abc import ABCMeta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import hydra.utils
 import pytorch_lightning as pl
@@ -43,6 +43,9 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
     _feature_extractor: nn.Module
     _regressor: nn.Module
 
+    _hparams_initial: Dict[str, Any]
+    _logged_models: Dict[str, Set[str]]
+
     def set_model(
         self,
         feature_extractor: nn.Module,
@@ -68,6 +71,22 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
         if kwargs:
             warnings.warn("Additional keyword args were supplied, which are ignored.")
 
+        self.log_model_hyperparameters("feature_extractor", "regressor")
+
+    def log_model_hyperparameters(self, *model_names: str) -> None:
+        if not hasattr(self, "_logged_models"):
+            self._logged_models = {}
+        hparams_initial = self.hparams_initial
+
+        for model_name in model_names:
+            model_type = type(getattr(self, model_name)).__name__
+            model_hparams = {f"model_{model_name.lstrip('_')}_type": model_type}
+            hparams_initial.update(model_hparams)
+            self._logged_models[model_name] = set(model_hparams.keys())
+
+        self._hparams_initial = hparams_initial
+        self._set_hparams(self._hparams_initial)
+
     @property
     def feature_extractor(self) -> nn.Module:
         """The feature extraction network."""
@@ -85,13 +104,26 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             raise RuntimeError("Regressor used before 'set_model' was called.")
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self._make_model_hparams_storable(checkpoint)
         to_checkpoint = ["_feature_extractor", "_regressor"] + self.CHECKPOINT_MODELS
         configs = {m: _get_hydra_config(getattr(self, m)) for m in to_checkpoint}
         checkpoint["model_configs"] = configs
 
+    def _make_model_hparams_storable(self, checkpoint: Dict[str, Any]) -> None:
+        excluded_keys = set()
+        for keys in self._logged_models.values():
+            excluded_keys.update(keys)
+        checkpoint["hyper_parameters"] = {
+            k: v
+            for k, v in checkpoint["hyper_parameters"].items()
+            if k not in excluded_keys
+        }
+        checkpoint["logged_models"] = list(self._logged_models)
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         for name, config in checkpoint["model_configs"].items():
             setattr(self, name, hydra.utils.instantiate(config))
+        self.log_model_hyperparameters(*checkpoint["logged_models"])
 
 
 def _get_hydra_config(model: nn.Module) -> Dict[str, Any]:
