@@ -79,13 +79,21 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
         hparams_initial = self.hparams_initial
 
         for model_name in model_names:
-            model_type = type(getattr(self, model_name)).__name__
-            model_hparams = {f"model_{model_name.lstrip('_')}_type": model_type}
+            model_hparams = self._get_model_hparams(model_name)
             hparams_initial.update(model_hparams)
             self._logged_models[model_name] = set(model_hparams.keys())
 
         self._hparams_initial = hparams_initial
         self._set_hparams(self._hparams_initial)
+
+    def _get_model_hparams(self, model_name):
+        prefix = f"model_{model_name.lstrip('_')}"
+        model = getattr(self, model_name)
+        hparams = {f"{prefix}_type": type(model).__name__}
+        init_args = _get_init_args(model, "logging model hyperparameters")
+        hparams.update({f"{prefix}_{k}": v for k, v in init_args.items()})
+
+        return hparams
 
     @property
     def feature_extractor(self) -> nn.Module:
@@ -134,7 +142,9 @@ def _get_hydra_config(model: nn.Module) -> Dict[str, Any]:
     return config
 
 
-def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
+def _get_init_args(
+    obj: nn.Module, activity: str = "writing a checkpoint"
+) -> Dict[str, Any]:
     if isinstance(obj, nn.ModuleList):
         # workaround because ModuleList's init arg is shadowed by a property
         init_args = {"modules": [_get_hydra_config(m) for m in obj]}
@@ -146,7 +156,7 @@ def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
         init_args = dict()
         arg_names = filter(lambda a: a not in EXCLUDED_ARGS, signature.parameters)
         for arg_name in arg_names:
-            _check_has_attr(obj, arg_name)
+            _check_has_attr(obj, arg_name, activity)
             arg = getattr(obj, arg_name)
             if isinstance(arg, nn.Module):
                 arg = _get_hydra_config(arg)
@@ -155,10 +165,10 @@ def _get_init_args(obj: nn.Module) -> Dict[str, Any]:
     return init_args
 
 
-def _check_has_attr(obj: Any, param: str) -> None:
+def _check_has_attr(obj: Any, param: str, activity: str) -> None:
     if not hasattr(obj, param):
         raise RuntimeError(
-            "Error while writing a checkpoint. "
+            f"Error while {activity}. "
             f"The nn.Module of type '{type(obj)}' has an initialization parameter "
             f"named '{param}' which is not saved as a member variable, i.e. "
             f"'self.{param}'. Therefore, we cannot retrieve the value of "

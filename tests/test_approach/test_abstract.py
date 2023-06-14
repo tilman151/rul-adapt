@@ -179,9 +179,9 @@ def test_error_on_uncheckpointable_model(tmp_path):
     fe = model.LstmExtractor(14, [16], 16)
     reg = UncheckpointableModel(16)
     approach = DummyApproach()
-    approach.set_model(fe, reg)
 
     with pytest.raises(RuntimeError) as exc_info:
+        approach.set_model(fe, reg)  # already fails because hparams cannot be logged
         utils.checkpoint(approach, tmp_path / "checkpoint.ckpt")
         assert exc_info.value.args[0].startswith("The object of type ")
 
@@ -194,7 +194,7 @@ def test_error_on_uncheckpointable_model(tmp_path):
         model.FullyConnectedHead(16, [1]),
         NestedModel(model.FullyConnectedHead(16, [1])),
         nn.Sequential(nn.Linear(1, 1)),
-        pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail()),
+        pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail(strict=True)),
     ],
 )
 def test_get_hydra_config(network):
