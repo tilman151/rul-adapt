@@ -300,6 +300,7 @@ class ConditionalDannApproach(AdaptionApproach):
         self.conditional_dann_loss = rul_adapt.loss.ConditionalAdaptionLoss(
             cond_losses, self.fuzzy_sets
         )
+        self.log_model_hyperparameters("domain_disc")
 
     def _check_domain_disc(self, domain_disc: Optional[nn.Module]) -> nn.Module:
         if domain_disc is None:
@@ -317,6 +318,10 @@ class ConditionalDannApproach(AdaptionApproach):
             )
 
         return domain_disc
+
+    @property
+    def domain_disc(self) -> nn.Module:
+        return self.dann_loss.domain_disc
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Configure an Adam optimizer."""

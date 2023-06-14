@@ -121,6 +121,7 @@ class AdaRulApproach(AdaptionApproach):
         self._domain_disc = domain_disc
         self.frozen_feature_extractor = copy.deepcopy(feature_extractor)
         self.frozen_feature_extractor.requires_grad_(False)  # freeze network
+        self.log_model_hyperparameters("_domain_disc")
 
     def _check_domain_disc(self, domain_disc: Optional[nn.Module]) -> nn.Module:
         if domain_disc is None:
