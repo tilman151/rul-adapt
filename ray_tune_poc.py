@@ -126,6 +126,7 @@ def run_training(config, source_config, fds, backbone):
 
         trainer.fit(approach, dm)
         results.append(trainer.checkpoint_callback.best_model_score.item())
+        logger.finish()
 
     # report average RMSE and RMSE for each FD
     tune.report(
