@@ -64,6 +64,8 @@ class SupervisedApproach(AdaptionApproach):
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.val_loss = torchmetrics.MeanSquaredError(squared=False)
 
+        self.save_hyperparameters()
+
     def configure_optimizers(self) -> Dict[str, Any]:
         return self._get_optimizer(self.parameters())
 

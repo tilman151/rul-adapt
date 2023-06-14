@@ -143,6 +143,14 @@ class TestConsistencyApproach:
     def test_test_step_logging(self, approach, mocker):
         utils.check_test_logging(approach, mocker)
 
+    def test_model_hparams_logged(self, models, mocker):
+        approach = ConsistencyApproach(1.0, 100)
+        mocker.patch.object(approach, "log_model_hyperparameters")
+
+        approach.set_model(*models)
+
+        approach.log_model_hyperparameters.assert_called_with("domain_disc")
+
     def test_checkpointing(self, tmp_path):
         ckpt_path = tmp_path / "checkpoint.ckpt"
         fe = model.CnnExtractor(1, [16], 10, fc_units=16)

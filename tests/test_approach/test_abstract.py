@@ -17,6 +17,13 @@ class DummyApproach(AdaptionApproach):
         pass
 
 
+class DummyApproachWithHparams(DummyApproach):
+    def __init__(self, a: int = 0):
+        super().__init__()
+        self.a = a
+        self.save_hyperparameters()
+
+
 class DummyApproachWithExtraModel(DummyApproach):
     CHECKPOINT_MODELS = ["_extra"]
 
@@ -27,6 +34,7 @@ class DummyApproachWithExtraModel(DummyApproach):
     ) -> None:
         super().set_model(feature_extractor, regressor)
         self._extra = extra
+        self.log_model_hyperparameters("_extra")
 
 
 class UncheckpointableModel(nn.Module):
@@ -130,13 +138,50 @@ def test_checkpointing(tmp_path, approach, models):
         assert org_weight.requires_grad == restored_weight.requires_grad
 
 
+@pytest.mark.parametrize(
+    ["approach", "models"],
+    [
+        (
+            DummyApproach(),
+            [
+                model.CnnExtractor(14, [8], 10, fc_units=16),
+                model.FullyConnectedHead(16, [1]),
+            ],
+        ),
+        (
+            DummyApproachWithHparams(),
+            [
+                model.CnnExtractor(14, [8], 10, fc_units=16),
+                model.FullyConnectedHead(16, [1]),
+            ],
+        ),
+        (
+            DummyApproachWithExtraModel(),
+            [
+                model.CnnExtractor(14, [8], 10, fc_units=16),
+                model.FullyConnectedHead(16, [1]),
+                model.FullyConnectedHead(16, [10, 1]),
+            ],
+        ),
+    ],
+)
+def test_checkpointing_restores_model_hparams(tmp_path, approach, models):
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    approach.set_model(*models)
+
+    utils.checkpoint(approach, ckpt_path)
+    restored = type(approach).load_from_checkpoint(ckpt_path)
+
+    assert approach.hparams == restored.hparams
+
+
 def test_error_on_uncheckpointable_model(tmp_path):
     fe = model.LstmExtractor(14, [16], 16)
     reg = UncheckpointableModel(16)
     approach = DummyApproach()
-    approach.set_model(fe, reg)
 
     with pytest.raises(RuntimeError) as exc_info:
+        approach.set_model(fe, reg)  # already fails because hparams cannot be logged
         utils.checkpoint(approach, tmp_path / "checkpoint.ckpt")
         assert exc_info.value.args[0].startswith("The object of type ")
 
@@ -149,7 +194,7 @@ def test_error_on_uncheckpointable_model(tmp_path):
         model.FullyConnectedHead(16, [1]),
         NestedModel(model.FullyConnectedHead(16, [1])),
         nn.Sequential(nn.Linear(1, 1)),
-        pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail()),
+        pytest.param(UncheckpointableModel(1), marks=pytest.mark.xfail(strict=True)),
     ],
 )
 def test_get_hydra_config(network):
@@ -157,6 +202,20 @@ def test_get_hydra_config(network):
     assert "_target_" in config
     for value in config.values():
         assert not isinstance(value, nn.Module)
+
+
+@pytest.mark.parametrize("approach_func", [DummyApproach, DummyApproachWithHparams])
+def test_model_hparams(approach_func):
+    fe = model.LstmExtractor(14, [16], 16)
+    reg = model.FullyConnectedHead(16, [1])
+    approach = approach_func()
+    approach.set_model(fe, reg)
+
+    assert approach.hparams == approach.hparams_initial
+    assert "model_feature_extractor_type" in approach.hparams_initial
+    assert approach.hparams_initial["model_feature_extractor_type"] == "LstmExtractor"
+    assert "model_regressor_type" in approach.hparams_initial
+    assert approach.hparams_initial["model_regressor_type"] == "FullyConnectedHead"
 
 
 @pytest.mark.integration

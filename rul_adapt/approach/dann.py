@@ -130,6 +130,7 @@ class DannApproach(AdaptionApproach):
         domain_disc = self._check_domain_disc(domain_disc)
         super().set_model(feature_extractor, regressor, *args, **kwargs)
         self.dann_loss = rul_adapt.loss.DomainAdversarialLoss(domain_disc)
+        self.log_model_hyperparameters("domain_disc")
 
     def _check_domain_disc(self, domain_disc: Optional[nn.Module]) -> nn.Module:
         if domain_disc is None:

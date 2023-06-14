@@ -145,6 +145,15 @@ def test_test_step_logging(approach, mocker):
     utils.check_test_logging(approach, mocker)
 
 
+def test_model_hparams_logged(models, mocker):
+    approach = ConditionalDannApproach(1.0, 0.5, [(0.0, 1.0)])
+    mocker.patch.object(approach, "log_model_hyperparameters")
+
+    approach.set_model(*models)
+
+    approach.log_model_hyperparameters.assert_called_with("domain_disc")
+
+
 def test_checkpointing(tmp_path, approach):
     ckpt_path = tmp_path / "checkpoint.ckpt"
 
