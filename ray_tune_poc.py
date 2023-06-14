@@ -111,14 +111,11 @@ def run_training(config, source_config, fds, backbone):
             config["fc_units"], [1], act_func_on_last_layer=False
         )
         approach = rul_adapt.approach.SupervisedApproach(
-            LR, loss_type="rmse", optim_type="adam"
+            loss_type="rmse", optim_type="adam", lr=LR
         )
         approach.set_model(backbone, regressor)
 
-        # TODO: add wandb logger
-        logger =  pl.loggers.WandbLogger(project="test_supervised", entity = "adapt-rul")
-
-        # logger = pl.loggers.TensorBoardLogger("logs/", name=f"tune-supervised")
+        logger = pl.loggers.WandbLogger(project="test_supervised", entity="adapt-rul")
         callbacks = [
             pl.callbacks.EarlyStopping(monitor="val/loss", patience=20),
             pl.callbacks.ModelCheckpoint(monitor="val/loss", save_top_k=1),
