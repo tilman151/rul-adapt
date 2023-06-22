@@ -15,7 +15,7 @@ feature_extractor:
   wrapped:
     _target_: rul_adapt.model.LstmExtractor
     input_channels: 14
-    lstm_units: [32, 32, 32]
+    units: [32, 32, 32]
     bidirectional: True
   dropout: 0.5
 

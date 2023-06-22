@@ -20,8 +20,8 @@ def test_forward(inputs, conv_filters, kernel_size, fc_units, padding, batch_nor
         conv_filters,
         seq_len=30,
         kernel_size=kernel_size,
-        fc_units=fc_units,
         padding=padding,
+        fc_units=fc_units,
         batch_norm=batch_norm,
     )
     output_channels = fc_units or cnn._get_flat_dim()
@@ -69,7 +69,7 @@ def test_batch_norm(inputs):
 
 def test_conv_dropout(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
-    cnn = CnnExtractor(input_channels, [num_filters], seq_len, conv_dropout=0.5)
+    cnn = CnnExtractor(input_channels, [num_filters], seq_len, dropout=0.5)
 
     def _check_dropout(module, module_name):
         if module_name.endswith("conv_0"):
@@ -86,9 +86,7 @@ def test_conv_dropout(inputs):
 @pytest.mark.parametrize("conv_act_func", [nn.LeakyReLU, "torch.nn.LeakyReLU"])
 def test_conv_act_func(inputs, conv_act_func):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
-    cnn = CnnExtractor(
-        input_channels, [num_filters], seq_len, conv_act_func=conv_act_func
-    )
+    cnn = CnnExtractor(input_channels, [num_filters], seq_len, act_func=conv_act_func)
 
     def _check_act_func(module, module_name):
         assert isinstance(module[-1], nn.LeakyReLU)

@@ -26,13 +26,13 @@ class LstmExtractor(nn.Module):
         Without FC
         >>> import torch
         >>> from rul_adapt.model import LstmExtractor
-        >>> lstm = LstmExtractor(input_channels=14, lstm_units=[16, 16])
+        >>> lstm = LstmExtractor(input_channels=14,units=[16, 16])
         >>> lstm(torch.randn(10, 14, 30)).shape
         torch.Size([10, 16])
 
         With FC
         >>> from rul_adapt.model import LstmExtractor
-        >>> lstm = LstmExtractor(input_channels=14, lstm_units=[16, 16], fc_units=8)
+        >>> lstm = LstmExtractor(input_channels=14,units=[16, 16],fc_units=8)
         >>> lstm(torch.randn(10, 14, 30)).shape
         torch.Size([10, 8])
     """
@@ -40,9 +40,9 @@ class LstmExtractor(nn.Module):
     def __init__(
         self,
         input_channels: int,
-        lstm_units: List[int],
+        units: List[int],
         fc_units: Optional[int] = None,
-        lstm_dropout: float = 0.0,
+        dropout: float = 0.0,
         fc_dropout: float = 0.0,
         bidirectional: bool = False,
     ) -> None:
@@ -61,26 +61,26 @@ class LstmExtractor(nn.Module):
 
         Args:
             input_channels: The number of input channels.
-            lstm_units: The list of output units for the LSTM layers.
+            units: The list of output units for the LSTM layers.
             fc_units: The number of output units for the fully connected layer.
-            lstm_dropout: The dropout probability for the LSTM layers.
+            dropout: The dropout probability for the LSTM layers.
             fc_dropout: The dropout probability for the fully connected layer.
             bidirectional: Whether to use a BiLSTM.
         """
         super().__init__()
 
         self.input_channels = input_channels
-        self.lstm_units = lstm_units
-        self.lstm_dropout = lstm_dropout
+        self.units = units
+        self.dropout = dropout
         self.fc_units = fc_units
         self.fc_dropout = fc_dropout
         self.bidirectional = bidirectional
 
         self._lstm_layers = _get_rnn_layers(
             nn.LSTM,
-            self.lstm_units,
+            self.units,
             self.input_channels,
-            self.lstm_dropout,
+            self.dropout,
             self.bidirectional,
         )
         self._fc_layer = self._get_fc_layer()
@@ -90,7 +90,7 @@ class LstmExtractor(nn.Module):
         if self.fc_units is not None:
             if self.fc_dropout > 0:
                 fc_layer.append(nn.Dropout(self.fc_dropout))
-            fc_in_units = self.lstm_units[-1] * (2 if self.bidirectional else 1)
+            fc_in_units = self.units[-1] * (2 if self.bidirectional else 1)
             fc_layer.append(nn.Linear(fc_in_units, self.fc_units))
             fc_layer.append(nn.ReLU())
 
@@ -100,7 +100,7 @@ class LstmExtractor(nn.Module):
         inputs = torch.permute(inputs, (2, 0, 1))
         inputs, _ = self._lstm_layers(inputs)
         if self.bidirectional:
-            forward, backward = torch.split(inputs, self.lstm_units[-1], dim=2)
+            forward, backward = torch.split(inputs, self.units[-1], dim=2)
             inputs = torch.cat([forward[-1], backward[0]], dim=1)
         else:
             inputs = inputs[-1]

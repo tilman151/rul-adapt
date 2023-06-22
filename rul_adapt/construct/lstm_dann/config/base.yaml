@@ -11,9 +11,9 @@ dm:
 feature_extractor:
   _target_: rul_adapt.model.LstmExtractor
   input_channels: 24
-  lstm_units: ???
+  units: ???
   fc_units: ???
-  lstm_dropout: ???
+  dropout: ???
   fc_dropout: ???
 
 regressor:
