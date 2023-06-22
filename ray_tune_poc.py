@@ -1,5 +1,6 @@
 import copy
 import functools
+import uuid
 
 import hydra.utils
 import pytorch_lightning as pl
@@ -105,6 +106,7 @@ def run_training(config, source_config, fds, backbone):
     del config["num_layers"]
     del config["feature_channels"]
 
+    trial_uuid = uuid.uuid4()
     results = []
     for fd in fds:
         source_config["fd"] = fd
@@ -120,7 +122,9 @@ def run_training(config, source_config, fds, backbone):
         )
         approach.set_model(backbone, regressor)
 
-        logger = pl.loggers.WandbLogger(project="test_supervised", entity="adapt-rul")
+        logger = pl.loggers.WandbLogger(
+            project="test_supervised", entity="adapt-rul", group=trial_uuid
+        )
         callbacks = [
             pl.callbacks.EarlyStopping(monitor="val/loss", patience=20),
             pl.callbacks.ModelCheckpoint(monitor="val/loss", save_top_k=1),
