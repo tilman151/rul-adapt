@@ -12,11 +12,12 @@ from ray import tune
 import rul_adapt
 
 FIXED_HPARAMS = ["_target_", "input_channels", "seq_len"]
-LR = 1e-3
+# LR = 1e-3
 BATCH_SIZE = 128
 
 
 COMMON_SEARCH_SPACE = {
+    "lr": tune.qloguniform(1e-5, 1e-2, 1e-5),  # quantized log uniform
     "fc_units": tune.choice([16, 32, 64, 128]),
     "feature_channels": tune.choice([16, 32, 64]),
 }
@@ -102,9 +103,12 @@ def run_training(config, source_config, fds, backbone):
         config["lstm_units"] = [config["feature_channels"]] * config["num_layers"]
         del config["seq_len"]
 
+    lr = config["lr"]
+
     # remove unnecessary hyperparameters for model instantiation (or hydra crashes)
     del config["num_layers"]
     del config["feature_channels"]
+    del config["lr"]
 
     trial_uuid = uuid.uuid4()
     results = []
@@ -118,7 +122,7 @@ def run_training(config, source_config, fds, backbone):
             config["fc_units"], [1], act_func_on_last_layer=False
         )
         approach = rul_adapt.approach.SupervisedApproach(
-            loss_type="rmse", optim_type="adam", lr=LR
+            loss_type="rmse", optim_type="adam", lr=lr
         )
         approach.set_model(backbone, regressor)
 
