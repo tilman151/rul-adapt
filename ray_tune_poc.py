@@ -127,7 +127,7 @@ def run_training(config, source_config, fds, backbone):
         approach.set_model(backbone, regressor)
 
         logger = pl.loggers.WandbLogger(
-            project="test_supervised", entity="adapt-rul", group=trial_uuid
+            project="test_supervised", entity="adapt-rul", group=str(trial_uuid)
         )
         callbacks = [
             pl.callbacks.EarlyStopping(monitor="val/loss", patience=20),
