@@ -19,8 +19,8 @@ domain_disc:
 feature_extractor:
   fc_dropout: 0.7
   fc_units: 64
-  lstm_dropout: 0.7
-  lstm_units: [128]
+  dropout: 0.7
+  units: [128]
 
 regressor:
   dropout: 0.3

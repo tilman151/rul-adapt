@@ -15,11 +15,11 @@ dm:
 feature_extractor:
   _target_: rul_adapt.model.CnnExtractor
   input_channels: ???
-  conv_filters: [32, 16, 1]
+  units: [32, 16, 1]
   seq_len: ${dm.source.window_size}
   fc_units: 256
   fc_dropout: 0.5
-  conv_act_func: torch.nn.LeakyReLU
+  act_func: torch.nn.LeakyReLU
   fc_act_func: torch.nn.LeakyReLU
 
 regressor:

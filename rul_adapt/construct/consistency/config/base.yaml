@@ -12,10 +12,10 @@ dm:
 feature_extractor:
   _target_: rul_adapt.model.CnnExtractor
   input_channels: ???
-  conv_filters: [32, 16, 1]
+  units: [32, 16, 1]
   seq_len: ${dm.source.window_size}
   fc_units: 20
-  conv_dropout: 0.5
+  dropout: 0.5
   fc_dropout: 0.5
 
 regressor:

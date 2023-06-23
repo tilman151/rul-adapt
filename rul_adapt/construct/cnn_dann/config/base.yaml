@@ -11,11 +11,11 @@ dm:
 feature_extractor:
   _target_: rul_adapt.model.CnnExtractor
   input_channels: 14
-  conv_filters: [10, 10, 10, 10, 1]
+  units: [10, 10, 10, 10, 1]
   seq_len: 30
   kernel_size: 10
   padding: True
-  conv_act_func: torch.nn.Tanh
+  act_func: torch.nn.Tanh
 
 regressor:
   _target_: rul_adapt.model.wrapper.DropoutPrefix

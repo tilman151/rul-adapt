@@ -13,7 +13,7 @@ Some domain adaption approaches use a domain discriminator. The networks in the
 Examples:
     >>> import torch
     >>> from rul_adapt import model
-    >>> feature_extractor = model.CnnExtractor(14, [32, 16], 30, fc_units=8)
+    >>> feature_extractor = model.CnnExtractor(14,[32, 16],30,fc_units=8)
     >>> regressor = model.FullyConnectedHead(8, [4, 1])
     >>> latent_features = feature_extractor(torch.randn(10, 14, 30))
     >>> latent_features.shape

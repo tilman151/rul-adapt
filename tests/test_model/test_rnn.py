@@ -24,9 +24,9 @@ def test_lstm_forward(inputs, lstm_units, fc_units, bidirectional):
 
 @pytest.mark.parametrize("lstm_units", [[16, 16], [16, 8]])
 def test_lstm_dropout(lstm_units):
-    lstm = LstmExtractor(14, lstm_units, lstm_dropout=0.5)
+    lstm = LstmExtractor(14, lstm_units, dropout=0.5)
 
-    assert lstm.lstm_dropout == 0.5
+    assert lstm.dropout == 0.5
     assert lstm._lstm_layers.dropout == 0.5
 
 
