@@ -115,7 +115,8 @@ def tune_backbone(
         job_type="analysis",
         tags=[sweep_uuid],
     )
-    wandb.log_artifact(analysis.dataframe(), "ray_tune_analysis")
+    analysis_table = wandb.Table(dataframe=analysis.dataframe())
+    wandb.log({"tune_analysis": analysis_table})
 
     print("Best hyperparameters found were: ", analysis.best_config)
 
