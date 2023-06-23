@@ -12,7 +12,6 @@ from ray import tune
 import rul_adapt
 
 FIXED_HPARAMS = ["_target_", "input_channels", "seq_len"]
-# LR = 1e-3
 BATCH_SIZE = 128
 
 
@@ -35,6 +34,7 @@ LSTM_SEARCH_SPACE = {
 
 
 def tune_backbone(dataset: str, backbone: str):
+    sweep_uuid = str(uuid.uuid4())
     if backbone == "cnn":
         search_space = {**COMMON_SEARCH_SPACE, **CNN_SEARCH_SPACE}
     elif backbone == "lstm":
@@ -71,7 +71,11 @@ def tune_backbone(dataset: str, backbone: str):
 
     # set arguments constant for all trials and run tuning
     tune_func = functools.partial(
-        run_training, source_config=source_config, fds=fds, backbone=backbone
+        run_training,
+        source_config=source_config,
+        fds=fds,
+        backbone=backbone,
+        sweep_uuid=sweep_uuid,
     )
     analysis = tune.run(
         tune_func,
@@ -86,11 +90,18 @@ def tune_backbone(dataset: str, backbone: str):
         fail_fast=True,  # stop on first error
     )
 
-    # TODO: where to log analysis to?
+    wandb.init(
+        project="test_supervised",
+        entity="adapt-rul",
+        job_type="analysis",
+        tags=[sweep_uuid],
+    )
+    wandb.log_artifact(analysis.dataframe(), "ray_tune_analysis")
+
     print("Best hyperparameters found were: ", analysis.best_config)
 
 
-def run_training(config, source_config, fds, backbone):
+def run_training(config, source_config, fds, backbone, sweep_uuid):
     config = copy.deepcopy(config)  # ray uses the config later and we modify it here
 
     # TODO: maybe unify argument names in models to avoid this if clause
@@ -127,8 +138,12 @@ def run_training(config, source_config, fds, backbone):
         approach.set_model(backbone, regressor)
 
         logger = pl.loggers.WandbLogger(
-            project="test_supervised", entity="adapt-rul", group=str(trial_uuid)
+            project="test_supervised",
+            entity="adapt-rul",
+            group=str(trial_uuid),
+            tags=[sweep_uuid],
         )
+        logger.experiment.define_metric("val/loss", summary="best", goal="minimize")
         callbacks = [
             pl.callbacks.EarlyStopping(monitor="val/loss", patience=20),
             pl.callbacks.ModelCheckpoint(monitor="val/loss", save_top_k=1),
