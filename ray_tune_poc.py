@@ -1,5 +1,5 @@
-import copy
 import functools
+import random
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -8,30 +8,43 @@ import hydra.utils
 import pytorch_lightning as pl
 import ray
 import rul_datasets
-import wandb
 from ray import tune
 
 import rul_adapt
+import wandb
 
 FIXED_HPARAMS = ["_target_", "input_channels", "seq_len"]
 BATCH_SIZE = 128
 
 
+def _max_layers(config):
+    kernel_size = config["model"]["kernel_size"]
+    seq_len = config["model"]["seq_len"]
+    max_cnn_layers = seq_len // (kernel_size - 1) - 1
+
+    return max_cnn_layers
+
+
 COMMON_SEARCH_SPACE = {
     "lr": tune.qloguniform(1e-5, 1e-2, 1e-5),  # quantized log uniform
-    "fc_units": tune.choice([16, 32, 64, 128]),
-    "feature_channels": tune.choice([16, 32, 64]),
 }
 CNN_SEARCH_SPACE = {
     "_target_": "rul_adapt.model.CnnExtractor",
-    "num_layers": tune.randint(1, 10),
     "kernel_size": tune.choice([3, 5, 7]),
     "dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
+    "units": tune.sample_from(
+        lambda config: [random.choice([16, 32, 64])]
+        * random.randint(1, _max_layers(config))
+    ),
+    "fc_units": tune.choice([16, 32, 64, 128]),
 }
 LSTM_SEARCH_SPACE = {
     "_target_": "rul_adapt.model.LstmExtractor",
-    "num_layers": tune.randint(1, 3),
     "dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
+    "units": tune.sample_from(
+        lambda _: [random.choice([16, 32, 64])] * random.randint(1, 3)
+    ),
+    "fc_units": tune.choice([16, 32, 64, 128]),
 }
 
 
@@ -47,30 +60,30 @@ def tune_backbone(
         str(uuid.uuid4()) if sweep_name is None else f"{sweep_name}-{datetime.now()}"
     )
     if backbone == "cnn":
-        search_space = {**COMMON_SEARCH_SPACE, **CNN_SEARCH_SPACE}
+        search_space = {**COMMON_SEARCH_SPACE, "model": {**CNN_SEARCH_SPACE}}
     elif backbone == "lstm":
-        search_space = {**COMMON_SEARCH_SPACE, **LSTM_SEARCH_SPACE}
+        search_space = {**COMMON_SEARCH_SPACE, "model": {**LSTM_SEARCH_SPACE}}
     else:
         raise ValueError(f"Unknown backbone {backbone}.")
 
     if dataset == "cmapss":
-        search_space["input_channels"] = 14  # fixes input channels
+        search_space["model"]["input_channels"] = 14  # fixes input channels
         if backbone == "cnn":
-            search_space["seq_len"] = 30  # fixes sequence length for CNN
+            search_space["model"]["seq_len"] = 30  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.CmapssReader", "window_size": 30}
         fds = list(range(1, 5))
         resources = {"gpu": 0.25}
     elif dataset == "femto":
-        search_space["input_channels"] = 2  # fixes input channels
+        search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
-            search_space["seq_len"] = 2560  # fixes sequence length for CNN
+            search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.FemtoReader"}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
     elif dataset == "xjtu-sy":
-        search_space["input_channels"] = 2  # fixes input channels
+        search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
-            search_space["seq_len"] = 32768  # fixes sequence length for CNN
+            search_space["model"]["seq_len"] = 32768  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.XjtuSyReader"}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
@@ -122,21 +135,6 @@ def tune_backbone(
 
 
 def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu):
-    config = copy.deepcopy(config)  # ray uses the config later and we modify it here
-
-    if "seq_len" in config:
-        if config["num_layers"] * (config["kernel_size"] - 1) >= config["seq_len"]:
-            # reduce number of layers to fit sequence length
-            config["num_layers"] = config["seq_len"] // (config["kernel_size"] - 1) - 1
-    config["units"] = [config["feature_channels"]] * config["num_layers"]
-
-    lr = config["lr"]
-
-    # remove unnecessary hyperparameters for model instantiation (or hydra crashes)
-    del config["num_layers"]
-    del config["feature_channels"]
-    del config["lr"]
-
     trial_uuid = uuid.uuid4()
     results = []
     for fd in fds:
@@ -144,12 +142,12 @@ def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu):
         source = hydra.utils.instantiate(source_config)
         dm = rul_datasets.RulDataModule(source, BATCH_SIZE)
 
-        backbone = hydra.utils.instantiate(config)
+        backbone = hydra.utils.instantiate(config["model"])
         regressor = rul_adapt.model.FullyConnectedHead(
-            config["fc_units"], [1], act_func_on_last_layer=False
+            config["model"]["fc_units"], [1], act_func_on_last_layer=False
         )
         approach = rul_adapt.approach.SupervisedApproach(
-            loss_type="rmse", optim_type="adam", lr=lr
+            loss_type="rmse", optim_type="adam", lr=config["lr"]
         )
         approach.set_model(backbone, regressor)
 
