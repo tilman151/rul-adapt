@@ -1,6 +1,8 @@
 import copy
 import functools
 import uuid
+from datetime import datetime
+from typing import Optional
 
 import hydra.utils
 import pytorch_lightning as pl
@@ -24,17 +26,26 @@ CNN_SEARCH_SPACE = {
     "_target_": "rul_adapt.model.CnnExtractor",
     "num_layers": tune.randint(1, 10),
     "kernel_size": tune.choice([3, 5, 7]),
-    "conv_dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
+    "dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
 }
 LSTM_SEARCH_SPACE = {
     "_target_": "rul_adapt.model.LstmExtractor",
     "num_layers": tune.randint(1, 3),
-    "lstm_dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
+    "dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
 }
 
 
-def tune_backbone(dataset: str, backbone: str):
-    sweep_uuid = str(uuid.uuid4())
+def tune_backbone(
+    dataset: str,
+    backbone: str,
+    gpu: bool,
+    entity: str,
+    project: str,
+    sweep_name: Optional[str],
+):
+    sweep_uuid = (
+        str(uuid.uuid4()) if sweep_name is None else f"{sweep_name}-{datetime.now()}"
+    )
     if backbone == "cnn":
         search_space = {**COMMON_SEARCH_SPACE, **CNN_SEARCH_SPACE}
     elif backbone == "lstm":
@@ -44,19 +55,25 @@ def tune_backbone(dataset: str, backbone: str):
 
     if dataset == "cmapss":
         search_space["input_channels"] = 14  # fixes input channels
-        search_space["seq_len"] = 30  # fixes sequence length for CNN
+        if backbone == "cnn":
+            search_space["seq_len"] = 30  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.CmapssReader", "window_size": 30}
         fds = list(range(1, 5))
+        resources = {"gpu": 0.25}
     elif dataset == "femto":
         search_space["input_channels"] = 2  # fixes input channels
-        search_space["seq_len"] = 2560  # fixes sequence length for CNN
+        if backbone == "cnn":
+            search_space["seq_len"] = 2560  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.FemtoReader"}
         fds = list(range(1, 4))
+        resources = {"gpu": 0.5}
     elif dataset == "xjtu-sy":
         search_space["input_channels"] = 2  # fixes input channels
-        search_space["seq_len"] = 32768  # fixes sequence length for CNN
+        if backbone == "cnn":
+            search_space["seq_len"] = 32768  # fixes sequence length for CNN
         source_config = {"_target_": "rul_datasets.XjtuSyReader"}
         fds = list(range(1, 4))
+        resources = {"gpu": 0.5}
     else:
         raise ValueError(f"Unknown dataset {dataset}.")
 
@@ -74,8 +91,10 @@ def tune_backbone(dataset: str, backbone: str):
         run_training,
         source_config=source_config,
         fds=fds,
-        backbone=backbone,
         sweep_uuid=sweep_uuid,
+        entity=entity,
+        project=project,
+        gpu=gpu,
     )
     analysis = tune.run(
         tune_func,
@@ -83,7 +102,7 @@ def tune_backbone(dataset: str, backbone: str):
         metric="avg_rmse",  # monitor this metric
         mode="min",  # minimize the metric
         num_samples=100,
-        resources_per_trial={"gpu": 0.25},  # fits 4 trials on a single GPU
+        resources_per_trial=resources if gpu else {"cpu": 4},
         scheduler=scheduler,
         config=search_space,
         progress_reporter=reporter,
@@ -91,8 +110,8 @@ def tune_backbone(dataset: str, backbone: str):
     )
 
     wandb.init(
-        project="test_supervised",
-        entity="adapt-rul",
+        project=project,
+        entity=entity,
         job_type="analysis",
         tags=[sweep_uuid],
     )
@@ -101,18 +120,14 @@ def tune_backbone(dataset: str, backbone: str):
     print("Best hyperparameters found were: ", analysis.best_config)
 
 
-def run_training(config, source_config, fds, backbone, sweep_uuid):
+def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu):
     config = copy.deepcopy(config)  # ray uses the config later and we modify it here
 
-    # TODO: maybe unify argument names in models to avoid this if clause
-    if backbone == "cnn":
+    if "seq_len" in config:
         if config["num_layers"] * (config["kernel_size"] - 1) >= config["seq_len"]:
             # reduce number of layers to fit sequence length
             config["num_layers"] = config["seq_len"] // (config["kernel_size"] - 1) - 1
-        config["conv_filters"] = [config["feature_channels"]] * config["num_layers"]
-    elif backbone == "lstm":
-        config["lstm_units"] = [config["feature_channels"]] * config["num_layers"]
-        del config["seq_len"]
+    config["units"] = [config["feature_channels"]] * config["num_layers"]
 
     lr = config["lr"]
 
@@ -138,8 +153,8 @@ def run_training(config, source_config, fds, backbone, sweep_uuid):
         approach.set_model(backbone, regressor)
 
         logger = pl.loggers.WandbLogger(
-            project="test_supervised",
-            entity="adapt-rul",
+            project=project,
+            entity=entity,
             group=str(trial_uuid),
             tags=[sweep_uuid],
         )
@@ -149,7 +164,10 @@ def run_training(config, source_config, fds, backbone, sweep_uuid):
             pl.callbacks.ModelCheckpoint(monitor="val/loss", save_top_k=1),
         ]
         trainer = pl.Trainer(
-            accelerator="gpu", max_epochs=100, logger=logger, callbacks=callbacks
+            accelerator="gpu" if gpu else "cpu",
+            max_epochs=100,
+            logger=logger,
+            callbacks=callbacks,
         )
 
         trainer.fit(approach, dm)
@@ -169,7 +187,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="cmapss")
     parser.add_argument("--backbone", type=str, default="cnn", choices=["cnn", "lstm"])
+    parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--entity", type=str, default="adapt-rul")
+    parser.add_argument("--project", type=str, default="test_supervised")
+    parser.add_argument("--sweep_name", type=str, default=None)
     opt = parser.parse_args()
 
     ray.init(log_to_driver=False)
-    tune_backbone(opt.dataset, opt.backbone)
+    tune_backbone(
+        opt.dataset, opt.backbone, opt.gpu, opt.entity, opt.project, opt.sweep_name
+    )
