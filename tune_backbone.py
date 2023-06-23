@@ -188,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--backbone", type=str, default="cnn", choices=["cnn", "lstm"])
     parser.add_argument("--gpu", action="store_true")
     parser.add_argument("--entity", type=str, default="adapt-rul")
-    parser.add_argument("--project", type=str, default="test_supervised")
+    parser.add_argument("--project", type=str, default="backbone-tuning")
     parser.add_argument("--sweep_name", type=str, default=None)
     opt = parser.parse_args()
 
