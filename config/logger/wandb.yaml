@@ -1,0 +1,3 @@
+_target_: pytorch_lightning.loggers.WandbLogger
+entity: rul-adapt
+project: adarul

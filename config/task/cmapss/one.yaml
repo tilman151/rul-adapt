@@ -1,0 +1,5 @@
+defaults:
+  - cmapss_base
+
+reader:
+  fd: 1

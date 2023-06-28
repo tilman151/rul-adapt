@@ -1,0 +1,6 @@
+_target_: rul_datasets.RulDataModule
+reader:
+  _target_: rul_datasets.CmapssReader
+  fd: ???
+  window_size: 30
+batch_size: 128

@@ -1,0 +1,26 @@
+# @package _global_
+
+dm:
+  _target_: rul_datasets.DomainAdaptionDataModule
+
+domain_disc:
+  _target_: rul_adapt.model.FullyConnectedHead
+  input_channels: ${feature_extractor.fc_units}
+  units: [1]
+  act_func_on_last_layer: false
+
+accelerator: gpu
+
+pretraining:
+  approach:
+    _target_: rul_adapt.approach.SupervisedApproach
+    lr: 0.001
+    loss_type: rmse
+
+training:
+  approach:
+      _target_: rul_adapt.approach.AdaRulApproach
+      lr: 0.001
+      max_rul: 125
+      num_disc_updates: 35
+      num_gen_updates: 1

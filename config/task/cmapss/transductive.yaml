@@ -1,0 +1,3 @@
+target:
+  reader:
+    percent_broken: 0.8

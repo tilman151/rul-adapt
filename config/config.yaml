@@ -1,0 +1,41 @@
+defaults:
+  - regressor: default
+  - logger: wandb
+  - trainer_base@pretraining.trainer
+  - trainer_base@training.trainer
+  - _self_
+
+source: ???
+target: ???
+dm: ???
+
+feature_extractor: ???
+
+logger: ???
+accelerator: gpu
+test: False
+
+pretraining:
+  trainer:
+    callbacks:
+      - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+        monitor: val/loss
+        mode: min
+        save_top_k: 1
+      - _target_: pytorch_lightning.callbacks.EarlyStopping
+        monitor: val/loss
+        mode: min
+        patience: 20
+
+training:
+  approach: ???
+  trainer:
+    callbacks:
+      - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+        monitor: val/target/rmse/dataloader_idx_1
+        mode: min
+        save_top_k: 1
+      - _target_: pytorch_lightning.callbacks.EarlyStopping
+        monitor: val/target/rmse/dataloader_idx_1
+        mode: min
+        patience: 20

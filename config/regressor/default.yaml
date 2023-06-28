@@ -1,0 +1,4 @@
+_target_: rul_adapt.model.FullyConnectedHead
+input_channels: ${feature_extractor.fc_units}
+units: [1]
+act_func_on_last_layer: false
