@@ -16,6 +16,17 @@ import wandb
 FIXED_HPARAMS = ["_target_", "input_channels", "seq_len"]
 BATCH_SIZE = 128
 
+FEMTO_FTTP = {
+    1: [964, 220, 1803, 230, 342, 1816, 197],
+    2: [118, 352, 349, 828, 88, 772, 247],
+    3: [51, 59, 130],
+}
+XJTU_SY_FTTP = {
+    1: [97, 76, 153, 135, 53],
+    2: [486, 88, 355, 62, 32],
+    3: [2658, 261, 593, 1673, 257],
+}
+
 
 def _max_layers(config):
     kernel_size = config["model"]["kernel_size"]
@@ -73,20 +84,23 @@ def tune_backbone(
         source_config = {"_target_": "rul_datasets.CmapssReader", "window_size": 30}
         fds = list(range(1, 5))
         resources = {"gpu": 0.25}
+        fttp = None
     elif dataset == "femto":
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
-        source_config = {"_target_": "rul_datasets.FemtoReader"}
+        source_config = {"_target_": "rul_datasets.FemtoReader", "norm_rul": True}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
+        fttp = FEMTO_FTTP
     elif dataset == "xjtu-sy":
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 32768  # fixes sequence length for CNN
-        source_config = {"_target_": "rul_datasets.XjtuSyReader"}
+        source_config = {"_target_": "rul_datasets.XjtuSyReader", "norm_rul": True}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
+        fttp = XJTU_SY_FTTP
     else:
         raise ValueError(f"Unknown dataset {dataset}.")
 
@@ -108,6 +122,7 @@ def tune_backbone(
         entity=entity,
         project=project,
         gpu=gpu,
+        fttp=fttp,
     )
     analysis = tune.run(
         tune_func,
@@ -134,11 +149,13 @@ def tune_backbone(
     print("Best hyperparameters found were: ", analysis.best_config)
 
 
-def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu):
+def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu, fttp):
     trial_uuid = uuid.uuid4()
     results = []
     for fd in fds:
         source_config["fd"] = fd
+        if fttp is not None:
+            source_config["first_time_to_predict"] = fttp[fd]
         source = hydra.utils.instantiate(source_config)
         dm = rul_datasets.RulDataModule(source, BATCH_SIZE)
 
