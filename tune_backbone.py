@@ -45,7 +45,7 @@ CNN_SEARCH_SPACE = {
     "dropout": tune.quniform(0.0, 0.5, 0.1),  # quantized uniform
     "units": tune.sample_from(
         lambda config: [random.choice([16, 32, 64])]
-        * random.randint(1, _max_layers(config))
+        * random.randint(1, min(10, _max_layers(config)))
     ),
     "fc_units": tune.choice([16, 32, 64, 128]),
 }
