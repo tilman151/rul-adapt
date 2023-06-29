@@ -52,6 +52,7 @@ class AdaRulApproach(AdaptionApproach):
         num_disc_updates: int,
         num_gen_updates: int,
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -83,6 +84,7 @@ class AdaRulApproach(AdaptionApproach):
         self.num_disc_updates = num_disc_updates
         self.num_gen_updates = num_gen_updates
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self._disc_counter, self._gen_counter = 0, 0
@@ -90,7 +92,9 @@ class AdaRulApproach(AdaptionApproach):
 
         self.gan_loss = nn.BCEWithLogitsLoss()
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

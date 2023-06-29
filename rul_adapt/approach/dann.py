@@ -67,6 +67,7 @@ class DannApproach(AdaptionApproach):
         dann_factor: float,
         loss_type: Literal["mae", "mse", "rmse"] = "mae",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ):
         """
@@ -97,12 +98,15 @@ class DannApproach(AdaptionApproach):
         self.dann_factor = dann_factor
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
         self.train_source_loss = utils.get_loss(self.loss_type)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

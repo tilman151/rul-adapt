@@ -74,6 +74,7 @@ class ConsistencyApproach(AdaptionApproach):
         max_epochs: int,
         loss_type: Literal["mse", "mae", "rmse"] = "rmse",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -105,12 +106,15 @@ class ConsistencyApproach(AdaptionApproach):
         self.max_epochs = max_epochs
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(loss_type)
         self.consistency_loss = rul_adapt.loss.ConsistencyLoss()
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

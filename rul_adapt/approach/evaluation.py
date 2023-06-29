@@ -61,27 +61,12 @@ class AdaptionEvaluator(nn.Module):
         domain: Literal["source", "target"],
     ) -> None:
         self._check_domain(domain, prefix)
-        features, labels = self._filter_batch(*batch)
+        features, labels = filter_batch(*batch, degraded_only=self.degraded_only)
         labels = labels[:, None]
         predictions = self.network_func(features)
         for metric_name, metric in metrics[domain].items():
             metric(predictions, labels)
             self.log_func(f"{prefix}/{domain}/{metric_name}", metric)
-
-    def _filter_batch(
-        self, features: torch.Tensor, labels: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if self.degraded_only:
-            if torch.any(labels > 1.0):
-                raise RuntimeError(
-                    "Degradation-only evaluation configured which works only with "
-                    "normalized RUL, but labels contain values greater than 1.0."
-                )
-            degraded = labels < 1.0
-            features = features[degraded]
-            labels = labels[degraded]
-
-        return features, labels
 
     def _check_domain(self, domain: str, prefix: str) -> None:
         if domain not in ["source", "target"]:
@@ -89,3 +74,19 @@ class AdaptionEvaluator(nn.Module):
                 f"Unexpected {prefix} domain '{domain}'. "
                 "Use either 'source' or 'target'."
             )
+
+
+def filter_batch(
+    features: torch.Tensor, labels: torch.Tensor, degraded_only: bool = False
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    if degraded_only:
+        if torch.any(labels > 1.0):
+            raise RuntimeError(
+                "Degradation-only evaluation configured which works only with "
+                "normalized RUL, but labels contain values greater than 1.0."
+            )
+        degraded = labels < 1.0
+        features = features[degraded]
+        labels = labels[degraded]
+
+    return features, labels
