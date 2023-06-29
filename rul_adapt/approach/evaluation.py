@@ -61,7 +61,8 @@ class AdaptionEvaluator(nn.Module):
         domain: Literal["source", "target"],
     ) -> None:
         self._check_domain(domain, prefix)
-        features, labels = filter_batch(*batch, degraded_only=self.degraded_only)
+        features, labels = batch
+        features, labels = filter_batch(features, labels, self.degraded_only)
         labels = labels[:, None]
         predictions = self.network_func(features)
         for metric_name, metric in metrics[domain].items():
