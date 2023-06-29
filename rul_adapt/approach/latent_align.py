@@ -345,6 +345,7 @@ class LatentAlignApproach(AdaptionApproach):
         alpha_fusion: float,
         loss_type: Literal["mse", "mae", "rmse"] = "mse",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -374,6 +375,7 @@ class LatentAlignApproach(AdaptionApproach):
         self.alpha_fusion = alpha_fusion
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         # training metrics
@@ -384,7 +386,9 @@ class LatentAlignApproach(AdaptionApproach):
         self.fusion_align = rul_adapt.loss.MaximumMeanDiscrepancyLoss(num_kernels=5)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

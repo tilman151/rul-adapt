@@ -45,6 +45,7 @@ class ConditionalMmdApproach(AdaptionApproach):
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -75,6 +76,7 @@ class ConditionalMmdApproach(AdaptionApproach):
         self.dynamic_adaptive_factor = dynamic_adaptive_factor
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
@@ -90,7 +92,9 @@ class ConditionalMmdApproach(AdaptionApproach):
             conditional_mmd_losses, fuzzy_sets, mean_over_sets=True
         )
 
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 
@@ -221,6 +225,7 @@ class ConditionalDannApproach(AdaptionApproach):
         fuzzy_sets: List[Tuple[float, float]],
         loss_type: Literal["mse", "rmse", "mae"] = "mae",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -255,11 +260,14 @@ class ConditionalDannApproach(AdaptionApproach):
         self.loss_type = loss_type
         self._fuzzy_sets = fuzzy_sets
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self.train_source_loss = utils.get_loss(self.loss_type)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log, self.rul_score_mode)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

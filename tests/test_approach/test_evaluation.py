@@ -106,3 +106,24 @@ def test_metric_aggregation(lightning_module, eval_func):
 
             npt.assert_almost_equal(exp_rmse, actual_rmse, decimal=5)
             npt.assert_almost_equal(exp_score, actual_score, decimal=5)
+
+
+@pytest.mark.parametrize(
+    ["step_func", "prefix"], [("validation", "val"), ("test", "test")]
+)
+@pytest.mark.parametrize("domain", ["source", "target"])
+def test_degraded_only_evaluation(mocked_evaluator, domain, prefix, step_func):
+    mocked_evaluator.degraded_only = True
+    healthy_lables = torch.ones(5)
+    healthy_features = torch.ones(5, 3, 5)
+    degraded_labels = torch.rand(5)  # smaller than 1.0
+    degraded_features = torch.zeros(5, 3, 5)
+    batch = [
+        torch.cat([healthy_features, degraded_features]),
+        torch.cat([healthy_lables, degraded_labels]),
+    ]
+
+    getattr(mocked_evaluator, step_func)(batch, domain)
+
+    (actual_network_input,) = mocked_evaluator.network_func.call_args.args
+    assert torch.dist(actual_network_input, degraded_features) == 0.0

@@ -57,6 +57,7 @@ class MmdApproach(AdaptionApproach):
         num_mmd_kernels: int = 5,
         loss_type: Literal["mse", "rmse", "mae"] = "mse",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -83,13 +84,16 @@ class MmdApproach(AdaptionApproach):
         self.num_mmd_kernels = num_mmd_kernels
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         # training metrics
         self.train_source_loss = utils.get_loss(self.loss_type)
         self.mmd_loss = rul_adapt.loss.MaximumMeanDiscrepancyLoss(self.num_mmd_kernels)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
-        self.evaluator = AdaptionEvaluator(self.forward, self.log)
+        self.evaluator = AdaptionEvaluator(
+            self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
+        )
 
         self.save_hyperparameters()
 

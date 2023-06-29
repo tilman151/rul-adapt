@@ -13,6 +13,7 @@ import torchmetrics
 
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
+from rul_adapt.approach.evaluation import filter_batch
 
 
 class SupervisedApproach(AdaptionApproach):
@@ -38,6 +39,7 @@ class SupervisedApproach(AdaptionApproach):
         self,
         loss_type: Literal["mse", "mae", "rmse"],
         rul_scale: int = 1,
+        evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -58,6 +60,7 @@ class SupervisedApproach(AdaptionApproach):
 
         self.loss_type = loss_type
         self.rul_scale = rul_scale
+        self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
 
         self.train_loss = utils.get_loss(loss_type)
@@ -109,7 +112,7 @@ class SupervisedApproach(AdaptionApproach):
             batch: A list of feature and label tensors.
             batch_idx: The index of the current batch.
         """
-        inputs, labels = batch
+        inputs, labels = filter_batch(*batch, degraded_only=self.evaluate_degraded_only)
         predictions = self.forward(inputs)
         self.val_loss(predictions, labels[:, None])
         self.log("val/loss", self.val_loss)
