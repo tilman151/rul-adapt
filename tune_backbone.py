@@ -78,6 +78,7 @@ def tune_backbone(
         raise ValueError(f"Unknown backbone {backbone}.")
 
     if dataset == "cmapss":
+        search_space["evaluate_degraded_only"] = False
         search_space["model"]["input_channels"] = 14  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 30  # fixes sequence length for CNN
@@ -86,6 +87,7 @@ def tune_backbone(
         resources = {"gpu": 0.25}
         fttp = None
     elif dataset == "femto":
+        search_space["evaluate_degraded_only"] = True
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
@@ -94,6 +96,7 @@ def tune_backbone(
         resources = {"gpu": 0.5}
         fttp = FEMTO_FTTP
     elif dataset == "xjtu-sy":
+        search_space["evaluate_degraded_only"] = True
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 32768  # fixes sequence length for CNN
@@ -164,7 +167,10 @@ def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu, f
             config["model"]["fc_units"], [1], act_func_on_last_layer=False
         )
         approach = rul_adapt.approach.SupervisedApproach(
-            loss_type="rmse", optim_type="adam", lr=config["lr"]
+            loss_type="rmse",
+            optim_type="adam",
+            lr=config["lr"],
+            evaluate_degraded_only=config["evaluate_degraded_only"],
         )
         approach.set_model(backbone, regressor)
 
