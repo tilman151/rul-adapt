@@ -40,8 +40,10 @@ def test_skewness(inputs_normal):
 
 def test_kurtosis(inputs_normal):
     kurt = tbigru.kurtosis(inputs_normal)
+    exp_kurtosis = scipy.stats.kurtosis(inputs_normal, axis=-2, fisher=False)
     _assert_shape(kurt)
     npt.assert_almost_equal(kurt, 3, decimal=0)  # value for standard normal
+    npt.assert_almost_equal(kurt, exp_kurtosis, decimal=1)
 
 
 def test_impulse_factor(inputs_uniform):

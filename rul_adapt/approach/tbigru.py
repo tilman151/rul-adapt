@@ -25,6 +25,7 @@ from typing import List, Tuple, Optional
 
 import numpy as np
 import pywt  # type: ignore
+import scipy.stats  # type: ignore
 from dtaidistance import dtw  # type: ignore
 from rul_datasets.reader import AbstractReader
 from rul_datasets.utils import extract_windows
@@ -68,11 +69,7 @@ def max_absolute(inputs: np.ndarray) -> np.ndarray:
 
 
 def kurtosis(inputs: np.ndarray) -> np.ndarray:
-    sdev = inputs.std()
-    mean = inputs.mean(axis=-2, keepdims=True)
-    kurt = np.sum((inputs - mean) ** 4, axis=-2) / (inputs.shape[-2] * sdev**2)
-
-    return kurt
+    return scipy.stats.kurtosis(inputs, axis=-2, fisher=False)
 
 
 def std(inputs: np.ndarray) -> np.ndarray:
