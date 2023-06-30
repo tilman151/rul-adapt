@@ -1,0 +1,5 @@
+# @package _global_
+
+defaults:
+  - /${dataset}/four@source
+  - /${dataset}/two@target

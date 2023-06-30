@@ -1,0 +1,4 @@
+# @package feature_extractor
+
+input_channels: 2
+seq_len: 2560

@@ -1,0 +1,4 @@
+target:
+  reader:
+    percent_broken: 0.5
+    truncate_degraded_only: True

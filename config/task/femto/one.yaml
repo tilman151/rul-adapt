@@ -1,0 +1,6 @@
+defaults:
+  - femto_base
+
+reader:
+  fd: 1
+  first_time_to_predict: [407, 544, 521, 840, 2306, 479, 995]

@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+  - /${dataset}/cnn
+
+_target_: rul_adapt.model.CnnExtractor
+input_channels: ???
+units: [16, 16]
+fc_units: 16
+seq_len: ???

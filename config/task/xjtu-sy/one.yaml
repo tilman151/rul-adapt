@@ -1,0 +1,6 @@
+defaults:
+  - xjtu_sy_base
+
+reader:
+  fd: 1
+  first_time_to_predict: [28, 32, 61, 52, 36]

@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - two@source
-  - one@target
-  - transductive
