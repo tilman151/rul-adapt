@@ -1,2 +1,6 @@
-# emtpy stub to specify the dataset
+# @package _global_
+#
+# empty stub to specify the dataset
 # the finally used data is determined by the dataset-task combination
+
+dataset: cmapss
