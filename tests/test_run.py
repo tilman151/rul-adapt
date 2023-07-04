@@ -38,9 +38,10 @@ class TestConfigComposition:
             else:
                 _compose_and_resolve(overrides)
 
+    @pytest.mark.integration
     @pytest.mark.parametrize("source_fd", ["one", "two", "three", "four"])
     @pytest.mark.parametrize("target_fd", ["one", "two", "three", "four"])
-    def test_cmapss(self, source_fd, target_fd, adaption_mode, approach, tmp_path):
+    def test_cmapss_run(self, source_fd, target_fd, adaption_mode, approach, tmp_path):
         if source_fd == target_fd:
             pytest.skip("source_fd == target_fd")
         with hydra.initialize(config_path="../config", version_base="1.2"):
@@ -55,8 +56,8 @@ class TestConfigComposition:
                 "pretraining.trainer.logger=False",
                 "training.trainer.logger=False",
                 "accelerator=cpu",
-                f"pretraining.trainer.callbacks.0.dirpath={tmp_path.as_posix()}",
-                f"training.trainer.callbacks.0.dirpath={tmp_path.as_posix()}",
+                f"+pretraining.trainer.callbacks.0.dirpath={tmp_path.as_posix()}",
+                f"+training.trainer.callbacks.0.dirpath={tmp_path.as_posix()}",
             ]
             config = _compose_and_resolve(overrides)
             runner = utils.str2callable(config["runner"], restriction="rul_adapt.run")
