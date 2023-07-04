@@ -4,4 +4,4 @@ training:
       mmd_factor: 1.0
       num_mmd_kernels: 5
       dynamic_adaptive_factor: 0.5
-      fuzzy_sets: [(0, 50), (25, 75), (50, 126)]
+      fuzzy_sets: [[0, 50], [25, 75], [50, 126]]

@@ -1,5 +1,10 @@
 # @package _global_
 
+defaults:
+  - approach_base
+
+runner: rul_adapt.run.mmd
+
 dm:
   _target_: rul_datasets.LatentAlignDataModule
 

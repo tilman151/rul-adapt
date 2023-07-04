@@ -3,6 +3,8 @@
 defaults:
   - approach_base
 
+runner: rul_adapt.run.dann
+
 dm:
   _target_: rul_datasets.DomainAdaptionDataModule
 

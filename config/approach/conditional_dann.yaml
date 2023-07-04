@@ -1,5 +1,10 @@
 # @package _global_
 
+defaults:
+  - approach_base
+
+runner: rul_adapt.run.dann
+
 dm:
   _target_: rul_datasets.DomainAdaptionDataModule
 
@@ -11,7 +16,7 @@ domain_disc:
 
 training:
   approach:
-      _target_: rul_adapt.approach.DannApproach
+      _target_: rul_adapt.approach.ConditionalDannApproach
       lr: ???
       dann_factor: ???
       dynamic_adaptive_factor: ???

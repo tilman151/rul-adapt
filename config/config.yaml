@@ -6,6 +6,8 @@ defaults:
   - trainer_base@training.trainer
   - _self_
 
+runner: ??? # rul_adapt.run.[adarul, dann, mmd, pseudo_labels]
+
 source: ???
 target: ???
 dm: ???
