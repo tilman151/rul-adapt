@@ -6,7 +6,7 @@ dm:
 domain_disc:
   _target_: rul_adapt.model.FullyConnectedHead
   input_channels: ${feature_extractor.fc_units}
-  units: [1]
+  units: ???
   act_func_on_last_layer: false
 
 pretraining:
@@ -17,8 +17,8 @@ pretraining:
 
 training:
   approach:
-      _target_: rul_adapt.approach.AdaRulApproach
+      _target_: rul_adapt.approach.ConsistencyApproach
       lr: ???
-      max_rul: ???
-      num_disc_updates: ???
-      num_gen_updates: ???
+      consistency_factor: ???
+      max_epochs: ${training.trainer.max_epochs}
+      loss_type: rmse

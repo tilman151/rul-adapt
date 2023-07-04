@@ -1,0 +1,16 @@
+# @package _global_
+
+dm:
+  _target_: rul_datasets.DomainAdaptionDataModule
+
+pretraining:
+  approach:
+    _target_: rul_adapt.approach.SupervisedApproach
+    lr: ???
+    loss_type: rmse
+
+training:
+  approach:
+      _target_: rul_adapt.approach.SupervisedApproach
+      lr: ???
+      loss_type: rmse

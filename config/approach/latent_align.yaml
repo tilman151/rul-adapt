@@ -1,0 +1,14 @@
+# @package _global_
+
+dm:
+  _target_: rul_datasets.LatentAlignDataModule
+
+training:
+  approach:
+      _target_: rul_adapt.approach.LatentAlignApproach
+      lr: ???
+      alpha_healthy: ???
+      alpha_direction: ???
+      alpha_level: ???
+      alpha_fusion: ???
+      loss_type: rmse

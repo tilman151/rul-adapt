@@ -1,0 +1,12 @@
+# @package _global_
+
+dm:
+  _target_: rul_datasets.DomainAdaptionDataModule
+
+training:
+  approach:
+      _target_: rul_adapt.approach.MmdApproach
+      lr: ???
+      mmd_factor: ???
+      num_mmd_kernels: ???
+      loss_type: rmse

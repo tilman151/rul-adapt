@@ -6,19 +6,14 @@ dm:
 domain_disc:
   _target_: rul_adapt.model.FullyConnectedHead
   input_channels: ${feature_extractor.fc_units}
-  units: [1]
+  units: ???
   act_func_on_last_layer: false
-
-pretraining:
-  approach:
-    _target_: rul_adapt.approach.SupervisedApproach
-    lr: ???
-    loss_type: rmse
 
 training:
   approach:
-      _target_: rul_adapt.approach.AdaRulApproach
+      _target_: rul_adapt.approach.DannApproach
       lr: ???
-      max_rul: ???
-      num_disc_updates: ???
-      num_gen_updates: ???
+      dann_factor: ???
+      dynamic_adaptive_factor: ???
+      fuzzy_sets: ???
+      loss_type: rmse
