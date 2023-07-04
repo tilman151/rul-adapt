@@ -33,9 +33,11 @@ def pseudo_labels(config: Dict[str, Any]):
 
 
 def _get_adaption_dataloader(approach, dm):
-    pseudo_rul = rul_adapt.approach.generate_pseudo_labels(dm.target, approach)
-    pseudo_rul = [max(0.0, pr) for pr in pseudo_rul]
-    rul_adapt.approach.patch_pseudo_labels(dm.target, pseudo_rul)
+    pseudo_rul = rul_adapt.approach.generate_pseudo_labels(
+        dm.target, approach, dm.inductive
+    )
+    pseudo_rul = [min(dm.target.reader.max_rul, max(0.0, pr)) for pr in pseudo_rul]
+    rul_adapt.approach.patch_pseudo_labels(dm.target, pseudo_rul, dm.inductive)
 
     source_data = dm.source.to_dataset("dev")
     target_data = dm.target.to_dataset("test" if dm.inductive else "dev", alias="dev")
