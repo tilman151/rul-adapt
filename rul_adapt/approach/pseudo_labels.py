@@ -54,7 +54,7 @@ import torch
 
 
 def generate_pseudo_labels(
-    dm: rul_datasets.RulDataModule, model: torch.nn.Module
+    dm: rul_datasets.RulDataModule, model: torch.nn.Module, inductive: bool = False
 ) -> List[float]:
     """
     Generate pseudo labels for the dev set of a data module.
@@ -67,11 +67,13 @@ def generate_pseudo_labels(
     Args:
         dm: The data module to generate pseudo labels for.
         model: The model to use for generating the pseudo labels.
+        inductive: Whether to generate pseudo labels for inductive adaption,
+                   i.e., use 'test' instead of 'dev' split.
 
     Returns:
         A list of pseudo labels for the dev set of the data module.
     """
-    features, _ = dm.load_split("dev")
+    features, _ = dm.load_split("test" if inductive else "dev", alias="dev")
     last_timestep = torch.stack([f[-1] for f in features])
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
@@ -91,7 +93,7 @@ def generate_pseudo_labels(
 
 
 def patch_pseudo_labels(
-    dm: rul_datasets.RulDataModule, pseudo_labels: List[float]
+    dm: rul_datasets.RulDataModule, pseudo_labels: List[float], inductive: bool = False
 ) -> None:
     """
     Patch a data module with pseudo labels in-place.
@@ -105,13 +107,15 @@ def patch_pseudo_labels(
     Args:
         dm: The data module to patch.
         pseudo_labels: The pseudo labels to use for patching the data module.
+        inductive: Whether to generate pseudo labels for inductive adaption,
+                   i.e., use 'test' instead of 'dev' split.
     """
     if isinstance(dm.reader, _PseudoLabelReader):
         raise RuntimeError(
             "The data module has already been patched with pseudo labels. "
             "Please instantiate a fresh one."
         )
-    dm._reader = _PseudoLabelReader(dm.reader, pseudo_labels)
+    dm._reader = _PseudoLabelReader(dm.reader, pseudo_labels, inductive)
     dm.setup()  # overwrites any previously loaded data
 
 
@@ -119,7 +123,10 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
     """Reader to wrap another reader and replace the RUL targets of the dev set."""
 
     def __init__(
-        self, reader: rul_datasets.reader.AbstractReader, pseudo_labels: List[float]
+        self,
+        reader: rul_datasets.reader.AbstractReader,
+        pseudo_labels: List[float],
+        inductive: bool,
     ) -> None:
         super().__init__(
             reader.fd,
@@ -143,6 +150,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
 
         self._reader = reader
         self._pseudo_labels = pseudo_labels
+        self._inductive = inductive
 
     @property
     def first_time_to_predict(self) -> Optional[List[int]]:
@@ -156,9 +164,10 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         if self.first_time_to_predict is None:
             return None
         else:
+            split = "test" if self._inductive else "dev"
             return [
                 self.first_time_to_predict[i - 1]
-                for i in self._reader._preparator.run_split_dist["dev"]  # type: ignore
+                for i in self._reader._preparator.run_split_dist[split]  # type: ignore
             ]
 
     @property
