@@ -153,6 +153,10 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         self._inductive = inductive
 
     @property
+    def _patched_split(self) -> str:
+        return "test" if self._inductive else "dev"
+
+    @property
     def first_time_to_predict(self) -> Optional[List[int]]:
         if hasattr(self._reader, "first_time_to_predict"):
             return self._reader.first_time_to_predict
@@ -164,7 +168,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         if self.first_time_to_predict is None:
             return None
         else:
-            split = "test" if self._inductive else "dev"
+            split = self._patched_split
             return [
                 self.first_time_to_predict[i - 1]
                 for i in self._reader._preparator.run_split_dist[split]  # type: ignore
@@ -192,7 +196,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
     ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
         alias = alias or split
         features, targets = self._reader.load_split(split, alias)
-        if alias == "dev":
+        if split == self._patched_split and alias == "dev":
             targets = self._get_pseudo_labels(features)
 
         return features, targets
