@@ -85,6 +85,19 @@ class TestPseudoLabelReader:
         with pytest.raises(RuntimeError):
             pl_reader.load_split("dev", "dev")
 
+    def test_inductive_dev_split_selection(self):
+        reader = rul_datasets.reader.DummyReader(1)
+        pseudo_labels = [5.0] * 10
+        pl_reader = _PseudoLabelReader(reader, pseudo_labels, inductive=True)
+
+        # test split used for training
+        _, targets = pl_reader.load_split("test", alias="dev")
+        assert all(t[-1] == 5.0 for t in targets)  # all pseudo labels are 5.0
+
+        # test split used for testing
+        _, targets = pl_reader.load_split("test")
+        assert not all(t[-1] == 5.0 for t in targets)  # pseudo labels are not applied
+
     @pytest.mark.parametrize(
         ["inductive", "exp_split"], [(True, "test"), (False, "dev")]
     )
