@@ -13,10 +13,13 @@ from rul_adapt.model import CnnExtractor
 @pytest.mark.parametrize("fc_units", [4, None])
 @pytest.mark.parametrize("padding", [True, False])
 @pytest.mark.parametrize("dilation", [1, 2])
+@pytest.mark.parametrize("stride", [1, 2])
 @pytest.mark.parametrize("batch_norm", [True, False])
 def test_forward(
-    inputs, conv_filters, kernel_size, fc_units, padding, dilation, batch_norm
+    inputs, conv_filters, kernel_size, fc_units, padding, dilation, stride, batch_norm
 ):
+    if stride > 1 and padding:
+        pytest.skip()  # combination not supported by torch
     input_channels = inputs.shape[1]
     cnn = CnnExtractor(
         input_channels,
@@ -26,6 +29,7 @@ def test_forward(
         padding=padding,
         fc_units=fc_units,
         dilation=dilation,
+        stride=stride,
         batch_norm=batch_norm,
     )
     output_channels = fc_units or cnn._get_flat_dim()
@@ -79,6 +83,16 @@ def test_dilation(inputs):
         assert module[0].dilation == (2,)
 
     _check_each_conv_layer(cnn, _check_dilation)
+
+
+def test_stride(inputs):
+    input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
+    cnn = CnnExtractor(input_channels, [num_filters], seq_len, stride=2)
+
+    def _check_stride(module, _):
+        assert module[0].stride == (2,)
+
+    _check_each_conv_layer(cnn, _check_stride)
 
 
 def test_conv_dropout(inputs):
