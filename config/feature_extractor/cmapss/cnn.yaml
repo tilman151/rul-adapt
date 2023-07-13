@@ -1,4 +1,8 @@
 # @package feature_extractor
 
 input_channels: 14
+units: [32, 32]
+kernel_size: 3
+fc_units: 32
+dropout: 0.1
 seq_len: 30

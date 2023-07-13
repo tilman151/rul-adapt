@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+  - /${dataset}/lstm
+
+_target_: rul_adapt.model.LstmExtractor
+input_channels: 14
+units: [16]
+fc_units: 16
+dropout: 0.2
