@@ -12,8 +12,11 @@ from rul_adapt.model import CnnExtractor
 @pytest.mark.parametrize("kernel_size", [2, 3, 4, 5, [3, 1]])
 @pytest.mark.parametrize("fc_units", [4, None])
 @pytest.mark.parametrize("padding", [True, False])
+@pytest.mark.parametrize("dilation", [1, 2])
 @pytest.mark.parametrize("batch_norm", [True, False])
-def test_forward(inputs, conv_filters, kernel_size, fc_units, padding, batch_norm):
+def test_forward(
+    inputs, conv_filters, kernel_size, fc_units, padding, dilation, batch_norm
+):
     input_channels = inputs.shape[1]
     cnn = CnnExtractor(
         input_channels,
@@ -22,6 +25,7 @@ def test_forward(inputs, conv_filters, kernel_size, fc_units, padding, batch_nor
         kernel_size=kernel_size,
         padding=padding,
         fc_units=fc_units,
+        dilation=dilation,
         batch_norm=batch_norm,
     )
     output_channels = fc_units or cnn._get_flat_dim()
@@ -47,7 +51,7 @@ def test_conv_layers(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len)
 
-    def _check_conv_layer(module, module_name):
+    def _check_conv_layer(module, _):
         assert len(module) == 2
         assert isinstance(module[0], nn.Conv1d)
         assert module[0].bias is not None
@@ -59,12 +63,22 @@ def test_batch_norm(inputs):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len, batch_norm=True)
 
-    def _check_batch_norm(module, module_name):
+    def _check_batch_norm(module, _):
         assert len(module) == 3
         assert isinstance(module[1], nn.BatchNorm1d)
         assert module[0].bias is None
 
     _check_each_conv_layer(cnn, _check_batch_norm)
+
+
+def test_dilation(inputs):
+    input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
+    cnn = CnnExtractor(input_channels, [num_filters], seq_len, dilation=2)
+
+    def _check_dilation(module, _):
+        assert module[0].dilation == (2,)
+
+    _check_each_conv_layer(cnn, _check_dilation)
 
 
 def test_conv_dropout(inputs):
@@ -88,7 +102,7 @@ def test_conv_act_func(inputs, conv_act_func):
     input_channels, seq_len, num_filters = inputs.shape[1], 30, 16
     cnn = CnnExtractor(input_channels, [num_filters], seq_len, act_func=conv_act_func)
 
-    def _check_act_func(module, module_name):
+    def _check_act_func(module, _):
         assert isinstance(module[-1], nn.LeakyReLU)
 
     _check_each_conv_layer(cnn, _check_act_func)
