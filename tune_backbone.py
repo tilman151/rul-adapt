@@ -2,7 +2,7 @@ import functools
 import random
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import hydra.utils
 import pytorch_lightning as pl
@@ -31,7 +31,13 @@ XJTU_SY_FTTP = {
 def _max_layers(config):
     kernel_size = config["model"]["kernel_size"]
     seq_len = config["model"]["seq_len"]
-    max_cnn_layers = seq_len // (kernel_size - 1) - 1
+    dilation = config["model"]["dilation"]
+    stride = config["model"]["stride"]
+    cut_off = dilation * (kernel_size - 1)
+    max_cnn_layers = -1
+    while seq_len > 0:
+        seq_len = (seq_len - cut_off - 1) // stride + 1
+        max_cnn_layers += 1
 
     return max_cnn_layers
 
@@ -48,6 +54,8 @@ CNN_SEARCH_SPACE = {
         * random.randint(1, min(10, _max_layers(config)))
     ),
     "fc_units": tune.choice([16, 32, 64, 128]),
+    "dilation": 1,
+    "stride": 1,
 }
 LSTM_SEARCH_SPACE = {
     "_target_": "rul_adapt.model.LstmExtractor",
@@ -91,6 +99,8 @@ def tune_backbone(
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
+            search_space["model"]["dilation"] = 2  # fixes convolution dilation
+            search_space["model"]["stride"] = 2  # fixes convolution stride
         source_config = {"_target_": "rul_datasets.FemtoReader", "norm_rul": True}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
@@ -100,6 +110,8 @@ def tune_backbone(
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 32768  # fixes sequence length for CNN
+            search_space["model"]["dilation"] = 2  # fixes convolution dilation
+            search_space["model"]["stride"] = 2  # fixes convolution stride
         source_config = {"_target_": "rul_datasets.XjtuSyReader", "norm_rul": True}
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
