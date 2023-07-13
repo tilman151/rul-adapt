@@ -50,6 +50,7 @@ class CnnExtractor(nn.Module):
         units: List[int],
         seq_len: int,
         kernel_size: Union[int, List[int]] = 3,
+        dilation: int = 1,
         padding: bool = False,
         fc_units: Optional[int] = None,
         dropout: float = 0.0,
@@ -82,6 +83,7 @@ class CnnExtractor(nn.Module):
             seq_len: The window_size of the input data.
             kernel_size: The kernel size for the CNN layers. Passing an integer uses
                          the same kernel size for each layer.
+            dilation: The dilation for the CNN layers.
             padding: Whether to apply same-padding before each CNN layer.
             fc_units: Number of output units for the fully connected layer.
             dropout: The dropout probability for the CNN layers.
@@ -96,6 +98,7 @@ class CnnExtractor(nn.Module):
         self.units = units
         self.seq_len = seq_len
         self.kernel_size = kernel_size
+        self.dilation = dilation
         self.padding = padding
         self.fc_units = fc_units
         self.dropout = dropout
@@ -140,6 +143,7 @@ class CnnExtractor(nn.Module):
                 input_channels,
                 output_channels,
                 kernel_size,
+                dilation=self.dilation,
                 bias=not self.batch_norm,
                 padding=self._get_padding(),
             )
@@ -166,7 +170,7 @@ class CnnExtractor(nn.Module):
         if self.padding:
             less_per_conv = [0] * len(self.units)
         else:
-            less_per_conv = [ks - 1 for ks in self._kernel_sizes]
+            less_per_conv = [self.dilation * (ks - 1) for ks in self._kernel_sizes]
         after_conv = self.seq_len - sum(less_per_conv)
         flat_dim = after_conv * self.units[-1]
 
