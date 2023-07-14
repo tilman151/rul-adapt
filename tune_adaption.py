@@ -66,6 +66,7 @@ def tune_adaption(
         config=search_space,
         progress_reporter=reporter,
         fail_fast=True,  # stop on first error
+        chdir_to_trial_dir=False,
     )
 
     wandb.init(
