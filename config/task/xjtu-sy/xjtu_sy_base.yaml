@@ -1,7 +1,10 @@
 _target_: rul_datasets.RulDataModule
 reader:
-  _target_: rul_datasets.FemtoReader
+  _target_: rul_datasets.XjtuSyReader
   fd: ???
   window_size: 2560
   norm_rul: True
 batch_size: 128
+feature_extractor:
+  _target_: rul_adapt.run.utils.XjtuSyExtractor
+  window_size: 2560
