@@ -2,12 +2,11 @@ import functools
 import random
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 
 import hydra.utils
 import pytorch_lightning as pl
 import ray
-import rul_datasets
 from ray import tune
 
 import rul_adapt
@@ -67,6 +66,15 @@ LSTM_SEARCH_SPACE = {
 }
 
 
+def xjtu_sy_reshape(features, targets):
+    num_slices = features.shape[1] // 2560
+    cutoff = num_slices * 2560
+    features = features[:, :cutoff].reshape(-1, 2560, 2)
+    targets = targets.repeat(num_slices)
+
+    return features, targets
+
+
 def tune_backbone(
     dataset: str,
     backbone: str,
@@ -90,7 +98,11 @@ def tune_backbone(
         search_space["model"]["input_channels"] = 14  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 30  # fixes sequence length for CNN
-        source_config = {"_target_": "rul_datasets.CmapssReader", "window_size": 30}
+        source_config = {
+            "_target_": "rul_datasets.RulDataModule",
+            "reader": {"_target_": "rul_datasets.CmapssReader", "window_size": 30},
+            "batch_size": BATCH_SIZE,
+        }
         fds = list(range(1, 5))
         resources = {"gpu": 0.25}
         fttp = None
@@ -99,9 +111,12 @@ def tune_backbone(
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
             search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
-            search_space["model"]["dilation"] = 2  # fixes convolution dilation
             search_space["model"]["stride"] = 2  # fixes convolution stride
-        source_config = {"_target_": "rul_datasets.FemtoReader", "norm_rul": True}
+        source_config = {
+            "_target_": "rul_datasets.RulDataModule",
+            "reader": {"_target_": "rul_datasets.FemtoReader", "norm_rul": True},
+            "batch_size": BATCH_SIZE,
+        }
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
         fttp = FEMTO_FTTP
@@ -109,10 +124,14 @@ def tune_backbone(
         search_space["evaluate_degraded_only"] = True
         search_space["model"]["input_channels"] = 2  # fixes input channels
         if backbone == "cnn":
-            search_space["model"]["seq_len"] = 32768  # fixes sequence length for CNN
-            search_space["model"]["dilation"] = 2  # fixes convolution dilation
+            search_space["model"]["seq_len"] = 2560  # fixes sequence length for CNN
             search_space["model"]["stride"] = 2  # fixes convolution stride
-        source_config = {"_target_": "rul_datasets.XjtuSyReader", "norm_rul": True}
+        source_config = {
+            "_target_": "rul_datasets.RulDataModule",
+            "reader": {"_target_": "rul_datasets.XjtuSyReader", "norm_rul": True},
+            "batch_size": BATCH_SIZE,
+            "feature_extractor": xjtu_sy_reshape,
+        }
         fds = list(range(1, 4))
         resources = {"gpu": 0.5}
         fttp = XJTU_SY_FTTP
@@ -168,11 +187,10 @@ def run_training(config, source_config, fds, sweep_uuid, entity, project, gpu, f
     trial_uuid = uuid.uuid4()
     results = []
     for fd in fds:
-        source_config["fd"] = fd
+        source_config["reader"]["fd"] = fd
         if fttp is not None:
-            source_config["first_time_to_predict"] = fttp[fd]
-        source = hydra.utils.instantiate(source_config)
-        dm = rul_datasets.RulDataModule(source, BATCH_SIZE)
+            source_config["reader"]["first_time_to_predict"] = fttp[fd]
+        dm = hydra.utils.instantiate(source_config)
 
         backbone = hydra.utils.instantiate(config["model"])
         regressor = rul_adapt.model.FullyConnectedHead(
