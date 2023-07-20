@@ -24,6 +24,7 @@ dtaidistance = "^2.3.10"
 ray = {extras = ["tune"], version = "^2.5.0"}
 protobuf = "^3.20.0"
 wandb = "^0.15.4"
+scikit-posthocs = "^0.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = {extras = ["d"], version = "^22.8.0"}
