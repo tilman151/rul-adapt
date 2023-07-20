@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - /${dataset}/cnn
+  - /${dataset}/cnn@_here_
 
 _target_: rul_adapt.model.CnnExtractor
 input_channels: ???
