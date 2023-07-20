@@ -14,6 +14,16 @@ from rul_adapt import utils
 
 
 INT2STR = {1: "one", 2: "two", 3: "three", 4: "four"}
+APPROACHES = [
+    "adarul",
+    "dann",
+    "conditional_dann",
+    "conditional_mmd",
+    "consistency",
+    "latent_align",
+    "mmd",
+    "pseudo_labels",
+]
 
 
 def tune_adaption(
@@ -115,7 +125,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="cmapss")
     parser.add_argument("--backbone", type=str, default="cnn", choices=["cnn", "lstm"])
-    parser.add_argument("--approach", type=str, default="dann", choices=["dann"])
+    parser.add_argument("--approach", type=str, default="dann", choices=APPROACHES)
     parser.add_argument("--gpu", action="store_true")
     parser.add_argument("--entity", type=str, default="adapt-rul")
     parser.add_argument("--project", type=str, default="approach-tuning")

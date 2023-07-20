@@ -1,0 +1,5 @@
+training:
+  approach:
+      lr: 0.001
+      mmd_factor: 1.0
+      num_mmd_kernels: 5
