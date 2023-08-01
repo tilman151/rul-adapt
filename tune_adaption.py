@@ -40,8 +40,8 @@ def tune_adaption(
     )
     search_space = getattr(rul_adapt.tune, approach)
     base_overrides = [
-        f"+feature_extractor={backbone}",
         f"+approach={approach}",
+        f"+feature_extractor={backbone}",
         f"+dataset={dataset}",
         f"logger.entity={entity}",
         f"logger.project={project}",
