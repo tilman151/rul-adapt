@@ -70,7 +70,7 @@ def tune_adaption(
         name=f"tune-{dataset}-{backbone}-{approach}",
         metric="avg_rmse",  # monitor this metric
         mode="min",  # minimize the metric
-        num_samples=100,
+        num_samples=50,
         resources_per_trial=resources if gpu else {"cpu": 4},
         scheduler=scheduler,
         config=search_space,
