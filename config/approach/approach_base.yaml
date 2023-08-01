@@ -1,2 +1,2 @@
 defaults:
-  - /${dataset}/${approach}@_here_
+  - /${dataset}/${feature_extractor}/${approach}@_here_

@@ -2,6 +2,7 @@
 
 defaults:
   - approach_base
+  - baseline/baseline_base@pretraining.approach
 
 runner: rul_adapt.run.pseudo_labels
 
@@ -9,10 +10,7 @@ dm:
   _target_: rul_datasets.DomainAdaptionDataModule
 
 pretraining:
-  approach:
-    _target_: rul_adapt.approach.SupervisedApproach
-    lr: ???
-    loss_type: rmse
+  approach: ???
 
 training:
   trainer:

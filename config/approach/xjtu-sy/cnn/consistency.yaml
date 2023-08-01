@@ -1,0 +1,7 @@
+domain_disc:
+  units: [1]
+
+training:
+  approach:
+      lr: 0.001
+      consistency_factor: 0.1

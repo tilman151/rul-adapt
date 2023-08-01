@@ -1,4 +1,4 @@
-input_channels: 14
+input_channels: 2
 units: [16]
 fc_units: 16
 dropout: 0.2

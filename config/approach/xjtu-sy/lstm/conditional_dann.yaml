@@ -1,0 +1,9 @@
+domain_disc:
+  units: [1]
+
+training:
+  approach:
+      lr: 0.001
+      dann_factor: 1.0
+      dynamic_adaptive_factor: 0.5
+      fuzzy_sets: [[0, 50], [25, 75], [50, 126]]

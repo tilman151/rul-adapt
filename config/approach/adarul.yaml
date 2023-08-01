@@ -2,6 +2,7 @@
 
 defaults:
   - approach_base
+  - baseline/baseline_base@pretraining.approach
 
 runner: rul_adapt.run.adarul
 
@@ -11,14 +12,11 @@ dm:
 domain_disc:
   _target_: rul_adapt.model.FullyConnectedHead
   input_channels: ${feature_extractor.fc_units}
-  units: [1]
+  units: ???
   act_func_on_last_layer: false
 
 pretraining:
-  approach:
-    _target_: rul_adapt.approach.SupervisedApproach
-    lr: ???
-    loss_type: rmse
+  approach: ???
 
 training:
   approach:

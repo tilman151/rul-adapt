@@ -1,4 +1,4 @@
-input_channels: 14
+input_channels: 2
 units: [32, 32]
 kernel_size: 3
 fc_units: 32

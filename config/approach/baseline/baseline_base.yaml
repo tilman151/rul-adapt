@@ -1,0 +1,6 @@
+defaults:
+  - /${dataset}/${feature_extractor}@_here_
+
+_target_: rul_adapt.approach.SupervisedApproach
+lr: ???
+loss_type: rmse

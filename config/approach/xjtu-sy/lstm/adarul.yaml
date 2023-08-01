@@ -1,13 +1,9 @@
 domain_disc:
   units: [1]
 
-pretraining:
-  approach:
-    lr: 0.001
-
 training:
   approach:
       lr: 0.001
-      max_rul: 125
+      max_rul: 1
       num_disc_updates: 35
       num_gen_updates: 1

@@ -1,5 +1,5 @@
 dm:
-  split_by_max_rul: 125
+  split_by_max_rul: 1
 
 training:
   approach:

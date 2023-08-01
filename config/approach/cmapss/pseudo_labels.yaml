@@ -1,7 +1,0 @@
-pretraining:
-  approach:
-    lr: 0.001
-
-training:
-  approach:
-      lr: 0.001

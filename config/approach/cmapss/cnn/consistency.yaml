@@ -1,10 +1,6 @@
 domain_disc:
   units: [1]
 
-pretraining:
-  approach:
-    lr: 0.001
-
 training:
   approach:
       lr: 0.001

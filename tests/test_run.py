@@ -19,16 +19,36 @@ from rul_adapt import utils
         "pseudo_labels",
     ],
 )
+@pytest.mark.parametrize("feature_extractor", ["cnn", "lstm"])
 class TestConfigComposition:
     @pytest.mark.parametrize("source_fd", ["one", "two", "three", "four"])
     @pytest.mark.parametrize("target_fd", ["one", "two", "three", "four"])
-    def test_cmapss(self, source_fd, target_fd, adaption_mode, approach):
+    def test_cmapss(
+        self, source_fd, target_fd, adaption_mode, approach, feature_extractor
+    ):
+        self._check_no_missing_values(
+            source_fd, target_fd, "cmapss", approach, feature_extractor, adaption_mode
+        )
+
+    @pytest.mark.parametrize("source_fd", ["one", "two", "three"])
+    @pytest.mark.parametrize("target_fd", ["one", "two", "three"])
+    @pytest.mark.parametrize("dataset", ["femto", "xjtu-sy"])
+    def test_femto_xjtu_sy(
+        self, source_fd, target_fd, dataset, adaption_mode, approach, feature_extractor
+    ):
+        self._check_no_missing_values(
+            source_fd, target_fd, dataset, approach, feature_extractor, adaption_mode
+        )
+
+    def _check_no_missing_values(
+        self, source_fd, target_fd, dataset, approach, feature_extractor, adaption_mode
+    ):
         task_name = f"{source_fd}2{target_fd}"
         overrides = [
             f"+task={task_name}",
-            "+feature_extractor=cnn",
             f"+approach={approach}",
-            "+dataset=cmapss",
+            f"+feature_extractor={feature_extractor}",
+            f"+dataset={dataset}",
             f"adaption_mode={adaption_mode}",
         ]
         with hydra.initialize(config_path="../config", version_base="1.2"):
@@ -41,15 +61,61 @@ class TestConfigComposition:
     @pytest.mark.integration
     @pytest.mark.parametrize("source_fd", ["one", "two", "three", "four"])
     @pytest.mark.parametrize("target_fd", ["one", "two", "three", "four"])
-    def test_cmapss_run(self, source_fd, target_fd, adaption_mode, approach, tmp_path):
+    def test_cmapss_run(
+        self, source_fd, target_fd, adaption_mode, approach, feature_extractor, tmp_path
+    ):
+        self._check_runnable(
+            source_fd,
+            target_fd,
+            "cmapss",
+            approach,
+            feature_extractor,
+            adaption_mode,
+            tmp_path,
+        )
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize("source_fd", ["one", "two", "three"])
+    @pytest.mark.parametrize("target_fd", ["one", "two", "three"])
+    @pytest.mark.parametrize("dataset", ["femto", "xjtu-sy"])
+    def test_femto_xjtu_sy_run(
+        self,
+        source_fd,
+        target_fd,
+        dataset,
+        adaption_mode,
+        approach,
+        feature_extractor,
+        tmp_path,
+    ):
+        self._check_runnable(
+            source_fd,
+            target_fd,
+            dataset,
+            approach,
+            feature_extractor,
+            adaption_mode,
+            tmp_path,
+        )
+
+    def _check_runnable(
+        self,
+        source_fd,
+        target_fd,
+        dataset,
+        approach,
+        feature_extractor,
+        adaption_mode,
+        tmp_path,
+    ):
         if source_fd == target_fd:
             pytest.skip("source_fd == target_fd")
         with hydra.initialize(config_path="../config", version_base="1.2"):
             overrides = [
                 f"+task={source_fd}2{target_fd}",
-                "+feature_extractor=cnn",
                 f"+approach={approach}",
-                "+dataset=cmapss",
+                f"+feature_extractor={feature_extractor}",
+                f"+dataset={dataset}",
                 f"adaption_mode={adaption_mode}",
                 "pretraining.trainer.max_epochs=1",
                 "training.trainer.max_epochs=1",
