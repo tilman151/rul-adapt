@@ -85,7 +85,8 @@ def tune_adaption(
         job_type="analysis",
         tags=[sweep_uuid],
     )
-    analysis_table = wandb.Table(dataframe=analysis.dataframe())
+    analysis_table = _normalize_analysis(analysis.dataframe())
+    analysis_table = wandb.Table(dataframe=analysis_table)
     wandb.log({"tune_analysis": analysis_table})
 
     print("Best hyperparameters found were: ", analysis.best_config)
@@ -117,6 +118,14 @@ def run_training(config, base_overrides, fds):
         avg_rmse=sum(results.values()) / len(results),
         **results,
     )
+
+
+def _normalize_analysis(df):
+    for column in df.columns:
+        if df[column].dtype == object and isinstance(df[column][0], list):
+            df[column] = df[column].apply(lambda x: [str(v) for v in x])
+
+    return df
 
 
 if __name__ == "__main__":
