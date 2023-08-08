@@ -91,7 +91,6 @@ latent_align = {
             "alpha_fusion": tune.sample_from(_get_alpha),
         }
     },
-    "domain_disc": {"units": tune.sample_from(_get_disc_units)},
 }
 
 mmd = {
