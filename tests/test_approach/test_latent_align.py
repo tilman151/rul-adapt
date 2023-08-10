@@ -61,6 +61,37 @@ class TestLatentAlignApproach:
         mock_factory.assert_called_once_with(**kwargs)
         mock_factory().assert_called_once()
 
+    @pytest.mark.parametrize("as_percentage", [True, False])
+    def test_training_labels_as_percentage(
+        self, approach, inputs, as_percentage, mocker
+    ):
+        mock_as_percentage = mocker.patch.object(
+            approach, "_to_percentage", return_value=inputs[2][:, None]
+        )
+        approach.labels_as_percentage = as_percentage
+
+        approach.training_step(inputs, 0)
+
+        if as_percentage:
+            mock_as_percentage.assert_called_once()
+        else:
+            mock_as_percentage.assert_not_called()
+
+    @pytest.mark.parametrize("as_percentage", [True, False])
+    def test_forward_labels_as_percentage(
+        self, approach, inputs, as_percentage, mocker
+    ):
+        mock_from_percentage = mocker.patch.object(approach, "_from_percentage")
+        approach.labels_as_percentage = as_percentage
+        features, *_ = inputs
+
+        approach(features)
+
+        if as_percentage:
+            mock_from_percentage.assert_called_once()
+        else:
+            mock_from_percentage.assert_not_called()
+
     def test_forward(self, approach, inputs):
         features, *_ = inputs
 

@@ -34,6 +34,7 @@ latent_align:
   alpha_direction: 1.0
   alpha_level: 1.0
   alpha_fusion: 1.0
+  labels_as_percentage: True
   lr: 5e-4
 
 trainer:

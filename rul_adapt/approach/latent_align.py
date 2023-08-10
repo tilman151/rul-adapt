@@ -346,6 +346,7 @@ class LatentAlignApproach(AdaptionApproach):
         loss_type: Literal["mse", "mae", "rmse"] = "mse",
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         evaluate_degraded_only: bool = False,
+        labels_as_percentage: bool = False,
         **optim_kwargs: Any,
     ) -> None:
         """
@@ -365,6 +366,9 @@ class LatentAlignApproach(AdaptionApproach):
             loss_type: The type of regression loss to use.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
                             or 'phm12'.
+            evaluate_degraded_only: Whether to only evaluate the RUL score on degraded
+                                    samples.
+            labels_as_percentage: Whether to multiply labels by 100 to get percentages
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -376,6 +380,7 @@ class LatentAlignApproach(AdaptionApproach):
         self.loss_type = loss_type
         self.rul_score_mode = rul_score_mode
         self.evaluate_degraded_only = evaluate_degraded_only
+        self.labels_as_percentage = labels_as_percentage
         self.optim_kwargs = optim_kwargs
 
         # training metrics
@@ -400,7 +405,11 @@ class LatentAlignApproach(AdaptionApproach):
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
-        return self.regressor(self.feature_extractor(features))
+        preds = self.regressor(self.feature_extractor(features))
+        if self.labels_as_percentage:
+            preds = self._from_percentage(preds)
+
+        return preds
 
     def training_step(
         self, batch: Tuple[torch.Tensor, ...], batch_idx: int
@@ -435,7 +444,10 @@ class LatentAlignApproach(AdaptionApproach):
         """
         source, source_degradation_steps, source_labels, *_ = batch
         *_, target, target_degradation_steps, healthy = batch
-        source_labels = self._to_percentage(source_labels)
+        if self.labels_as_percentage:
+            source_labels = self._to_percentage(source_labels)
+        else:
+            source_labels = source_labels[:, None]
 
         healthy = self.feature_extractor(healthy)
         source = self.feature_extractor(source)
@@ -471,6 +483,9 @@ class LatentAlignApproach(AdaptionApproach):
     def _to_percentage(self, source_labels):
         """Convert RUL labels to percentages assuming they are normed between [0, 1]."""
         return source_labels[:, None] * 100
+
+    def _from_percentage(self, predictions: torch.Tensor) -> torch.Tensor:
+        return predictions / 100
 
     def validation_step(
         self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
