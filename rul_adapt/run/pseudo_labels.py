@@ -25,6 +25,7 @@ def pseudo_labels(config: Dict[str, Any]):
         train_dataloaders=combined_dl,
         val_dataloaders=dm.target.val_dataloader(),
     )
+    trainer.logger.log_hyperparams(dm.hparams)  # log manually as dm isn't used
     result = common.get_result(config, trainer, dm)
     if common.is_wandb_logger(trainer.logger):
         trainer.logger.experiment.finish()
