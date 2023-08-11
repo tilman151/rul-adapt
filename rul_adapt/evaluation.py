@@ -142,9 +142,10 @@ def _connect_cliques(ax, avg_ranks, pairwise_significance, annotation_ratio):
         if len(c) > 1
     ]
     cliques.sort(reverse=True)
+    num_cliques = len(cliques)
+    offset = 0.1 * min_text_pos
     for i, (max_rank, min_rank) in enumerate(cliques):
-        num_cliques = len(cliques)
-        y_pos = 0.1 + 0.8 * min_text_pos * i / num_cliques
+        y_pos = offset + 0.8 * min_text_pos * i / num_cliques
         ax.hlines(y_pos, min_rank, max_rank, color="black", linewidth=4)
 
 
@@ -156,7 +157,7 @@ def _get_text_pos(i, max_items, min_x, max_x, ratio=0.5):
         y_pos_idx = i
     else:
         x_pos = max_x
-        y_pos_idx = max_annotations_per_side - i + 1
+        y_pos_idx = max_items - (i + 1)
     text_pos = (x_pos, (1 - ratio) + ratio * y_pos_idx / (max_annotations_per_side - 1))
 
     return text_pos
