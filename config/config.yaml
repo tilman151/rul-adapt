@@ -7,6 +7,7 @@ defaults:
   - _self_
 
 runner: ??? # rul_adapt.run.[adarul, dann, mmd, pseudo_labels]
+replications: 1
 
 source: ???
 target: ???
