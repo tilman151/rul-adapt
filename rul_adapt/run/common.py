@@ -46,6 +46,7 @@ def run_pretraining(config, dm):
         trainer_pretraining.logger.experiment.define_metric(
             "val/loss", summary="best", goal="minimize"
         )
+        trainer_pretraining.logger.experiment.tags += ("pretraining",)
     trainer_pretraining.fit(approach_pretraining, dm.source)
     if is_wandb_logger(trainer_pretraining.logger):
         trainer_pretraining.logger.experiment.finish()
