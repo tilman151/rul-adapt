@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from rul_adapt.evaluation import friedman_nemenyi
+from rul_adapt.evaluation import friedman_nemenyi, plot_critical_difference
 
 
 @pytest.fixture()
@@ -42,3 +42,24 @@ def test_friedman_nemenyi_rejection(dataset_names, approach_names):
 
     assert pairwise_significance.shape == (3, 3)
     assert np.allclose(pairwise_significance.values.diagonal(), 1.0)
+
+
+def test_critical_difference_plot():
+    avg_ranks = pd.Series(
+        [1.5, 2.5, 3.5, 3.7], index=["AAAAAAAAAAA", "BBBBBB", "CCCCC", "D"]
+    )
+    pairwise_significance = pd.DataFrame(
+        [
+            [1.0, 0.1, 0.01, 0.04],
+            [0.1, 1.0, 0.1, 0.04],
+            [0.01, 0.1, 1.0, 0.4],
+            [0.04, 0.04, 0.4, 1.0],
+        ],
+        index=["AAAAAAAAAAA", "BBBBBB", "CCCCC", "D"],
+        columns=["AAAAAAAAAAA", "BBBBBB", "CCCCC", "D"],
+    )
+
+    fig = plot_critical_difference(
+        avg_ranks, pairwise_significance, annotation_ratio=0.3, figsize=(7, 2)
+    )
+    fig.show()
