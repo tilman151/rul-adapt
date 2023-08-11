@@ -3,7 +3,11 @@ import uuid
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+from hydra_plugins.ray_hydra_launcher.ray_launcher import register_ray_launcher
 from rul_adapt import utils
+
+
+register_ray_launcher()
 
 
 @hydra.main(config_path="config", config_name="config", version_base="1.2")
