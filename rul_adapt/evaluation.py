@@ -54,7 +54,7 @@ def load_trials_table(run_path: str) -> pd.DataFrame:
 
 def trials2performances(table: pd.DataFrame) -> pd.DataFrame:
     """Extract the performance values from a trial table."""
-    return table[[c for c in table.columns if "rmse" in c]]
+    return table[[c for c in table.columns if c.startswith("rmse")]]
 
 
 def friedman_nemenyi(
