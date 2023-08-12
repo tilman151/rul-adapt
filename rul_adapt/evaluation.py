@@ -71,9 +71,6 @@ def friedman_nemenyi(
         pairwise_significance: p-values of pairwise comparisons
     """
     _, friedman_pvalue = scipy.stats.friedmanchisquare(*performance.values)
-    if friedman_pvalue > p:
-        print("Friedman test: No significant difference between approaches.")
-        return None, None
 
     approaches = performance.index.tolist()
     datasets = performance.columns.tolist()
@@ -81,7 +78,11 @@ def friedman_nemenyi(
         scipy.stats.rankdata(performance, axis=0), columns=datasets, index=approaches
     )
     avg_ranks = ranks.mean(axis=1)
-    pairwise_significance = sp.posthoc_nemenyi_friedman(performance.T)
+    if friedman_pvalue > p:
+        print("Friedman test: No significant difference between approaches.")
+        pairwise_significance = sp.posthoc_nemenyi_friedman(performance.T)
+    else:
+        pairwise_significance = None
 
     return avg_ranks, pairwise_significance
 
