@@ -54,6 +54,7 @@ def tune_adaption(
     elif dataset == "femto" or dataset == "xjtu-sy":
         fds = [1, 2, 3]
         resources = {"gpu": 1.0}
+        base_overrides += ["evaluation_mode=degraded_only"]
     else:
         raise ValueError(f"Unknown dataset {dataset}.")
 
