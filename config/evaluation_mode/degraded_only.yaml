@@ -1,0 +1,9 @@
+# @package _global_
+
+pretraining:
+  approach:
+    evaluate_degraded_only: True
+
+training:
+  approach:
+    evaluate_degraded_only: True

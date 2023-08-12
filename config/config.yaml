@@ -2,6 +2,7 @@ defaults:
   - regressor: default
   - logger: wandb
   - adaption_mode: transductive
+  - evaluation_mode: all
   - trainer_base@pretraining.trainer
   - trainer_base@training.trainer
   - _self_
