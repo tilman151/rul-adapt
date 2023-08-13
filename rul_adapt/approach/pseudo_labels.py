@@ -77,7 +77,8 @@ def generate_pseudo_labels(
     last_timestep = torch.stack([f[-1] for f in features])
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
-    if dm.reader.max_rul and torch.any(pseudo_labels > dm.reader.max_rul):
+    max_rul = _get_max_rul(dm.reader)
+    if max_rul and torch.any(pseudo_labels > max_rul):
         warnings.warn(
             "At least one of the generated pseudo labels is greater "
             "than the maximum RUL of the dataset. This may lead to unexpected results "
@@ -90,6 +91,12 @@ def generate_pseudo_labels(
         )
 
     return pseudo_labels.tolist()
+
+
+def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Optional[int]:
+    return reader.max_rul or (
+        1 if hasattr(reader, "norm_rul") and reader.norm_rul else None
+    )
 
 
 def patch_pseudo_labels(
@@ -140,17 +147,17 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
 
         if any(pl < 0 for pl in pseudo_labels):
             raise ValueError("Pseudo labels must be non-negative.")
-        if (reader.max_rul is not None) and any(
-            pl > reader.max_rul for pl in pseudo_labels
-        ):
+        max_rul = _get_max_rul(reader)
+        if (max_rul is not None) and any(pl > max_rul for pl in pseudo_labels):
             raise ValueError(
                 "Pseudo labels must be smaller than the maximum RUL "
-                f"of the dataset, {reader.max_rul}."
+                f"of the dataset, {max_rul}."
             )
 
         self._reader = reader
         self._pseudo_labels = pseudo_labels
         self._inductive = inductive
+        self._max_rul = max_rul
 
     @property
     def _patched_split(self) -> str:
@@ -231,8 +238,8 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
     ) -> np.ndarray:
         first_rul = pseudo_label + len(feature)
         rul_values = np.arange(pseudo_label, first_rul)[::-1]
-        if self._reader.max_rul is not None:
-            rul_values = np.minimum(self._reader.max_rul, rul_values)
+        if self.max_rul is not None:
+            rul_values = np.minimum(self.max_rul, rul_values)
 
         return rul_values
 

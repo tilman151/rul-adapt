@@ -40,6 +40,17 @@ def test_generate_pseudo_labels_max_rul_warning():
         generate_pseudo_labels(dm, approach)
 
 
+def test_generate_pseudo_labels_max_rul_with_normed_rul_warning():
+    approach = mock.MagicMock(SupervisedApproach)
+    approach.return_value = torch.linspace(0.9, 1.5, 10)[:, None]
+    reader = rul_datasets.reader.DummyReader(1, max_rul=None)
+    reader.norm_rul = True  # max_rul assumed to be 1 now even if not set
+    dm = rul_datasets.RulDataModule(reader, 32)
+
+    with pytest.warns(UserWarning):
+        generate_pseudo_labels(dm, approach)
+
+
 def test_generate_pseudo_labels_negative_rul_warning():
     approach = mock.MagicMock(SupervisedApproach)
     approach.return_value = torch.arange(-1.0, 9.0)[:, None]
@@ -66,6 +77,14 @@ class TestPseudoLabelReader:
     def test_max_rul_error(self):
         reader = rul_datasets.reader.DummyReader(1)
         pseudo_labels = [float(i) for i in range(45, 55)]
+
+        with pytest.raises(ValueError):
+            _PseudoLabelReader(reader, pseudo_labels, inductive=False)
+
+    def test_max_rul_error_with_normed_rul(self):
+        reader = rul_datasets.reader.DummyReader(1, max_rul=None)
+        reader.norm_rul = True  # max_rul assumed to be 1 now even if not set
+        pseudo_labels = torch.linspace(0.9, 1.5, 10).tolist()
 
         with pytest.raises(ValueError):
             _PseudoLabelReader(reader, pseudo_labels, inductive=False)
