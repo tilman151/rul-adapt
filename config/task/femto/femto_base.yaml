@@ -4,4 +4,5 @@ reader:
   fd: ???
   window_size: 2560
   norm_rul: True
+  max_rul: 1
 batch_size: 128
