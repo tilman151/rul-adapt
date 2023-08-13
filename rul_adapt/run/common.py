@@ -3,7 +3,10 @@ import pytorch_lightning as pl
 
 
 def should_be_pretrained(config):
-    return "approach" in config["pretraining"]
+    return (
+        "approach" in config["pretraining"]
+        and "_target_" in config["pretraining"]["approach"]
+    )
 
 
 def get_approach(config):
