@@ -31,6 +31,12 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
         """
         Create a new Conditional Adaption loss over fuzzy sets.
 
+        The fuzzy sets' boundaries are inclusive on the left and exclusive on the right.
+        The left boundary is supposed to be smaller than the right boundary.
+
+        This loss should not be used as a way to accumulate its value over multiple
+        batches.
+
         Args:
             adaption_losses: The list of losses to be applied to the subsets.
             fuzzy_sets: The fuzzy sets to be used for subset membership.
@@ -38,11 +44,22 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
         """
         super().__init__()
 
+        self._check_fuzzy_sets(fuzzy_sets)
+
         self.adaption_losses = nn.ModuleList(adaption_losses)  # registers parameters
         self.fuzzy_sets = fuzzy_sets
         self.mean_over_sets = mean_over_sets
 
         self.add_state("loss", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("batch_counter", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def _check_fuzzy_sets(self, fuzzy_sets: List[Tuple[float, float]]) -> None:
+        for i, (left_bound, right_bound) in enumerate(fuzzy_sets):
+            if left_bound >= right_bound:
+                raise ValueError(
+                    f"Fuzzy set {i} with bounds ({left_bound}, {right_bound}) has "
+                    f"a left bound greater than or equal to the right bound."
+                )
 
     def update(
         self,
@@ -68,6 +85,7 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
             selected_target = target[_membership(target_preds, fuzzy_set)]
             if selected_source.shape[0] > 0 and selected_target.shape[0] > 0:
                 self.loss = self.loss + adaption_loss(selected_source, selected_target)
+        self.batch_counter += 1
 
     def compute(self) -> torch.Tensor:
         """
@@ -76,6 +94,11 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
         Returns:
             The combined loss.
         """
+        if self.batch_counter > 1:
+            raise RuntimeError(
+                "The update method of this loss was called multiple times before "
+                "computing the loss. This is not supported."
+            )
         if self.mean_over_sets:
             return self.loss / len(self.adaption_losses)
         else:
