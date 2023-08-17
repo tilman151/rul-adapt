@@ -173,7 +173,7 @@ def test_on_dummy():
     reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
     domain_disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
     approach = ConditionalDannApproach(
-        1.0, 0.5, [(50, 30), (40, 20), (30, 0)], lr=0.001
+        1.0, 0.5, [(30, 50), (20, 40), (0, 30)], lr=0.001
     )
     approach.set_model(fe, reg, domain_disc)
 
