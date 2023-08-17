@@ -15,6 +15,12 @@ Currently, five approaches are implemented, including their original hyperparame
 * **TBiGRU** by Cao et al. (2021)
 * **Consistency-DANN** by Siahpour et al. (2022)
 
+Three approaches are implemented without their original hyperparameters:
+
+* **ConditionalDANN** by Cheng et al. (2021)
+* **ConditionalMMD** by Cheng et al. (2021)
+* **PseudoLabels** as used by Wang et al. (2022)
+
 This includes the following general approaches adapted for RUL estimation:
 
 * **Domain Adaption Neural Networks (DANN)** by Ganin et al. (2016)
