@@ -33,7 +33,7 @@ class ConditionalMmdApproach(AdaptionApproach):
         >>> from rul_adapt import approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
-        >>> cond_mmd = approach.ConditionalMmdApproach(0.01, 5, 0.5)
+        >>> cond_mmd = approach.ConditionalMmdApproach(0.01, 5, 0.5, [(0, 1)])
         >>> cond_mmd.set_model(feat_ex, reg)
     """
 
@@ -67,6 +67,8 @@ class ConditionalMmdApproach(AdaptionApproach):
             loss_type: The type of regression loss, either 'mse', 'rmse' or 'mae'.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
                             or 'phm12'.
+            evaluate_degraded_only: Whether to only evaluate the RUL score on degraded
+                                    samples.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
@@ -209,7 +211,7 @@ class ConditionalDannApproach(AdaptionApproach):
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> cond_dann = approach.ConditionalDannApproach(1.0, 0.5)
+        >>> cond_dann = approach.ConditionalDannApproach(1.0, 0.5, [(0, 1)])
         >>> cond_dann.set_model(feat_ex, reg, disc)
     """
 

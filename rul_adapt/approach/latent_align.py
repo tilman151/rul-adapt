@@ -333,7 +333,7 @@ class LatentAlignApproach(AdaptionApproach):
         >>> from rul_adapt import model, approach
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
-        >>> latent_align = approach.LatentAlignApproach(0.1, 0.1, 0.1, 0.1, 0.001)
+        >>> latent_align = approach.LatentAlignApproach(0.1, 0.1, 0.1, 0.1, lr=0.001)
         >>> latent_align.set_model(feat_ex, reg)
     """
 

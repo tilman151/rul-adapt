@@ -35,9 +35,9 @@ class AdaRulApproach(AdaptionApproach):
         >>> feat_ex = model.CnnExtractor(1, [16, 16, 1], 10, fc_units=16)
         >>> reg = model.FullyConnectedHead(16, [1])
         >>> disc = model.FullyConnectedHead(16, [8, 1], act_func_on_last_layer=False)
-        >>> pre = approach.SupervisedApproach(0.01, "mse", "adam", 125)
+        >>> pre = approach.SupervisedApproach("mse", 125, lr=0.001)
         >>> pre.set_model(feat_ex, reg)
-        >>> main = rul_adapt.approach.supervised.SupervisedApproach(0.01, 125)
+        >>> main = approach.AdaRulApproach(5, 1, 125, lr=0.001)
         >>> main.set_model(pre.feature_extractor, pre.regressor, disc)
     """
 
@@ -74,6 +74,8 @@ class AdaRulApproach(AdaptionApproach):
             num_gen_updates: Number of batches to update generator with.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
                             or 'phm12'.
+            evaluate_degraded_only: Whether to only evaluate the RUL score on degraded
+                                    samples.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()

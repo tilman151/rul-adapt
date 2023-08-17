@@ -91,6 +91,8 @@ class DannApproach(AdaptionApproach):
             loss_type: Type of regression loss.
             rul_score_mode: The mode for the val and test RUL score, either 'phm08'
                             or 'phm12'.
+            evaluate_degraded_only: Whether to only evaluate the RUL score on degraded
+                                    samples.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
