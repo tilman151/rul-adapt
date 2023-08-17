@@ -246,11 +246,15 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
     def _expand_pseudo_label_fttp(
         self, feature: np.ndarray, pseudo_label: float, fttp: int
     ) -> np.ndarray:
-        first_rul = pseudo_label + len(feature)
-        max_rul = first_rul - fttp
-        rul_values = np.arange(pseudo_label, first_rul)[::-1]
-        rul_values = np.minimum(rul_values, max_rul)
         if self.norm_rul:
-            rul_values = rul_values / max_rul
+            fttp -= 1  # linspace includes 1.0 so decrease starts earlier
+            rul_values = np.empty(len(feature))
+            rul_values[:fttp] = 1.0
+            rul_values[fttp:] = np.linspace(1.0, pseudo_label, len(feature) - fttp)
+        else:
+            first_rul = pseudo_label + len(feature)
+            max_rul = first_rul - fttp
+            rul_values = np.arange(pseudo_label, first_rul)[::-1]
+            rul_values = np.minimum(rul_values, max_rul)
 
         return rul_values

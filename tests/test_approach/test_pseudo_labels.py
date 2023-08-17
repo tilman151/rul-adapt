@@ -137,22 +137,24 @@ class TestPseudoLabelReader:
     def test_pseudo_label_generation_fttp(self, norm_rul, inductive, exp_split):
         fttp = 10
         reader = rul_datasets.reader.DummyReader(1, percent_broken=0.8)
+
+        # mock reader to behave as one with fttp (missing functionality of DummyReader)
         reader.first_time_to_predict = [fttp] * 30
         reader.norm_rul = norm_rul
+        reader.max_rul = None  # normally max_rul cannot be set with fttp
         reader._preparator = mock.Mock(name="preperator")
         reader._preparator.run_split_dist = {
             "dev": list(range(1, 11)),
             "test": list(range(1, 11)),
         }
-        pseudo_labels = [float(i) for i in range(40, 50)]
+        pseudo_labels = [(float(i) / (50 if norm_rul else 1)) for i in range(40, 50)]
         pl_reader = _PseudoLabelReader(reader, pseudo_labels, inductive=inductive)
 
         features, targets = pl_reader.load_split(exp_split, "dev")
         for t, pl in zip(targets, pseudo_labels):
             if norm_rul:
                 assert np.all(t <= 1.0)
-            else:
-                assert t[-1] == pl
+            assert t[-1] == pl
             max_rul = t[0]
             assert np.all(t[:fttp] == max_rul)
             assert np.all(t[fttp:] < max_rul)
