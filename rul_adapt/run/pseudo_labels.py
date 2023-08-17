@@ -20,6 +20,7 @@ def pseudo_labels(config: Dict[str, Any]):
         trainer.logger.experiment.define_metric(
             "val/loss", summary="best", goal="minimize"
         )
+        trainer.logger.experiment.config["approach"] = "PseudoLabelsApproach"
     trainer.fit(
         approach,
         train_dataloaders=combined_dl,

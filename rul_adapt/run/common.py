@@ -19,6 +19,7 @@ def run_adaption(config, approach, dm):
         trainer.logger.experiment.define_metric(
             "val/target/rmse/dataloader_idx_1", summary="best", goal="minimize"
         )
+        trainer.logger.experiment.config["approach"] = approach.__class__.__name__
     trainer.fit(approach, dm)
     result = get_result(config, trainer, dm)
     if is_wandb_logger(trainer.logger):
