@@ -46,7 +46,7 @@ Examples:
 """
 
 import warnings
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 import numpy as np
 import rul_datasets
@@ -77,7 +77,8 @@ def generate_pseudo_labels(
     last_timestep = torch.stack([f[-1] for f in features])
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
-    if dm.reader.max_rul and torch.any(pseudo_labels > dm.reader.max_rul):
+    max_rul = _get_max_rul(dm.reader)
+    if torch.any(pseudo_labels > max_rul):
         warnings.warn(
             "At least one of the generated pseudo labels is greater "
             "than the maximum RUL of the dataset. This may lead to unexpected results "
@@ -140,17 +141,17 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
 
         if any(pl < 0 for pl in pseudo_labels):
             raise ValueError("Pseudo labels must be non-negative.")
-        if (reader.max_rul is not None) and any(
-            pl > reader.max_rul for pl in pseudo_labels
-        ):
+        max_rul = _get_max_rul(reader)
+        if any(pl > max_rul for pl in pseudo_labels):
             raise ValueError(
                 "Pseudo labels must be smaller than the maximum RUL "
-                f"of the dataset, {reader.max_rul}."
+                f"of the dataset, {max_rul}."
             )
 
         self._reader = reader
         self._pseudo_labels = pseudo_labels
         self._inductive = inductive
+        self._max_rul = max_rul
 
     @property
     def _patched_split(self) -> str:
@@ -231,19 +232,30 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
     ) -> np.ndarray:
         first_rul = pseudo_label + len(feature)
         rul_values = np.arange(pseudo_label, first_rul)[::-1]
-        if self._reader.max_rul is not None:
-            rul_values = np.minimum(self._reader.max_rul, rul_values)
+        if self.max_rul is not None:
+            rul_values = np.minimum(self.max_rul, rul_values)
 
         return rul_values
 
     def _expand_pseudo_label_fttp(
         self, feature: np.ndarray, pseudo_label: float, fttp: int
     ) -> np.ndarray:
-        first_rul = pseudo_label + len(feature)
-        max_rul = first_rul - fttp
-        rul_values = np.arange(pseudo_label, first_rul)[::-1]
-        rul_values = np.minimum(rul_values, max_rul)
         if self.norm_rul:
-            rul_values = rul_values / max_rul
+            fttp -= 1  # linspace includes 1.0 so decrease starts earlier
+            rul_values = np.empty(len(feature))
+            rul_values[:fttp] = 1.0
+            rul_values[fttp:] = np.linspace(1.0, pseudo_label, len(feature) - fttp)
+        else:
+            first_rul = pseudo_label + len(feature)
+            max_rul = first_rul - fttp
+            rul_values = np.arange(pseudo_label, first_rul)[::-1]
+            rul_values = np.minimum(rul_values, max_rul)
 
         return rul_values
+
+
+def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Union[int, float]:
+    """Resolve the maximum RUL of a reader to be comparable to floats."""
+    return reader.max_rul or (
+        1 if hasattr(reader, "norm_rul") and reader.norm_rul else float("inf")
+    )

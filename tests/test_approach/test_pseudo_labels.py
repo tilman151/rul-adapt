@@ -40,6 +40,17 @@ def test_generate_pseudo_labels_max_rul_warning():
         generate_pseudo_labels(dm, approach)
 
 
+def test_generate_pseudo_labels_max_rul_with_normed_rul_warning():
+    approach = mock.MagicMock(SupervisedApproach)
+    approach.return_value = torch.linspace(0.9, 1.5, 10)[:, None]
+    reader = rul_datasets.reader.DummyReader(1, max_rul=None)
+    reader.norm_rul = True  # max_rul assumed to be 1 now even if not set
+    dm = rul_datasets.RulDataModule(reader, 32)
+
+    with pytest.warns(UserWarning):
+        generate_pseudo_labels(dm, approach)
+
+
 def test_generate_pseudo_labels_negative_rul_warning():
     approach = mock.MagicMock(SupervisedApproach)
     approach.return_value = torch.arange(-1.0, 9.0)[:, None]
@@ -66,6 +77,14 @@ class TestPseudoLabelReader:
     def test_max_rul_error(self):
         reader = rul_datasets.reader.DummyReader(1)
         pseudo_labels = [float(i) for i in range(45, 55)]
+
+        with pytest.raises(ValueError):
+            _PseudoLabelReader(reader, pseudo_labels, inductive=False)
+
+    def test_max_rul_error_with_normed_rul(self):
+        reader = rul_datasets.reader.DummyReader(1, max_rul=None)
+        reader.norm_rul = True  # max_rul assumed to be 1 now even if not set
+        pseudo_labels = torch.linspace(0.9, 1.5, 10).tolist()
 
         with pytest.raises(ValueError):
             _PseudoLabelReader(reader, pseudo_labels, inductive=False)
@@ -118,22 +137,24 @@ class TestPseudoLabelReader:
     def test_pseudo_label_generation_fttp(self, norm_rul, inductive, exp_split):
         fttp = 10
         reader = rul_datasets.reader.DummyReader(1, percent_broken=0.8)
+
+        # mock reader to behave as one with fttp (missing functionality of DummyReader)
         reader.first_time_to_predict = [fttp] * 30
         reader.norm_rul = norm_rul
+        reader.max_rul = None  # normally max_rul cannot be set with fttp
         reader._preparator = mock.Mock(name="preperator")
         reader._preparator.run_split_dist = {
             "dev": list(range(1, 11)),
             "test": list(range(1, 11)),
         }
-        pseudo_labels = [float(i) for i in range(40, 50)]
+        pseudo_labels = [(float(i) / (50 if norm_rul else 1)) for i in range(40, 50)]
         pl_reader = _PseudoLabelReader(reader, pseudo_labels, inductive=inductive)
 
         features, targets = pl_reader.load_split(exp_split, "dev")
         for t, pl in zip(targets, pseudo_labels):
             if norm_rul:
                 assert np.all(t <= 1.0)
-            else:
-                assert t[-1] == pl
+            assert t[-1] == pl
             max_rul = t[0]
             assert np.all(t[:fttp] == max_rul)
             assert np.all(t[fttp:] < max_rul)
