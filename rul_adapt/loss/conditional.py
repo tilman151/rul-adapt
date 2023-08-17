@@ -21,6 +21,7 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
     full_state_update = True
 
     loss: torch.Tensor
+    batch_counter: torch.Tensor
 
     def __init__(
         self,
