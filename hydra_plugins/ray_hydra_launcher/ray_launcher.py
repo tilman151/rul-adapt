@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class LauncherConfig:
-    _target_: str = "hydra_plugins.ray_hydra_launcher.ray_launcher.SimpleRay"
+    _target_: str = "hydra_plugins.ray_hydra_launcher.ray_launcher.SimpleRayLauncher"
     num_cpus: Optional[int] = None
     num_gpus: Optional[float] = None
 
