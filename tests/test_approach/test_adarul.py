@@ -30,8 +30,8 @@ def models():
 
 
 @pytest.fixture()
-def approach(models, mocker):
-    approach = AdaRulApproach(130, 35, 1, lr=0.01)
+def approach(models):
+    approach = AdaRulApproach(35, 1, 130, lr=0.01)
     approach.set_model(*models)
     approach.log = mock.MagicMock()
 
@@ -66,12 +66,22 @@ class TestAdaRulApproach:
             assert torch.dist(fe_param, frozen_param) == 0.0  # have same values
             assert not frozen_param.requires_grad  # are frozen
 
+    def test_default_max_rul(self, models, inputs):
+        approach = AdaRulApproach(35, 1)
+        approach.set_model(*models)
+
+        default_preds = approach.forward(inputs[0])
+        approach.max_rul = 1
+        explicit_preds = approach.forward(inputs[0])
+
+        assert torch.allclose(default_preds, explicit_preds)
+
     def test_domain_disc_check(self, models):
         feature_extractor, regressor, _ = models
         faulty_domain_disc = model.FullyConnectedHead(
             20, [1], act_func_on_last_layer=True
         )
-        approach = AdaRulApproach(130, 35, 1, lr=0.01)
+        approach = AdaRulApproach(35, 1, 130, lr=0.01)
 
         with pytest.raises(ValueError):
             approach.set_model(feature_extractor, regressor)
@@ -114,7 +124,7 @@ class TestAdaRulApproach:
     def test_optimizer_configured_with_factory(self, mocker, models):
         mock_factory = mocker.patch("rul_adapt.utils.OptimizerFactory")
         kwargs = {"optim_type": "sgd", "lr": 0.001, "weight_decay": 0.001}
-        approach = AdaRulApproach(125, 10, 10, **kwargs)
+        approach = AdaRulApproach(10, 10, 125, **kwargs)
         approach.set_model(*models)
         approach.configure_optimizers()
 
@@ -179,7 +189,7 @@ class TestAdaRulApproach:
         utils.check_test_logging(approach, mocker)
 
     def test_model_hparams_logged(self, models, mocker):
-        approach = AdaRulApproach(125, 1, 1)
+        approach = AdaRulApproach(1, 1, 125)
         mocker.patch.object(approach, "log_model_hyperparameters")
 
         approach.set_model(*models)
@@ -193,7 +203,7 @@ class TestAdaRulApproach:
         )
         reg = model.FullyConnectedHead(16, [1])
         disc = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
-        approach = AdaRulApproach(130, 35, 1, lr=0.01)
+        approach = AdaRulApproach(35, 1, 130, lr=0.01)
         approach.set_model(fe, reg, disc)
 
         utils.checkpoint(approach, ckpt_path, max_rul=130)
@@ -229,7 +239,7 @@ def test_on_dummy():
 
     disc = model.FullyConnectedHead(20, [1], act_func_on_last_layer=False)
 
-    approach = AdaRulApproach(130, 35, 1, lr=0.0001)
+    approach = AdaRulApproach(35, 1, 130, lr=0.0001)
     approach.set_model(pre_approach.feature_extractor, pre_approach.regressor, disc)
 
     trainer = pl.Trainer(

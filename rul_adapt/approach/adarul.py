@@ -48,9 +48,9 @@ class AdaRulApproach(AdaptionApproach):
 
     def __init__(
         self,
-        max_rul: int,
         num_disc_updates: int,
         num_gen_updates: int,
+        max_rul: Optional[int] = None,
         rul_score_mode: Literal["phm08", "phm12"] = "phm08",
         evaluate_degraded_only: bool = False,
         **optim_kwargs: Any,
@@ -80,9 +80,9 @@ class AdaRulApproach(AdaptionApproach):
 
         self.automatic_optimization = False  # use manual optimization loop
 
-        self.max_rul = max_rul
         self.num_disc_updates = num_disc_updates
         self.num_gen_updates = num_gen_updates
+        self.max_rul = max_rul
         self.rul_score_mode = rul_score_mode
         self.evaluate_degraded_only = evaluate_degraded_only
         self.optim_kwargs = optim_kwargs
@@ -161,7 +161,10 @@ class AdaRulApproach(AdaptionApproach):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Predict the RUL values for a batch of input features."""
-        return self.regressor(self.feature_extractor(inputs)) * self.max_rul
+        max_rul = self.max_rul or 1
+        pred = self.regressor(self.feature_extractor(inputs)) * max_rul
+
+        return pred
 
     def on_train_epoch_start(self) -> None:
         self._reset_update_counters()
