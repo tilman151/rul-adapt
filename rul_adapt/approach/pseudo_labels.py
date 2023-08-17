@@ -46,7 +46,7 @@ Examples:
 """
 
 import warnings
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 import numpy as np
 import rul_datasets
@@ -254,7 +254,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         return rul_values
 
 
-def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Optional[int]:
+def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Union[int, float]:
     """Resolve the maximum RUL of a reader to be comparable to floats."""
     return reader.max_rul or (
         1 if hasattr(reader, "norm_rul") and reader.norm_rul else float("inf")
