@@ -169,7 +169,7 @@ def test_on_dummy():
     fe = model.CnnExtractor(1, [16, 16], 10, fc_units=16)
     reg = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
     approach = ConditionalMmdApproach(
-        1.0, 5, 0.5, [(50, 30), (40, 20), (30, 0)], lr=0.001
+        1.0, 5, 0.5, [(30, 50), (20, 40), (0, 30)], lr=0.001
     )
     approach.set_model(fe, reg)
 

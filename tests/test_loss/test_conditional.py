@@ -42,6 +42,26 @@ def cmmd():
     return conditional_loss
 
 
+@pytest.mark.parametrize("faulty_fuzzy_sets", [[(0.1, 0.0)], [(0.1, 0.1)]])
+def test_fuzzy_set_boundary_check(faulty_fuzzy_sets):
+    with pytest.raises(ValueError):
+        rul_adapt.loss.ConditionalAdaptionLoss([mock.MagicMock()], faulty_fuzzy_sets)
+
+
+def test_loss_aggregation_guard(conditional_adaption_loss):
+    inputs = (
+        torch.rand(10, 10),
+        torch.rand(10, 1),
+        torch.rand(10, 10),
+        torch.rand(10, 1),
+    )
+
+    conditional_adaption_loss.update(*inputs)
+    conditional_adaption_loss.update(*inputs)
+    with pytest.raises(RuntimeError):
+        conditional_adaption_loss.compute()
+
+
 @mock.patch("rul_adapt.loss.conditional._membership")
 def test_update(mock_membership, conditional_adaption_loss, fuzzy_sets):
     source = mock.MagicMock(torch.Tensor)
