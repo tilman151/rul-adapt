@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 class LauncherConfig:
     _target_: str = "hydra_plugins.ray_hydra_launcher.ray_launcher.SimpleRay"
     num_cpus: Optional[int] = None
-    num_gpus: Optional[int] = None
+    num_gpus: Optional[float] = None
 
 
 ConfigStore.instance().store(group="hydra/launcher", name="ray", node=LauncherConfig)
