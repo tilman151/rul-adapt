@@ -54,6 +54,8 @@ class SupervisedApproach(AdaptionApproach):
         Args:
             loss_type: Training loss function to use. Either 'mse', 'mae' or 'rmse'.
             rul_scale: Scalar to multiply the RUL prediction with.
+            evaluate_degraded_only: Whether to only evaluate the RUL score on degraded
+                                    samples.
             **optim_kwargs: Keyword arguments for the optimizer, e.g. learning rate.
         """
         super().__init__()
