@@ -78,7 +78,7 @@ def generate_pseudo_labels(
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
     max_rul = _get_max_rul(dm.reader)
-    if max_rul and torch.any(pseudo_labels > max_rul):
+    if torch.any(pseudo_labels > max_rul):
         warnings.warn(
             "At least one of the generated pseudo labels is greater "
             "than the maximum RUL of the dataset. This may lead to unexpected results "
@@ -91,12 +91,6 @@ def generate_pseudo_labels(
         )
 
     return pseudo_labels.tolist()
-
-
-def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Optional[int]:
-    return reader.max_rul or (
-        1 if hasattr(reader, "norm_rul") and reader.norm_rul else None
-    )
 
 
 def patch_pseudo_labels(
@@ -148,7 +142,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         if any(pl < 0 for pl in pseudo_labels):
             raise ValueError("Pseudo labels must be non-negative.")
         max_rul = _get_max_rul(reader)
-        if (max_rul is not None) and any(pl > max_rul for pl in pseudo_labels):
+        if any(pl > max_rul for pl in pseudo_labels):
             raise ValueError(
                 "Pseudo labels must be smaller than the maximum RUL "
                 f"of the dataset, {max_rul}."
@@ -258,3 +252,10 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
             rul_values = np.minimum(rul_values, max_rul)
 
         return rul_values
+
+
+def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Optional[int]:
+    """Resolve the maximum RUL of a reader to be comparable to floats."""
+    return reader.max_rul or (
+        1 if hasattr(reader, "norm_rul") and reader.norm_rul else float("inf")
+    )
