@@ -26,6 +26,15 @@ theme:
 nav:
   - Introduction: index.md
   - API Reference: api/
+  - Examples:
+      - AdaRUL: examples/adarul.ipynb
+      - LSTM-DANN: examples/lstm_dann.ipynb
+      - CNN-DANN: examples/cnn_dann.ipynb
+      - Conditional: examples/conditional.ipynb
+      - Consistency: examples/consistency_dann.ipynb
+      - LatentAlign: examples/latent_align.ipynb
+      - PseudoLabels: examples/pseudo_labels.ipynb
+      - TBiGRU: examples/tbigru.ipynb
 
 markdown_extensions:
   - attr_list
@@ -42,6 +51,8 @@ plugins:
   - search
   - autorefs
   - section-index
+  - mkdocs-jupyter:
+      no_input: False
   - gen-files:
       scripts: [docs/gen_ref_pages.py]
   - literate-nav:

@@ -34,14 +34,14 @@ pytest-mock = "^3.10.0"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs = "^1.4.1"
-mkdocs-material = "^8.5.7"
-mkdocstrings = {extras = ["python"], version = "^0.19.0"}
-mkdocs-gen-files = "^0.4.0"
+mkdocstrings = {extras = ["python"], version = "^0.22.0"}
+mkdocs-gen-files = "^0.5.0"
 mkdocs-literate-nav = "^0.5.0"
 mkdocs-section-index = "^0.3.4"
 jupyter = "^1.0.0"
 matplotlib = "^3.7.0"
+mkdocs-material = "^9.1.21"
+mkdocs-jupyter = "^0.24.2"
 
 [tool.pytest.ini_options]
 markers = ["integration: does a full train-test run"]
