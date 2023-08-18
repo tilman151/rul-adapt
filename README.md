@@ -55,7 +55,14 @@ To install the dependencies, run:
 poetry install
 ```
 
-This will generate a new virtual environment for you to use.
+If you are running this command on a server, you may need to deactivate the keyring backend.
+To do so, run:
+
+```bash
+PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
+```
+
+Poetry will generate a new virtual environment for you to use.
 To activate it, run:
 
 ```bash
