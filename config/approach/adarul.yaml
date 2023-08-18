@@ -22,6 +22,5 @@ training:
   approach:
       _target_: rul_adapt.approach.AdaRulApproach
       lr: ???
-      max_rul: ???
       num_disc_updates: ???
       num_gen_updates: ???
