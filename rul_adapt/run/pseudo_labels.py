@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import ConcatDataset, DataLoader
 
 import rul_adapt
+from rul_adapt.approach.pseudo_labels import get_max_rul
 from rul_adapt.run import common
 
 
@@ -38,7 +39,8 @@ def _get_adaption_dataloader(approach, dm):
     pseudo_rul = rul_adapt.approach.generate_pseudo_labels(
         dm.target, approach, dm.inductive
     )
-    pseudo_rul = [min(dm.target.reader.max_rul, max(0.0, pr)) for pr in pseudo_rul]
+    max_rul = get_max_rul(dm.target.reader)
+    pseudo_rul = [min(max_rul, max(0.0, pr)) for pr in pseudo_rul]
     rul_adapt.approach.patch_pseudo_labels(dm.target, pseudo_rul, dm.inductive)
 
     source_data = dm.source.to_dataset("dev")
