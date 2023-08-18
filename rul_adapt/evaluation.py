@@ -80,9 +80,9 @@ def friedman_nemenyi(
     avg_ranks = ranks.mean(axis=1)
     if friedman_pvalue > p:
         print("Friedman test: No significant difference between approaches.")
-        pairwise_significance = sp.posthoc_nemenyi_friedman(performance.T)
-    else:
         pairwise_significance = None
+    else:
+        pairwise_significance = sp.posthoc_nemenyi_friedman(performance.T)
 
     return avg_ranks, pairwise_significance
 

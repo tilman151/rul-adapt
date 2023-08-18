@@ -24,7 +24,7 @@ def test_friedman_nemenyi_no_rejection(dataset_names, approach_names):
 
     avg_ranks, pairwise_significance = friedman_nemenyi(performances)
 
-    assert avg_ranks is None
+    assert avg_ranks is not None
     assert pairwise_significance is None
 
 
