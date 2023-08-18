@@ -135,11 +135,11 @@ class TestPseudoLabelReader:
     )
     @pytest.mark.parametrize("norm_rul", [True, False])
     def test_pseudo_label_generation_fttp(self, norm_rul, inductive, exp_split):
-        fttp = 10
+        fttps = [10] * 9 + [500]  # last FTTP is too long so all RULs are 1.0
         reader = rul_datasets.reader.DummyReader(1, percent_broken=0.8)
 
         # mock reader to behave as one with fttp (missing functionality of DummyReader)
-        reader.first_time_to_predict = [fttp] * 30
+        reader.first_time_to_predict = fttps
         reader.norm_rul = norm_rul
         reader.max_rul = None  # normally max_rul cannot be set with fttp
         reader._preparator = mock.Mock(name="preperator")
@@ -151,10 +151,11 @@ class TestPseudoLabelReader:
         pl_reader = _PseudoLabelReader(reader, pseudo_labels, inductive=inductive)
 
         features, targets = pl_reader.load_split(exp_split, "dev")
-        for t, pl in zip(targets, pseudo_labels):
+        for t, pl, fttp in zip(targets, pseudo_labels, fttps):
             if norm_rul:
                 assert np.all(t <= 1.0)
-            assert t[-1] == pl
             max_rul = t[0]
             assert np.all(t[:fttp] == max_rul)
-            assert np.all(t[fttp:] < max_rul)
+            if fttp < 10:  # if FTTP is too long, all RULs are 1.0
+                assert np.all(t[fttp:] < max_rul)
+                assert t[-1] == pl
