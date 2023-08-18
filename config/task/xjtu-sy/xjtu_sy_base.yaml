@@ -4,6 +4,7 @@ reader:
   fd: ???
   window_size: 2560
   norm_rul: True
+  truncate_degraded_only: True
 batch_size: 128
 feature_extractor:
   _target_: rul_adapt.run.utils.XjtuSyExtractor
