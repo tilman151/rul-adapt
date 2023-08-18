@@ -77,7 +77,7 @@ def generate_pseudo_labels(
     last_timestep = torch.stack([f[-1] for f in features])
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
-    max_rul = _get_max_rul(dm.reader)
+    max_rul = get_max_rul(dm.reader)
     if torch.any(pseudo_labels > max_rul):
         warnings.warn(
             "At least one of the generated pseudo labels is greater "
@@ -141,7 +141,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
 
         if any(pl < 0 for pl in pseudo_labels):
             raise ValueError("Pseudo labels must be non-negative.")
-        max_rul = _get_max_rul(reader)
+        max_rul = get_max_rul(reader)
         if any(pl > max_rul for pl in pseudo_labels):
             raise ValueError(
                 "Pseudo labels must be smaller than the maximum RUL "
@@ -244,7 +244,8 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
             fttp -= 1  # linspace includes 1.0 so decrease starts earlier
             rul_values = np.empty(len(feature))
             rul_values[:fttp] = 1.0
-            rul_values[fttp:] = np.linspace(1.0, pseudo_label, len(feature) - fttp)
+            remaining_steps = max(0, len(feature) - fttp)
+            rul_values[fttp:] = np.linspace(1.0, pseudo_label, remaining_steps)
         else:
             first_rul = pseudo_label + len(feature)
             max_rul = first_rul - fttp
@@ -254,7 +255,7 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         return rul_values
 
 
-def _get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Union[int, float]:
+def get_max_rul(reader: rul_datasets.reader.AbstractReader) -> Union[int, float]:
     """Resolve the maximum RUL of a reader to be comparable to floats."""
     return reader.max_rul or (
         1 if hasattr(reader, "norm_rul") and reader.norm_rul else float("inf")
