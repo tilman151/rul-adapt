@@ -39,3 +39,51 @@ pip install rul-adapt
 ## Contribution
 
 Contributions are always welcome. Whether you want to fix a bug, add a feature or a new approach, just open an issue and a PR.
+
+## Development
+
+This project is set up with [Poetry](https://python-poetry.org/).
+It is the easiest to install Poetry via pipx:
+
+```bash
+pipx install poetry
+```
+
+To install the dependencies, run:
+
+```bash
+poetry install
+```
+
+This will generate a new virtual environment for you to use.
+To activate it, run:
+
+```bash
+poetry shell
+```
+
+or prefix your commands with `poetry run`.
+
+To run a hyperparameter search for a specific approach on a GPU, run:
+
+```bash
+poetry run python tune_adaption.py --dataset <Dataset> --backbone <Backbone> --approach <Approach> --gpu --sweep_name <Name_for_your_sweep> --entity <WandB_Entity>
+```
+
+All results will be logged to WandB in the specified entity and project.
+By default, CMAPSS runs with four parallel trials and the remaining datasets with one.
+To change this, go to line 53 or 56 respectively and set the value for `"gpu"`.
+If you want five parallel trials, set it to 0.2.
+How many trials can be run in parallel depends on the GPU memory.
+
+Each trial will be logged, and after all of them are finished, an additional summary run will be created.
+This run contains the analysis dataframe of the search.
+To get the best hyperparameters, you can run:
+
+```python
+from rul_adapt.evaluation import get_best_tune_run
+
+best_hparams = get_best_tune_run("<WandB_Summary_Run_Path>")
+```
+
+The returned dictionary contains the best hyperparameters.
