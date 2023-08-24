@@ -4,8 +4,8 @@ defaults:
 
 training:
   approach:
-      lr: 0.001
-      mmd_factor: 1.0
-      num_mmd_kernels: 5
-      dynamic_adaptive_factor: 0.5
+      lr: 0.00042
+      mmd_factor: 0.4
+      num_mmd_kernels: 2
+      dynamic_adaptive_factor: 0.3
       fuzzy_sets: ???

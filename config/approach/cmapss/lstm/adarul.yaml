@@ -3,7 +3,7 @@ domain_disc:
 
 training:
   approach:
-      lr: 0.001
+      lr: 0.00962
       max_rul: 125
-      num_disc_updates: 35
-      num_gen_updates: 1
+      num_disc_updates: 15
+      num_gen_updates: 5

@@ -7,7 +7,7 @@ domain_disc:
 
 training:
   approach:
-      lr: 6e-5
-      dann_factor: 2.6
-      dynamic_adaptive_factor: 0.5
+      lr: 1e-5
+      dann_factor: 5.7
+      dynamic_adaptive_factor: 0.3
       fuzzy_sets: ???
