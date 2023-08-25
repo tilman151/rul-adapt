@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from rul_adapt.evaluation import friedman_nemenyi, plot_critical_difference
+from rul_adapt.evaluation import friedman_nemenyi, plot_critical_difference, load_runs
 
 
 @pytest.fixture()
@@ -63,3 +63,28 @@ def test_critical_difference_plot():
         avg_ranks, pairwise_significance, annotation_ratio=0.3, figsize=(7, 2)
     )
     fig.show()
+
+
+def test_load_runs():
+    runs = load_runs("rul-adapt/benchmark", exclude_tags=["pretraining"])
+
+    assert isinstance(runs, pd.DataFrame)
+    assert (
+        set(runs.columns.tolist()).symmetric_difference(
+            {
+                "path",
+                "approach",
+                "replication_group",
+                "source",
+                "target",
+                "dataset",
+                "backbone",
+                "adaption_mode",
+                "test/target/rmse/dataloader_idx_1",
+                "test/target/score/dataloader_idx_1",
+                "test/source/rmse/dataloader_idx_0",
+                "test/source/score/dataloader_idx_0",
+            }
+        )
+        == set()
+    )

@@ -1,6 +1,6 @@
 import json
 import os.path
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 
 import networkx as nx
 import pandas as pd
@@ -52,6 +52,39 @@ def load_trials_table(run_path: str) -> pd.DataFrame:
     return table
 
 
+def load_runs(path: str, exclude_tags: Optional[List[str]] = None) -> pd.DataFrame:
+    wandb_api = wandb.Api()
+    runs = wandb_api.runs(path, filters={"tags": {"$nin": exclude_tags}})
+    processed_runs = []
+    for run in runs:
+        if (processed_run := _process_run(run)) is not None:
+            processed_runs.append(processed_run)
+    df = pd.DataFrame.from_records(processed_runs)
+
+    return df
+
+
+def _process_run(run):
+    config = run._attrs["config"]
+    tags = run._attrs["tags"]
+    if run.state == "finished":
+        processed_run = {
+            "path": "/".join(run.path),
+            "approach": config["approach"],
+            "replication_group": run.group,
+            "source": config["fd_source"],
+            "target": config["fd_target"],
+            "dataset": tags[0],
+            "backbone": tags[1],
+            "adaption_mode": tags[2],
+            **{k: v for k, v in run.summary.items() if k.startswith("test")},
+        }
+    else:
+        processed_run = None
+
+    return processed_run
+
+
 def trials2performances(table: pd.DataFrame) -> pd.DataFrame:
     """Extract the performance values from a trial table."""
     return table[[c for c in table.columns if c.startswith("rmse")]]
@@ -91,7 +124,7 @@ def plot_critical_difference(
     avg_ranks: pd.Series,
     pairwise_significance: pd.DataFrame,
     annotation_ratio: float = 0.5,
-    **kwargs
+    **kwargs,
 ) -> plt.Figure:
     fig: plt.Figure = plt.figure(**kwargs)
 
