@@ -71,6 +71,7 @@ class SupervisedApproach(AdaptionApproach):
         self.train_loss = utils.get_loss(loss_type)
         self._get_optimizer = utils.OptimizerFactory(**self.optim_kwargs)
         self.val_loss = torchmetrics.MeanSquaredError(squared=False)
+        self.test_loss = torchmetrics.MeanSquaredError(squared=False)
         self.evaluator = AdaptionEvaluator(
             self.forward, self.log, self.rul_score_mode, self.evaluate_degraded_only
         )
@@ -83,9 +84,7 @@ class SupervisedApproach(AdaptionApproach):
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.regressor(self.feature_extractor(inputs)) * self.rul_scale
 
-    def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> torch.Tensor:
+    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> torch.Tensor:
         """
         Execute one training step.
 
@@ -107,7 +106,10 @@ class SupervisedApproach(AdaptionApproach):
         return loss
 
     def validation_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+        self,
+        batch: List[torch.Tensor],
+        batch_idx: int,
+        dataloader_idx: int = -1,
     ) -> None:
         """
         Execute one validation step.
@@ -120,13 +122,23 @@ class SupervisedApproach(AdaptionApproach):
             batch: A list of feature and label tensors.
             batch_idx: The index of the current batch.
         """
-        inputs, labels = filter_batch(*batch, degraded_only=self.evaluate_degraded_only)
+        if dataloader_idx == -1:
+            self._no_adapt_validation_step(batch)
+        else:
+            domain = utils.dataloader2domain(dataloader_idx)
+            self.evaluator.validation(batch, domain)
+
+    def _no_adapt_validation_step(self, batch: List[torch.Tensor]) -> None:
+        inputs, labels = batch
+        inputs, labels = filter_batch(
+            inputs, labels, degraded_only=self.evaluate_degraded_only
+        )
         predictions = self.forward(inputs)
         self.val_loss(predictions, labels[:, None])
         self.log("val/loss", self.val_loss)
 
     def test_step(
-        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int
+        self, batch: List[torch.Tensor], batch_idx: int, dataloader_idx: int = -1
     ) -> None:
         """
         Execute one test step.
@@ -143,5 +155,17 @@ class SupervisedApproach(AdaptionApproach):
             batch_idx: The index of the current batch.
             dataloader_idx: The index of the current dataloader (0: source, 1: target).
         """
-        domain = utils.dataloader2domain(dataloader_idx)
-        self.evaluator.test(batch, domain)
+        if dataloader_idx == -1:
+            self._no_adapt_test_step(batch)
+        else:
+            domain = utils.dataloader2domain(dataloader_idx)
+            self.evaluator.test(batch, domain)
+
+    def _no_adapt_test_step(self, batch: List[torch.Tensor]) -> None:
+        inputs, labels = batch
+        inputs, labels = filter_batch(
+            inputs, labels, degraded_only=self.evaluate_degraded_only
+        )
+        predictions = self.forward(inputs)
+        self.test_loss(predictions, labels[:, None])
+        self.log("test/loss", self.test_loss)

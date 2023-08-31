@@ -1,6 +1,8 @@
 from unittest import mock
 
 import pytest
+import pytorch_lightning as pl
+import rul_datasets.reader
 import torch
 import torchmetrics
 from torchmetrics import Metric
@@ -12,12 +14,12 @@ from tests.test_approach import utils
 
 @pytest.fixture()
 def inputs():
-    return torch.randn(10, 14, 20), torch.arange(10, dtype=torch.float)
+    return [torch.randn(10, 1, 20), torch.arange(10, dtype=torch.float)]
 
 
 @pytest.fixture()
 def models():
-    fe = model.LstmExtractor(14, [32, 32, 32], bidirectional=True)
+    fe = model.LstmExtractor(1, [32, 32, 32], bidirectional=True)
     reg = model.FullyConnectedHead(64, [32, 1], act_func_on_last_layer=False)
 
     return fe, reg
@@ -29,6 +31,25 @@ def approach(models):
     approach.set_model(*models)
 
     return approach
+
+
+@pytest.fixture()
+def dummy_dm():
+    source = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(1), 32)
+    target = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(2), 32)
+    dm = rul_datasets.DomainAdaptionDataModule(source, target)
+
+    return dm
+
+
+@pytest.fixture()
+def silent_trainer():
+    return pl.Trainer(
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
 
 
 class TestSupervisedApproach:
@@ -112,3 +133,25 @@ class TestSupervisedApproach:
     @torch.no_grad()
     def test_test_step_logging(self, approach, mocker):
         utils.check_test_logging(approach, mocker)
+
+    def test_validation_switcher(self, approach, dummy_dm, silent_trainer, mocker):
+        mock_no_adapt_val = mocker.patch.object(approach, "_no_adapt_validation_step")
+        mock_adapt_val = mocker.patch.object(approach.evaluator, "validation")
+
+        silent_trainer.validate(approach, dummy_dm.source)
+        mock_no_adapt_val.assert_called()
+        mock_adapt_val.assert_not_called()
+
+        silent_trainer.validate(approach, dummy_dm)
+        mock_adapt_val.assert_called()
+
+    def test_test_switcher(self, approach, dummy_dm, silent_trainer, mocker):
+        mock_no_adapt_test = mocker.patch.object(approach, "_no_adapt_test_step")
+        mock_adapt_test = mocker.patch.object(approach.evaluator, "test")
+
+        silent_trainer.test(approach, dummy_dm.source)
+        mock_no_adapt_test.assert_called()
+        mock_adapt_test.assert_not_called()
+
+        silent_trainer.test(approach, dummy_dm)
+        mock_adapt_test.assert_called()
