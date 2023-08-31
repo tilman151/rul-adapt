@@ -1,6 +1,10 @@
 domain_disc:
   units: [1]
 
+pretraining:
+  approach:
+    rul_scale: 125
+
 training:
   approach:
       lr: 0.001
