@@ -19,6 +19,8 @@ pretraining:
   approach: ???
 
 training:
+  trainer:
+    val_check_interval: 0.2
   approach:
       _target_: rul_adapt.approach.AdaRulApproach
       lr: ???
