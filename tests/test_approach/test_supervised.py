@@ -7,6 +7,7 @@ from torchmetrics import Metric
 
 from rul_adapt import model
 from rul_adapt.approach import SupervisedApproach
+from tests.test_approach import utils
 
 
 @pytest.fixture()
@@ -100,3 +101,14 @@ class TestSupervisedApproach:
 
         approach.val_loss.assert_called_once()
         approach.log.assert_called_with("val/loss", approach.val_loss)
+
+    @torch.no_grad()
+    def test_test_step(self, approach, inputs):
+        approach.test_step(inputs, batch_idx=0, dataloader_idx=0)
+        approach.test_step(inputs, batch_idx=0, dataloader_idx=1)
+        with pytest.raises(RuntimeError):
+            approach.test_step(inputs, batch_idx=0, dataloader_idx=2)
+
+    @torch.no_grad()
+    def test_test_step_logging(self, approach, mocker):
+        utils.check_test_logging(approach, mocker)
