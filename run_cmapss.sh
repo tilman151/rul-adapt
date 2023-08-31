@@ -1,6 +1,6 @@
 ENTITY=rul-adapt
 PROJECT=benchmark
-APPROACHES=("adarul" "conditional_dann" "conditional_mmd" "consistency dann" "latent_align" "mmd" "pseudo_labels")
+APPROACHES=("adarul" "conditional_dann" "conditional_mmd" "consistency" "dann" "latent_align" "mmd" "pseudo_labels")
 REPLICATIONS=5
 
 for APPROACH in "${APPROACHES[@]}"; do
