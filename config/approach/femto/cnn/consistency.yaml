@@ -3,5 +3,5 @@ domain_disc:
 
 training:
   approach:
-      lr: 0.001
-      consistency_factor: 0.1
+      lr: 0.00224
+      consistency_factor: 1.0

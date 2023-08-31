@@ -3,8 +3,8 @@ dm:
 
 training:
   approach:
-    lr: 0.001
-    alpha_healthy: 1.0
-    alpha_direction: 1.0
-    alpha_level: 1.0
-    alpha_fusion: 1.0
+    lr: 0.00546
+    alpha_healthy: 3.2
+    alpha_direction: 3.2
+    alpha_level: 3.2
+    alpha_fusion: 3.2
