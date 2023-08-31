@@ -1,5 +1,5 @@
 training:
   approach:
-      lr: 0.001
-      mmd_factor: 1.0
-      num_mmd_kernels: 5
+      lr: 3e-5
+      mmd_factor: 0.2
+      num_mmd_kernels: 4

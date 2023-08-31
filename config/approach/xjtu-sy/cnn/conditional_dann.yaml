@@ -3,11 +3,11 @@ defaults:
   - ../fuzzy_sets@training.approach
 
 domain_disc:
-  units: [1]
+  units: ['${regressor.input_channels}', '${regressor.input_channels}', 1]
 
 training:
   approach:
-      lr: 0.001
-      dann_factor: 1.0
+      lr: 0.00023
+      dann_factor: 1.1
       dynamic_adaptive_factor: 0.5
       fuzzy_sets: ???
