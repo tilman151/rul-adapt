@@ -6,7 +6,7 @@ Data --> FeatureExtractor --> Features --> Regressor  --> RUL Prediction
 ```
 """
 
-from typing import Tuple, Literal, Any, Dict, List
+from typing import Literal, Any, Dict, List
 
 import torch
 import torchmetrics
