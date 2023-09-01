@@ -74,15 +74,33 @@ def _process_run(run):
             "replication_group": run.group,
             "source": config["fd_source"],
             "target": config["fd_target"],
-            "dataset": tags[0],
-            "backbone": tags[1],
-            "adaption_mode": tags[2],
+            "dataset": _parse_dataset(tags),
+            "backbone": _parse_backbone(tags),
+            "adaption_mode": _parse_adaption_mode(tags),
             **{k: v for k, v in run.summary.items() if k.startswith("test")},
         }
     else:
         processed_run = None
 
     return processed_run
+
+
+def _parse_dataset(tags):
+    return _parse_tags(["cmapss", "femto", "xjtu-sy"], tags)
+
+
+def _parse_backbone(tags):
+    return _parse_tags(["cnn", "lstm"], tags)
+
+
+def _parse_adaption_mode(tags):
+    return _parse_tags(["transductive", "inductive", "complete"], tags)
+
+
+def _parse_tags(tags, options):
+    for option in options:
+        if option in tags:
+            return option
 
 
 def trials2performances(table: pd.DataFrame) -> pd.DataFrame:
