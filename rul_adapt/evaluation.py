@@ -10,6 +10,7 @@ import wandb
 import tempfile
 
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 def get_best_tune_run(run_path: str) -> Dict[str, Any]:
@@ -56,7 +57,7 @@ def load_runs(path: str, exclude_tags: Optional[List[str]] = None) -> pd.DataFra
     wandb_api = wandb.Api()
     runs = wandb_api.runs(path, filters={"tags": {"$nin": exclude_tags}})
     processed_runs = []
-    for run in runs:
+    for run in tqdm(runs, unit="run"):
         if (processed_run := _process_run(run)) is not None:
             processed_runs.append(processed_run)
     df = pd.DataFrame.from_records(processed_runs)
@@ -77,8 +78,13 @@ def _process_run(run):
             "dataset": _parse_dataset(tags),
             "backbone": _parse_backbone(tags),
             "adaption_mode": _parse_adaption_mode(tags),
-            **{k: v for k, v in run.summary.items() if k.startswith("test")},
         }
+        test_metrics = {k: v for k, v in run.summary.items() if k.startswith("test")}
+        if not test_metrics:
+            test_metrics = {
+                k: v for k, v in run.history().iloc[-1].items() if k.startswith("test")
+            }
+        processed_run.update(test_metrics)
     else:
         processed_run = None
 
