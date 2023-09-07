@@ -1,2 +1,3 @@
 defaults:
   - /${dataset}/${feature_extractor}/${approach}@_here_
+  - /${dataset}/rul_score_mode@_here_

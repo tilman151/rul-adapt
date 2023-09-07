@@ -1,0 +1,3 @@
+training:
+  approach:
+    rul_score_mode: phm08
