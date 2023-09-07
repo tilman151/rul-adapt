@@ -177,7 +177,7 @@ def plot_critical_difference(
 
 def _annotate_ranks(ax, avg_ranks, ratio):
     arrowprops = dict(arrowstyle="-", connectionstyle="angle,angleA=0,angleB=90")
-    min_x, max_x = 1, len(avg_ranks) + 1
+    min_x, max_x = avg_ranks.min() - 0.25, avg_ranks.max() + 0.25
     for i, (approach, rank) in enumerate(avg_ranks.sort_values().items()):
         text_pos = _get_text_pos(i, len(avg_ranks), min_x, max_x, ratio)
         ax.annotate(
