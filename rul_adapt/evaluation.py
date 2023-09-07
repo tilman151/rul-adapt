@@ -100,7 +100,7 @@ def _parse_backbone(tags):
 
 
 def _parse_adaption_mode(tags):
-    return _parse_tags(["transductive", "inductive", "complete"], tags)
+    return _parse_tags(["transductive", "inductive", "complete", "60percent"], tags)
 
 
 def _parse_tags(tags, options):
