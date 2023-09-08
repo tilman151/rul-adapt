@@ -1,0 +1,23 @@
+# @package _global_
+
+defaults:
+  - baseline/baseline_base@training.approach
+  - /${dataset}/rul_score_mode@_here_
+
+runner: rul_adapt.run.no_adaption
+
+dm:
+  _target_: rul_datasets.DomainAdaptionDataModule
+
+training:
+  trainer:
+    callbacks:
+      - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+        monitor: val/loss
+        mode: min
+        save_top_k: 1
+      - _target_: pytorch_lightning.callbacks.EarlyStopping
+        monitor: val/loss
+        mode: min
+        patience: 20
+  approach: ???
