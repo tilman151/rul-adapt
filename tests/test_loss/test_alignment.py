@@ -29,6 +29,7 @@ def test_healthy_state_alignment():
         ([[1.0, 2.0], [4.0, 4.0]], -0.5 * (1.0 + math.cos(math.pi / 4))),  # 90°
         ([[1.0, 2.0], [4.0, 1.0]], -0.5 * (1.0 + math.cos(math.pi / 2))),  # 45°
         ([[0.0, 0.0], [4.0, 4.0]], 0.0),  # 180°
+        ([[1.0, 1.0], [1.0, 1.0]], 0.0),  # direction is zero
     ],
 )
 def test_direction_alignment(inputs, expected):
@@ -69,6 +70,21 @@ def test_degradation_regularization(
     )
 
     npt.assert_almost_equal(reg_loss, expected)
+
+
+def test_degradation_regularization_no_source_difference():
+    healthy = torch.ones(1, 2)
+    source = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
+    source_labels = torch.tensor([10.0, 20.0])
+    target = torch.tensor([[1.0, 2.0], [1.0, 3.0]])
+    target_degradation_steps = torch.tensor([10.0, 20.0])
+    degradation_reg = loss.DegradationLevelRegularizationLoss()
+
+    reg_loss = degradation_reg(
+        healthy, source, source_labels, target, target_degradation_steps
+    )
+
+    assert not torch.isnan(reg_loss)
 
 
 @pytest.mark.parametrize(

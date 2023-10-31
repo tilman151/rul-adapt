@@ -91,7 +91,8 @@ class DegradationDirectionAlignmentLoss(torchmetrics.Metric):
     def update(self, healthy: torch.Tensor, degraded: torch.Tensor) -> None:
         healthy_mean = healthy.mean(dim=0)
         trajectory = degraded - healthy_mean
-        trajectory = trajectory / torch.norm(trajectory, dim=1, keepdim=True)
+        trajectory_norm = torch.norm(trajectory, dim=1, keepdim=True)
+        trajectory = trajectory / (trajectory_norm + 1e-8)
         pairwise_dist = calc_pairwise_dot(trajectory, trajectory)
         loss = -pairwise_dist.sum()
 
@@ -154,12 +155,10 @@ class DegradationLevelRegularizationLoss(torchmetrics.Metric):
         source_distances = self._calc_normed_distances(healthy_mean, source)
         target_distances = self._calc_normed_distances(healthy_mean, target)
 
-        source_degradation_steps = source_degradation_steps / torch.max(
-            source_degradation_steps
-        )
-        target_degradation_steps = target_degradation_steps / torch.max(
-            target_degradation_steps
-        )
+        source_max = torch.max(source_degradation_steps)
+        source_degradation_steps = source_degradation_steps / source_max
+        target_max = torch.max(target_degradation_steps)
+        target_degradation_steps = target_degradation_steps / target_max
 
         source_loss = torch.abs(source_distances - source_degradation_steps).sum()
         target_loss = torch.abs(target_distances - target_degradation_steps).sum()
@@ -175,6 +174,6 @@ class DegradationLevelRegularizationLoss(torchmetrics.Metric):
         self, healthy_mean: torch.Tensor, source: torch.Tensor
     ) -> torch.Tensor:
         distances = torch.norm(source - healthy_mean, p=2, dim=1)
-        distances = distances / torch.max(distances)
+        distances = distances / (torch.max(distances) + 1e-8)
 
         return distances
