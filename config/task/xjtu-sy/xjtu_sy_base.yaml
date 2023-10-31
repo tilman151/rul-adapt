@@ -2,7 +2,6 @@ _target_: rul_datasets.RulDataModule
 reader:
   _target_: rul_datasets.XjtuSyReader
   fd: ???
-  window_size: 2560
   norm_rul: True
   truncate_degraded_only: True
 batch_size: 128
