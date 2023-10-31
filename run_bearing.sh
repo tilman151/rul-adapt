@@ -14,6 +14,7 @@ poetry run python train.py \
        +approach="$APPROACH" \
        +feature_extractor=cnn \
        +dataset="$DATASET" \
+       evaluation_mode=degraded_only \
        test=True \
        logger.entity=$ENTITY \
        logger.project=$PROJECT \
