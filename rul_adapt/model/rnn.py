@@ -49,11 +49,11 @@ class LstmExtractor(nn.Module):
         """
         Create a new LSTM-based feature extractor.
 
-        The `lstm_units` are the output units for each LSTM layer. If `bidirectional`
+        The `units` are the output units for each LSTM layer. If `bidirectional`
         is set to `True`, a BiLSTM is used and the output units are doubled. If
         `fc_units` is set, a fully connected layer is appended. The number of output
-        features of this network is either `lstm_units[-1]` by default,
-        `2 * lstm_units[ -1]` if bidirectional is set, or `fc_units` if it is set.
+        features of this network is either `units[-1]` by default,
+        `2 * units[ -1]` if bidirectional is set, or `fc_units` if it is set.
 
         Dropout can be applied to each LSTM layer by setting `lstm_dropout` to a
         number greater than zero. The same is valid for the fully connected layer and
