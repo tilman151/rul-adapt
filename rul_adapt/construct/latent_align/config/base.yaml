@@ -13,6 +13,7 @@ dm:
     inductive: True
 
 feature_extractor:
+  _convert_: all  # needed for tensorboard hparam dumping
   _target_: rul_adapt.model.CnnExtractor
   input_channels: ???
   units: [32, 16, 1]
@@ -23,6 +24,7 @@ feature_extractor:
   fc_act_func: torch.nn.LeakyReLU
 
 regressor:
+  _convert_: all
   _target_: rul_adapt.model.FullyConnectedHead
   input_channels: ${feature_extractor.fc_units}
   act_func_on_last_layer: False
