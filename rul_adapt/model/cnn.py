@@ -63,7 +63,7 @@ class CnnExtractor(nn.Module):
         """
         Create a new CNN-based feature extractor.
 
-        The `conv_filters` are the number of output filters for each CNN layer. The
+        The `units` are the number of output filters for each CNN layer. The
         `seq_len` is needed to calculate the input units for the FC layer. The kernel
         size of each CNN layer can be set by passing a list to `kernel_size`. If an
         integer is passed, each layer has the same kernel size. If `padding` is true,
