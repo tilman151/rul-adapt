@@ -9,6 +9,7 @@ dm:
   batch_size: 512
 
 feature_extractor:
+  _convert_: all  # needed for tensorboard hparam dumping
   _target_: rul_adapt.model.CnnExtractor
   input_channels: 14
   units: [10, 10, 10, 10, 1]
@@ -20,6 +21,7 @@ feature_extractor:
 regressor:
   _target_: rul_adapt.model.wrapper.DropoutPrefix
   wrapped:
+    _convert_: all
     _target_: rul_adapt.model.FullyConnectedHead
     input_channels: 30
     act_func_on_last_layer: False
@@ -28,6 +30,7 @@ regressor:
   dropout: 0.5
 
 domain_disc:
+  _convert_: all
   _target_: rul_adapt.model.FullyConnectedHead
   input_channels: 30
   act_func_on_last_layer: False
@@ -35,6 +38,7 @@ domain_disc:
   act_func: torch.nn.Tanh
 
 dann:
+  _convert_: all
   _target_: rul_adapt.approach.DannApproach
   dann_factor: 3.0
   lr: 0.001
