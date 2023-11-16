@@ -132,6 +132,7 @@ def test_checkpointing(tmp_path, approach, models):
     utils.checkpoint(approach, ckpt_path)
     restored = type(approach).load_from_checkpoint(ckpt_path)
 
+    assert approach.hparams == restored.hparams
     paired_params = zip(approach.parameters(), restored.parameters())
     for org_weight, restored_weight in paired_params:
         assert torch.dist(org_weight, restored_weight) == 0.0
@@ -212,10 +213,10 @@ def test_model_hparams(approach_func):
     approach.set_model(fe, reg)
 
     assert approach.hparams == approach.hparams_initial
-    assert "model_feature_extractor_type" in approach.hparams_initial
-    assert approach.hparams_initial["model_feature_extractor_type"] == "LstmExtractor"
-    assert "model_regressor_type" in approach.hparams_initial
-    assert approach.hparams_initial["model_regressor_type"] == "FullyConnectedHead"
+    assert "model" in approach.hparams_initial
+    model_hparams = approach.hparams_initial["model"]
+    assert model_hparams["feature_extractor"]["type"] == "LstmExtractor"
+    assert model_hparams["regressor"]["type"] == "FullyConnectedHead"
 
 
 @pytest.mark.integration

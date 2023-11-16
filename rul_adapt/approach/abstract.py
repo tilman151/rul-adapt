@@ -74,24 +74,25 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
         self.log_model_hyperparameters("feature_extractor", "regressor")
 
     def log_model_hyperparameters(self, *model_names: str) -> None:
+        hparams_initial = self.hparams_initial
         if not hasattr(self, "_logged_models"):
             self._logged_models = {}
-        hparams_initial = self.hparams_initial
+            hparams_initial["model"] = {}
 
         for model_name in model_names:
             model_hparams = self._get_model_hparams(model_name)
-            hparams_initial.update(model_hparams)
+            hparams_initial["model"].update(model_hparams)
             self._logged_models[model_name] = set(model_hparams.keys())
 
         self._hparams_initial = hparams_initial
         self._set_hparams(self._hparams_initial)
 
     def _get_model_hparams(self, model_name):
-        prefix = f"model_{model_name.lstrip('_')}"
+        prefix = model_name.lstrip("_")
         model = getattr(self, model_name)
-        hparams = {f"{prefix}_type": type(model).__name__}
+        hparams = {prefix: {"type": type(model).__name__}}
         init_args = _get_init_args(model, "logging model hyperparameters")
-        hparams.update({f"{prefix}_{k}": v for k, v in init_args.items()})
+        hparams[prefix].update(init_args)
 
         return hparams
 
@@ -112,21 +113,11 @@ class AdaptionApproach(pl.LightningModule, metaclass=ABCMeta):
             raise RuntimeError("Regressor used before 'set_model' was called.")
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self._make_model_hparams_storable(checkpoint)
+        del checkpoint["hyper_parameters"]["model"]
+        checkpoint["logged_models"] = list(self._logged_models)
         to_checkpoint = ["_feature_extractor", "_regressor"] + self.CHECKPOINT_MODELS
         configs = {m: _get_hydra_config(getattr(self, m)) for m in to_checkpoint}
         checkpoint["model_configs"] = configs
-
-    def _make_model_hparams_storable(self, checkpoint: Dict[str, Any]) -> None:
-        excluded_keys = set()
-        for keys in self._logged_models.values():
-            excluded_keys.update(keys)
-        checkpoint["hyper_parameters"] = {
-            k: v
-            for k, v in checkpoint["hyper_parameters"].items()
-            if k not in excluded_keys
-        }
-        checkpoint["logged_models"] = list(self._logged_models)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         for name, config in checkpoint["model_configs"].items():
