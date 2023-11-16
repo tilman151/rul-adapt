@@ -154,6 +154,10 @@ class _PseudoLabelReader(rul_datasets.reader.AbstractReader):
         self._max_rul = max_rul
 
     @property
+    def dataset_name(self) -> str:
+        return self._reader.dataset_name
+
+    @property
     def _patched_split(self) -> str:
         return "test" if self._inductive else "dev"
 
