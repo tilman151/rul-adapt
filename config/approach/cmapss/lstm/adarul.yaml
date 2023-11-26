@@ -7,7 +7,7 @@ pretraining:
 
 training:
   approach:
-      lr: 0.00962
+      lr: 0.00266
       max_rul: 125
       num_disc_updates: 15
-      num_gen_updates: 5
+      num_gen_updates: 8

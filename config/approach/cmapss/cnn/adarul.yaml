@@ -1,5 +1,5 @@
 domain_disc:
-  units: [1]
+  units: ['${regressor.input_channels}', '${regressor.input_channels}', 1]
 
 pretraining:
   approach:
@@ -7,7 +7,7 @@ pretraining:
 
 training:
   approach:
-      lr: 0.001
+      lr: 0.00014
       max_rul: 125
-      num_disc_updates: 35
-      num_gen_updates: 1
+      num_disc_updates: 20
+      num_gen_updates: 7

@@ -1,8 +1,8 @@
 domain_disc:
-  units: [1]
+  units: ['${regressor.input_channels}', 1]
 
 training:
   approach:
-      lr: 0.001
-      num_disc_updates: 35
-      num_gen_updates: 1
+      lr: 0.00012
+      num_disc_updates: 10
+      num_gen_updates: 9
