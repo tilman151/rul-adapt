@@ -12,12 +12,33 @@ jobs:
           poetry-version: "1.2.2"
       - run: poetry run pytest tests -m "not integration"
 
-  integration:
+  legacy-unit:
     runs-on: ubuntu-latest
-    needs: [unit]
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/install-poetry
         with:
           poetry-version: "1.2.2"
+      - run: poetry run pip install "pytorch-lightning<2.0.0"
+      - run: poetry run pytest tests -m "not integration"
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: [ legacy-unit ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install-poetry
+        with:
+          poetry-version: "1.2.2"
+      - run: poetry run pytest tests -m integration
+
+  legacy-integration:
+    runs-on: ubuntu-latest
+    needs: [ legacy-unit ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install-poetry
+        with:
+          poetry-version: "1.2.2"
+      - run: poetry run pip install "pytorch-lightning<2.0.0"
       - run: poetry run pytest tests -m integration

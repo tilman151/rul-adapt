@@ -9,7 +9,7 @@ Both variants were introduced by
 [Cheng et al.](https://doi.org/10.1007/s10845-021-01814-y) in 2021."""
 
 from copy import deepcopy
-from typing import List, Tuple, Literal, Optional, Any, Dict
+from typing import List, Tuple, Literal, Optional, Any
 
 import torch
 from torch import nn
@@ -19,6 +19,7 @@ from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator
 from rul_adapt.model import FullyConnectedHead
+from rul_adapt.utils import OptimizerLRSchedulerConfig
 
 
 class ConditionalMmdApproach(AdaptionApproach):
@@ -104,7 +105,7 @@ class ConditionalMmdApproach(AdaptionApproach):
     def fuzzy_sets(self) -> List[Tuple[float, float]]:
         return self.conditional_mmd_loss.fuzzy_sets
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an Adam optimizer."""
         return self._get_optimizer(self.parameters())
 
@@ -333,7 +334,7 @@ class ConditionalDannApproach(AdaptionApproach):
     def domain_disc(self) -> nn.Module:
         return self.dann_loss.domain_disc
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         """Configure an Adam optimizer."""
         return self._get_optimizer(self.parameters())
 

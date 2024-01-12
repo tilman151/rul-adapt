@@ -10,7 +10,7 @@ The approach was first introduced by [Ragab et al.](
 https://doi.org/10.1109/ICPHM49022.2020.9187053) and evaluated on the CMAPSS dataset."""
 
 import copy
-from typing import Optional, Any, List, Dict, Literal
+from typing import Optional, Any, List, Literal
 
 import torch
 from torch import nn
@@ -154,7 +154,7 @@ class AdaRulApproach(AdaptionApproach):
         else:
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> List[Dict[str, Any]]:
+    def configure_optimizers(self) -> List[utils.OptimizerLRSchedulerConfig]:  # type: ignore[override]
         """Configure an optimizer for the generator and discriminator respectively."""
         return [
             self._get_optimizer(self.domain_disc.parameters()),
@@ -196,12 +196,12 @@ class AdaRulApproach(AdaptionApproach):
             self._reset_update_counters()
 
         if self._should_update_disc():
-            optim, _ = self.optimizers()  # type: ignore[misc]
+            optim, _ = self.optimizers()  # type: ignore[attr-defined, misc]
             loss = self._get_disc_loss(source, target)
             self.log("train/disc_loss", loss)
             self._disc_counter += 1
         elif self._should_update_gen():
-            _, optim = self.optimizers()  # type: ignore[misc]
+            _, optim = self.optimizers()  # type: ignore[attr-defined, misc]
             loss = self._get_gen_loss(target)
             self.log("train/gen_loss", loss)
             self._gen_counter += 1

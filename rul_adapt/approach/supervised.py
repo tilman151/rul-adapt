@@ -6,7 +6,7 @@ Data --> FeatureExtractor --> Features --> Regressor  --> RUL Prediction
 ```
 """
 
-from typing import Literal, Any, Dict, List
+from typing import Literal, Any, List
 
 import torch
 import torchmetrics
@@ -78,7 +78,7 @@ class SupervisedApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

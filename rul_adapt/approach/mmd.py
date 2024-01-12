@@ -25,7 +25,7 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import List, Literal, Any, Dict
+from typing import List, Literal, Any
 
 import torch
 
@@ -99,7 +99,7 @@ class MmdApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         """Configure an optimizer."""
         return self._get_optimizer(self.parameters())
 
