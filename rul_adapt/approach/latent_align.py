@@ -28,7 +28,6 @@ from typing import Tuple, List, Any, Optional, Literal
 
 import numpy as np
 import torch
-from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from rul_datasets.utils import feature_to_tensor
 from torch import nn
 
@@ -36,6 +35,7 @@ import rul_adapt
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator
+from rul_adapt.utils import OptimizerLRSchedulerConfig
 
 
 class LatentAlignFttpApproach(AdaptionApproach):
@@ -398,7 +398,7 @@ class LatentAlignApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         """Configure an optimizer."""
         optim = self._get_optimizer(self.parameters())
 

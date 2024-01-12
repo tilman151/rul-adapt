@@ -2,10 +2,15 @@ import warnings
 from itertools import tee
 from typing import Union, Callable, Literal, Any, Optional, Iterable
 
+import pytorch_lightning
 import torch
 import torchmetrics
-from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
+
+if pytorch_lightning.__version__.startswith("2."):
+    from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig  # type: ignore
+else:
+    OptimizerLRSchedulerConfig = dict  # type: ignore
 
 
 def pairwise(iterable):

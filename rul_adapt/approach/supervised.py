@@ -10,7 +10,6 @@ from typing import Literal, Any, List
 
 import torch
 import torchmetrics
-from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 
 from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
@@ -79,7 +78,7 @@ class SupervisedApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         return self._get_optimizer(self.parameters())
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

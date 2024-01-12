@@ -28,7 +28,6 @@ Used In:
 from typing import List, Literal, Any
 
 import torch
-from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 
 import rul_adapt
 from rul_adapt import utils
@@ -100,7 +99,7 @@ class MmdApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         """Configure an optimizer."""
         return self._get_optimizer(self.parameters())
 

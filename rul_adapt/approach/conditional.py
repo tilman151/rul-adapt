@@ -12,7 +12,6 @@ from copy import deepcopy
 from typing import List, Tuple, Literal, Optional, Any
 
 import torch
-from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
 
 import rul_adapt
@@ -20,6 +19,7 @@ from rul_adapt import utils
 from rul_adapt.approach.abstract import AdaptionApproach
 from rul_adapt.approach.evaluation import AdaptionEvaluator
 from rul_adapt.model import FullyConnectedHead
+from rul_adapt.utils import OptimizerLRSchedulerConfig
 
 
 class ConditionalMmdApproach(AdaptionApproach):
@@ -334,7 +334,7 @@ class ConditionalDannApproach(AdaptionApproach):
     def domain_disc(self) -> nn.Module:
         return self.dann_loss.domain_disc
 
-    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
+    def configure_optimizers(self) -> utils.OptimizerLRSchedulerConfig:
         """Configure an Adam optimizer."""
         return self._get_optimizer(self.parameters())
 
