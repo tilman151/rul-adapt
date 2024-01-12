@@ -25,9 +25,10 @@ Used In:
     [10.1109/ICPHM49022.2020.9187058](https://doi.org/10.1109/ICPHM49022.2020.9187058)
 """
 
-from typing import Any, Optional, Dict, Literal, List
+from typing import Any, Optional, Literal, List
 
 import torch
+from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
 
 import rul_adapt.loss
@@ -163,7 +164,7 @@ class DannApproach(AdaptionApproach):
         else:
             raise RuntimeError("Domain disc used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an optimizer for the whole model."""
         return self._get_optimizer(self.parameters())
 

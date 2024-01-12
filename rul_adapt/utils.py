@@ -1,9 +1,10 @@
 import warnings
 from itertools import tee
-from typing import Union, Callable, Literal, Any, Dict, Optional, Iterable
+from typing import Union, Callable, Literal, Any, Optional, Iterable
 
 import torch
 import torchmetrics
+from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
 
 
@@ -109,7 +110,9 @@ class OptimizerFactory:
                 f"will be ignored: {excess_kwargs}."
             )
 
-    def __call__(self, parameters: Iterable[nn.Parameter]) -> Dict[str, Any]:
+    def __call__(
+        self, parameters: Iterable[nn.Parameter]
+    ) -> OptimizerLRSchedulerConfig:
         """
         Create an optimizer with an optional scheduler for the given parameters.
 
@@ -128,7 +131,7 @@ class OptimizerFactory:
             if key.startswith("optim_")
         }
         optim = self._optim_func(parameters, lr=self.lr, **optim_kwargs)
-        optim_config = {"optimizer": optim}
+        optim_config = OptimizerLRSchedulerConfig(optimizer=optim)
 
         if self.scheduler_type is not None:
             scheduler_kwargs = {

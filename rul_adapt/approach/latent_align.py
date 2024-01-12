@@ -24,10 +24,11 @@ vibration data, i.e. XJTU-SY, it uses a [windowing scheme]
 [rul_adapt.approach.latent_align.LatentAlignFttpApproach] introduced by [Li et al.](
 https://doi.org/10.1016/j.knosys.2020.105843) in 2020."""
 
-from typing import Tuple, List, Any, Optional, Literal, Dict
+from typing import Tuple, List, Any, Optional, Literal
 
 import numpy as np
 import torch
+from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from rul_datasets.utils import feature_to_tensor
 from torch import nn
 
@@ -134,7 +135,7 @@ class LatentAlignFttpApproach(AdaptionApproach):
         else:
             raise RuntimeError("Generator used before 'set_model' was called.")
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an optimizer for the generator and discriminator."""
         return self._get_optimizer(self.parameters())
 
@@ -397,7 +398,7 @@ class LatentAlignApproach(AdaptionApproach):
 
         self.save_hyperparameters()
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an optimizer."""
         optim = self._get_optimizer(self.parameters())
 

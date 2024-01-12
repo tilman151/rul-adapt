@@ -9,9 +9,10 @@ Both variants were introduced by
 [Cheng et al.](https://doi.org/10.1007/s10845-021-01814-y) in 2021."""
 
 from copy import deepcopy
-from typing import List, Tuple, Literal, Optional, Any, Dict
+from typing import List, Tuple, Literal, Optional, Any
 
 import torch
+from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
 
 import rul_adapt
@@ -104,7 +105,7 @@ class ConditionalMmdApproach(AdaptionApproach):
     def fuzzy_sets(self) -> List[Tuple[float, float]]:
         return self.conditional_mmd_loss.fuzzy_sets
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an Adam optimizer."""
         return self._get_optimizer(self.parameters())
 
@@ -333,7 +334,7 @@ class ConditionalDannApproach(AdaptionApproach):
     def domain_disc(self) -> nn.Module:
         return self.dann_loss.domain_disc
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an Adam optimizer."""
         return self._get_optimizer(self.parameters())
 

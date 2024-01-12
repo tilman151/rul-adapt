@@ -27,10 +27,11 @@ This version of DANN was introduced by
 import copy
 import math
 from itertools import chain
-from typing import Optional, Any, List, Tuple, Dict, Literal
+from typing import Optional, Any, List, Tuple, Literal
 
 import numpy as np
 import torch
+from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torch import nn
 
 import rul_adapt.loss
@@ -183,7 +184,7 @@ class ConsistencyApproach(AdaptionApproach):
         """
         return 2 / (1 + math.exp(-10 * self.current_epoch / self.max_epochs)) - 1
 
-    def configure_optimizers(self) -> Dict[str, Any]:
+    def configure_optimizers(self) -> OptimizerLRSchedulerConfig:
         """Configure an optimizer to train the feature extractor, regressor and
         domain discriminator."""
         parameters = chain(
