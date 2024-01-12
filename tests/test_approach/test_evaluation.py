@@ -28,8 +28,8 @@ class DummyModule(pl.LightningModule):
         domain = "source" if dataloader_idx == 0 else "target"
         self.evaluator.validation(batch, domain)
 
-    def test_step(self, batch, batch_idx, data_loader_idx):
-        domain = "source" if data_loader_idx == 0 else "target"
+    def test_step(self, batch, batch_idx, dataloader_idx):
+        domain = "source" if dataloader_idx == 0 else "target"
         self.evaluator.test(batch, domain)
 
 
