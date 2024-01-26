@@ -17,8 +17,8 @@ Currently, five approaches are implemented, including their original hyperparame
 
 Three approaches are implemented without their original hyperparameters:
 
-* **[ConditionalDANN][rul_adapt.approach.conditional]** by Cheng et al. (2021)
-* **[ConditionalMMD][rul_adapt.approach.conditional]** by Cheng et al. (2021)
+* **[ConditionalDANN][rul_adapt.approach.conditional.ConditionalDannApproach]** by Cheng et al. (2021)
+* **[ConditionalMMD][rul_adapt.approach.conditional.ConditionalMmdApproach]** by Cheng et al. (2021)
 * **[PseudoLabels][rul_adapt.approach.pseudo_labels]** as used by Wang et al. (2022)
 
 This includes the following general approaches adapted for RUL estimation:
@@ -26,7 +26,7 @@ This includes the following general approaches adapted for RUL estimation:
 * **Domain Adaption Neural Networks (DANN)** by Ganin et al. (2016)
 * **Multi-Kernel Maximum Mean Discrepancy (MMD)** by Long et al. (2015)
 
-Each approach has an example notebook which can be found in the [examples](examples) folder.
+Each approach has an example notebook which can be found in the [examples](examples/index.md) folder.
 
 ## Installation
 
