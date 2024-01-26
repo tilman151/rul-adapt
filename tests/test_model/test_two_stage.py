@@ -44,3 +44,7 @@ def test_forward_upper_lower_interaction(inputs, extractor):
     outputs = extractor(inputs)
 
     assert torch.allclose(upper_outputs, outputs[3])
+
+
+def test_forward_with_empty_input(extractor):
+    output = extractor(torch.empty(0, 4, 3, 64))
