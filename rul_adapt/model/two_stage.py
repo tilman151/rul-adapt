@@ -52,7 +52,8 @@ class TwoStageExtractor(nn.Module):
         batch_size, upper_seq_len, input_channels, lower_seq_len = inputs.shape
         inputs = inputs.reshape(-1, input_channels, lower_seq_len)
         inputs = self.lower_stage(inputs)
-        inputs = inputs.reshape(batch_size, upper_seq_len, -1)
+        _, lower_output_units = inputs.shape
+        inputs = inputs.reshape(batch_size, upper_seq_len, lower_output_units)
         inputs = torch.transpose(inputs, 1, 2)
         inputs = self.upper_stage(inputs)
 
