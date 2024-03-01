@@ -53,8 +53,6 @@ import rul_datasets
 import torch
 from rul_datasets.utils import feature_to_tensor
 
-from rul_adapt import utils
-
 
 def generate_pseudo_labels(
     dm: rul_datasets.RulDataModule, model: torch.nn.Module, inductive: bool = False
