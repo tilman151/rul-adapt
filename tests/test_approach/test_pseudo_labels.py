@@ -2,8 +2,10 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import pytorch_lightning as pl
 import rul_datasets
 import torch
+from torch.utils.data import ConcatDataset, DataLoader
 
 from rul_adapt import model
 from rul_adapt.approach import SupervisedApproach
@@ -11,6 +13,7 @@ from rul_adapt.approach.pseudo_labels import (
     generate_pseudo_labels,
     patch_pseudo_labels,
     _PseudoLabelReader,
+    get_max_rul,
 )
 
 
@@ -159,3 +162,49 @@ class TestPseudoLabelReader:
             if fttp < 10:  # if FTTP is too long, all RULs are 1.0
                 assert np.all(t[fttp:] < max_rul)
                 assert t[-1] == pl
+
+
+@pytest.mark.integration
+def test_on_dummy():
+    pl.seed_everything(42)
+
+    fd1 = rul_datasets.RulDataModule(rul_datasets.reader.DummyReader(fd=1), 16)
+
+    feature_extractor = model.CnnExtractor(1, [10], seq_len=10, fc_units=16)
+    regressor = model.FullyConnectedHead(16, [1], act_func_on_last_layer=False)
+
+    approach = SupervisedApproach("mse", 130)
+    approach.set_model(feature_extractor, regressor)
+
+    trainer = pl.Trainer(
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        max_epochs=10,
+    )
+    trainer.fit(approach, fd1)
+
+    fd2 = rul_datasets.RulDataModule(
+        fd1.reader.get_compatible(fd=2, percent_broken=0.8), 16
+    )
+    pseudo_rul = generate_pseudo_labels(fd2, approach)
+    max_rul = get_max_rul(fd2.reader)
+    pseudo_rul = [min(max_rul, max(0.0, pr)) for pr in pseudo_rul]
+    patch_pseudo_labels(fd2, pseudo_rul)
+
+    source_data = fd1.to_dataset("dev")
+    target_data = fd2.to_dataset("dev")
+    combined_data = ConcatDataset([source_data, target_data])
+    combined_dl = DataLoader(combined_data, fd2.batch_size, shuffle=True)
+
+    trainer = pl.Trainer(
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        max_epochs=10,
+    )
+    trainer.fit(
+        approach, train_dataloaders=combined_dl, val_dataloaders=fd2.val_dataloader()
+    )
