@@ -25,7 +25,10 @@ def test_generate_pseudo_labels(mocker, inductive, exp_split):
     approach.set_model(fe, reg)
     mock_dm = mocker.MagicMock(rul_datasets.RulDataModule)
     mock_dm.reader.max_rul = 50
-    mock_dm.load_split.return_value = ([torch.randn(15, 1, 10)], [torch.randn(15)])
+    mock_dm.load_split.return_value = (
+        [np.random.randn(15, 10, 1)],
+        [np.random.randn(15)],
+    )
 
     pseudo_labels = generate_pseudo_labels(mock_dm, approach, inductive=inductive)
 
