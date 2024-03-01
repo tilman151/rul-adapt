@@ -51,6 +51,7 @@ from typing import List, Tuple, Optional, Union
 import numpy as np
 import rul_datasets
 import torch
+from rul_datasets.utils import feature_to_tensor
 
 
 def generate_pseudo_labels(
@@ -74,7 +75,7 @@ def generate_pseudo_labels(
         A list of pseudo labels for the dev set of the data module.
     """
     features, _ = dm.load_split("test" if inductive else "dev", alias="dev")
-    last_timestep = torch.stack([f[-1] for f in features])
+    last_timestep = feature_to_tensor(np.stack([f[-1] for f in features]))
     pseudo_labels = model(last_timestep).squeeze(axis=1)
 
     max_rul = get_max_rul(dm.reader)
