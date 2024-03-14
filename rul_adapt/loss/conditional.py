@@ -107,7 +107,7 @@ class ConditionalAdaptionLoss(torchmetrics.Metric):
 
 
 def _membership(preds: torch.Tensor, fuzzy_set: Tuple[float, float]) -> torch.Tensor:
-    preds = preds.squeeze() if len(preds.shape) > 1 else preds
+    preds = preds.squeeze(-1) if preds.ndim > 1 else preds
     membership = (preds >= fuzzy_set[0]) & (preds < fuzzy_set[1])
 
     return membership

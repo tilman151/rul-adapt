@@ -65,6 +65,8 @@ def generate_pseudo_labels(
     values. It is recommended to clip them to zero and `max_rul` respectively before
     using them to patch a reader.
 
+    The model is assumed to reside on the CPU where the calculation will be performed.
+
     Args:
         dm: The data module to generate pseudo labels for.
         model: The model to use for generating the pseudo labels.
