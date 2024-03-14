@@ -115,6 +115,18 @@ def test__membership():
     assert torch.all(_membership(inputs, fuzzy_set) == expected)
 
 
+@pytest.mark.parametrize("loss_fixture", ["cdann", "cmmd"])
+def test_forward_batch_size_one(loss_fixture, request):
+    """Should not fail for batch size of one."""
+    loss_func = request.getfixturevalue(loss_fixture)
+    source = torch.rand(1, 10)
+    source_preds = torch.zeros(1, 1)
+    target = torch.rand(1, 10)
+    target_preds = torch.zeros(1, 1)
+
+    loss_func(source, source_preds, target, target_preds)
+
+
 def test_backward_cdann(cdann):
     source = torch.rand(10, 10)
     source_preds = torch.zeros(10, 1)
